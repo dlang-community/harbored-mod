@@ -531,8 +531,7 @@ private:
 		string classDocFileName = index == 0 ?
 			format("%s.%s.html", moduleFileBase, join(stack[baseLength .. $], ".").array)
 			: format("%s.%s%d.html", moduleFileBase, join(stack[baseLength .. $], ".").array, index);
-		searchIndex.writefln(`{"%s.%s" : "../%s"},`, moduleFileBase,
-			join(stack[baseLength .. $], ".").array, classDocFileName);
+		searchIndex.writefln(`{"%s" : "../%s"},`, join(stack, ".").array, classDocFileName);
 		auto f = File(classDocFileName, "w");
 		writeHeader(f, name, baseLength - 1);
 		return f;
