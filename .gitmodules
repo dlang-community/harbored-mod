@@ -1,0 +1,8 @@
+[submodule "libdparse"]
+	path = libdparse
+	url = https://github.com/Hackerpilot/libdparse.git
+	branch = master
+[submodule "libddoc"]
+	path = libddoc
+	url = https://github.com/economicmodeling/libddoc.git
+	branch = master
