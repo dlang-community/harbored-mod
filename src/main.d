@@ -57,7 +57,7 @@ void generateDocumentation(string outputDirectory,  string[string] macros, strin
 {
 	string[] files = getFilesToProcess(args);
 	import std.stdio;
-	stderr.writeln("Writing documentation for ", files, " to ", outputDirectory);
+	stderr.writeln("Writing documentation to ", outputDirectory);
 
 	mkdirRecurse(outputDirectory);
 
@@ -69,6 +69,7 @@ void generateDocumentation(string outputDirectory,  string[string] macros, strin
 		File index = File(buildPath(outputDirectory, "index.html"), "w");
 		index.write(indexhtml);
 	}
+
 	File toc = File(buildPath(outputDirectory, "toc.html"), "w");
 	toc.writeln(`<!DOCTYPE html>
 <head>
@@ -94,6 +95,7 @@ ul {
 
 	foreach (f; files)
 	{
+		writeln("Generating documentation for ", f);
 		string moduleName;
 		string location;
 		try

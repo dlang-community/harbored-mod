@@ -491,8 +491,9 @@ private:
 //		writeln("writeComment: ", comment.sections.length, " sections.");
 		foreach (section; comment.sections)
 		{
+			if (section.name == "Macros")
+				continue;
 			f.writeln(`<div class="section">`);
-//			writeln(section.name);
 			if (section.name != "Summary" && section.name != "Description")
 			{
 				f.write("<h3>");
