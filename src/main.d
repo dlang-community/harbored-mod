@@ -101,8 +101,11 @@ ul {
 		try
 		{
 			writeDocumentation(outputDirectory, f, macros, moduleName, location, search);
+			string path = (location.length > 2 && location[0 .. 2] == "./")
+				? stripLeadingDirectory(location[2 .. $])
+				: location;
 			if (moduleName != "")
-				toc.writeln(`<li><a target="_parent" href="../`, location, `">`, moduleName, `</a></li>`);
+				toc.writeln(`<li><a target="_parent" href="`, path, `">`, moduleName, `</a></li>`);
 		}
 		catch (Exception e)
 		{
