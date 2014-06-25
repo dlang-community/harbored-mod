@@ -58,7 +58,7 @@ struct Item
 		if (url == "#")
 			f.write(name, `</td>`);
 		else
-			f.write(`<a href="../`, url, `">`, name, `</a></td>`);
+			f.write(`<a href="`, stripLeadingDirectory(url), `">`, name, `</a></td>`);
 		if (type is null)
 			f.write(`<td></td><td>`, summary ,`</td></tr>`);
 		else
@@ -532,7 +532,8 @@ private:
 		string classDocFileName = index == 0 ?
 			format("%s.%s.html", moduleFileBase, join(stack[baseLength .. $], ".").array)
 			: format("%s.%s%d.html", moduleFileBase, join(stack[baseLength .. $], ".").array, index);
-		searchIndex.writefln(`{"%s" : "../%s"},`, join(stack, ".").array, classDocFileName);
+		searchIndex.writefln(`{"%s" : "%s"},`, join(stack, ".").array,
+			stripLeadingDirectory(classDocFileName));
 		auto f = File(classDocFileName, "w");
 		writeHeader(f, name, baseLength - 1);
 		return f;
@@ -553,4 +554,10 @@ private:
 	string[string] macros;
 	Members[] memberStack;
 	File searchIndex;
+}
+
+string stripLeadingDirectory(string s)
+{
+	import std.algorithm;
+	return findSplitAfter(s, "/")[1];
 }
