@@ -16,6 +16,7 @@ import std.getopt;
 import std.path;
 import std.stdio;
 import visitor;
+import macros;
 
 int main(string[] args)
 {
@@ -44,7 +45,12 @@ int main(string[] args)
 
 string[string] readMacros(const string[] macroFiles)
 {
-	return null;
+	string[string] rVal;
+	foreach (k, v; ddoc.macros.DEFAULT_MACROS)
+		rVal[k] = v;
+	foreach (mf; macroFiles)
+		readMacroFile(mf, rVal);
+	return rVal;
 }
 
 void generateDocumentation(string outputDirectory,  string[string] macros, string[] args)
