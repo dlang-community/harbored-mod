@@ -21,11 +21,13 @@ import macros;
 int main(string[] args)
 {
 	string[] macroFiles;
+	string[] excludes;
 	string outputDirectory;
 	bool help;
+	string indexContent;
 
 	getopt(args, "m|macros", &macroFiles, "o|output-directory", &outputDirectory,
-		"h|help", &help);
+		"h|help", &help, "i|index", &indexContent, "e|exclude", &excludes);
 
 	if (help)
 	{
@@ -38,7 +40,7 @@ int main(string[] args)
 	if (outputDirectory is null)
 		outputDirectory = "./doc";
 
-	generateDocumentation(outputDirectory, macros, args[1 .. $]);
+	generateDocumentation(outputDirectory, indexContent, macros, args[1 .. $]);
 
 	return 0;
 }
@@ -53,7 +55,8 @@ string[string] readMacros(const string[] macroFiles)
 	return rVal;
 }
 
-void generateDocumentation(string outputDirectory,  string[string] macros, string[] args)
+void generateDocumentation(string outputDirectory, string indexContent,
+	string[string] macros, string[] args)
 {
 	string[] files = getFilesToProcess(args);
 	import std.stdio;
@@ -68,6 +71,16 @@ void generateDocumentation(string outputDirectory,  string[string] macros, strin
 		js.write(hljs);
 		File index = File(buildPath(outputDirectory, "index.html"), "w");
 		index.write(indexhtml);
+		if (indexContent !is null)
+		{
+			File indexContentFile = File(indexContent);
+			ubyte[] indexContentBytes = new ubyte[indexContentFile.size];
+			indexContentFile.rawRead(indexContentBytes);
+			readAndWriteComment(index, cast(string) indexContentBytes, macros);
+		}
+        index.writeln(`</div>
+	</body>
+</html>`);
 	}
 
 	File toc = File(buildPath(outputDirectory, "toc.html"), "w");
@@ -79,10 +92,9 @@ html {
 }
 ul {
 	margin: 0;
-    list-style: none;
-    padding: 0;
-    font-family: sans;
-
+	list-style: none;
+	padding: 0;
+	font-family: sans;
 }
 </style>
 </head>
@@ -161,15 +173,28 @@ Generates documentation for D source code.
 
 Usage:
     doctool [Options] file.d
-    doctool [Options] directory/
+    doctool [Options] directory1/ directory2/ ...
 
 Options:
-    --macros | -m             Specifies a macro definition file
-    --output-directory | -o   Writes the generated documentation to the given
-                              directory. If this option is not specified,
-                              documentation will be written to a folder called
-                              "doc" in the current directory.
-    --help | -h               Prints this message
+    --macros | -m MACRO_FILE
+        Specifies a macro definition file
+
+    --output-directory | -o DIR
+        Writes the generated documentation to the given directory. If this
+        option is not specified, documentation will be written to a folder
+        called "doc" in the current directory.
+
+    --exclude | -e MODULE_NAME
+        Exclude the given module or package from the generated documentation.
+        By default no modules or packages will be excluded unless they do not
+        contain a module declaration.
+
+    --index | -i DDOC_FILE
+        Use DDOC_FILE as the content of the index.html page. By default this
+        page will be blank.
+
+    --help | -h
+        Prints this message.
 `;
 
 void doNothing(string, size_t, size_t, string, bool) {}

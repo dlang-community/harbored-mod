@@ -157,7 +157,8 @@ class DocVisitor : ASTVisitor
 		prevComments.length = 1;
 
 		if (mod.moduleDeclaration.comment !is null)
-			readAndWriteComment(output, mod.moduleDeclaration.comment);
+			readAndWriteComment(output, mod.moduleDeclaration.comment, macros,
+				prevComments);
 
 		memberStack.length = 1;
 
@@ -178,7 +179,7 @@ class DocVisitor : ASTVisitor
 		scope(exit) popSymbol(f);
 		writeBreadcrumbs(f);
 
-		string summary = readAndWriteComment(f, ad.comment);
+		string summary = readAndWriteComment(f, ad.comment, macros, prevComments);
 		mixin(`memberStack[$ - 2].` ~ name ~ ` ~= Item(findSplitAfter(f.name, "/")[1], ad.name.text, summary);`);
 		prevComments.length = prevComments.length + 1;
 		ad.accept(this);
@@ -196,7 +197,8 @@ class DocVisitor : ASTVisitor
 		if (member.comment is null)
 			return;
 		File blackHole = File("/dev/null", "w");
-		string summary = readAndWriteComment(blackHole, member.comment);
+		string summary = readAndWriteComment(blackHole, member.comment, macros,
+			prevComments);
 		memberStack[$ - 1].values ~= Item("#", member.name.text, summary);
 	}
 
@@ -219,8 +221,9 @@ class DocVisitor : ASTVisitor
 		if (cd.constraint !is null)
 			formatter.format(cd.constraint);
 		f.writeln(`</code></pre>`);
-		string summary = readAndWriteComment(f, cd.comment);
-		memberStack[$ - 2].classes ~= Item(findSplitAfter(f.name, "/")[1], cd.name.text, summary);
+		string summary = readAndWriteComment(f, cd.comment, macros, prevComments);
+		memberStack[$ - 2].classes ~= Item(findSplitAfter(f.name, "/")[1],
+			cd.name.text, summary);
 		prevComments.length = prevComments.length + 1;
 		cd.accept(this);
 		prevComments = prevComments[0 .. $ - 1];
@@ -244,8 +247,9 @@ class DocVisitor : ASTVisitor
 		if (td.constraint)
 			formatter.format(td.constraint);
 		f.writeln(`</code></pre>`);
-		string summary = readAndWriteComment(f, td.comment);
-		memberStack[$ - 2].templates ~= Item(findSplitAfter(f.name, "/")[1], td.name.text, summary);
+		string summary = readAndWriteComment(f, td.comment, macros, prevComments);
+		memberStack[$ - 2].templates ~= Item(findSplitAfter(f.name, "/")[1],
+			td.name.text, summary);
 		prevComments.length = prevComments.length + 1;
 		td.accept(this);
 		prevComments = prevComments[0 .. $ - 1];
@@ -269,8 +273,9 @@ class DocVisitor : ASTVisitor
 		if (sd.constraint)
 			formatter.format(sd.constraint);
 		f.writeln(`</code></pre>`);
-		string summary = readAndWriteComment(f, sd.comment);
-		memberStack[$ - 2].structs ~= Item(findSplitAfter(f.name, "/")[1], sd.name.text, summary);
+		string summary = readAndWriteComment(f, sd.comment, macros, prevComments);
+		memberStack[$ - 2].structs ~= Item(findSplitAfter(f.name, "/")[1],
+			sd.name.text, summary);
 		prevComments.length = prevComments.length + 1;
 		sd.accept(this);
 		prevComments = prevComments[0 .. $ - 1];
@@ -296,8 +301,9 @@ class DocVisitor : ASTVisitor
 		if (id.constraint !is null)
 			formatter.format(id.constraint);
 		f.writeln(`</code></pre>`);
-		string summary = readAndWriteComment(f, id.comment);
-		memberStack[$ - 2].interfaces ~= Item(findSplitAfter(f.name, "/")[1], id.name.text, summary);
+		string summary = readAndWriteComment(f, id.comment, macros, prevComments);
+		memberStack[$ - 2].interfaces ~= Item(findSplitAfter(f.name, "/")[1],
+			id.name.text, summary);
 		prevComments.length = prevComments.length + 1;
 		id.accept(this);
 		prevComments = prevComments[0 .. $ - 1];
@@ -314,8 +320,9 @@ class DocVisitor : ASTVisitor
 			scope(exit) popSymbol(f);
 			writeBreadcrumbs(f);
 			string type = writeType(f, ad.name.text, ad.type);
-			string summary = readAndWriteComment(f, ad.comment);
-			memberStack[$ - 2].aliases ~= Item(findSplitAfter(f.name, "/")[1], ad.name.text, summary, type);
+			string summary = readAndWriteComment(f, ad.comment, macros, prevComments);
+			memberStack[$ - 2].aliases ~= Item(findSplitAfter(f.name, "/")[1],
+				ad.name.text, summary, type);
 		}
 		else foreach (initializer; ad.initializers)
 		{
@@ -323,8 +330,9 @@ class DocVisitor : ASTVisitor
 			scope(exit) popSymbol(f);
 			writeBreadcrumbs(f);
 			string type = writeType(f, initializer.name.text, initializer.type);
-			string summary = readAndWriteComment(f, ad.comment);
-			memberStack[$ - 2].aliases ~= Item(findSplitAfter(f.name, "/")[1], initializer.name.text, summary, type);
+			string summary = readAndWriteComment(f, ad.comment, macros, prevComments);
+			memberStack[$ - 2].aliases ~= Item(findSplitAfter(f.name, "/")[1],
+				initializer.name.text, summary, type);
 		}
 	}
 
@@ -337,19 +345,24 @@ class DocVisitor : ASTVisitor
 			File f = pushSymbol(dec.name.text);
 			scope(exit) popSymbol(f);
 			writeBreadcrumbs(f);
-			string summary = readAndWriteComment(f, dec.comment is null ? vd.comment : dec.comment);
-			memberStack[$ - 2].variables ~= Item(findSplitAfter(f.name, "/")[1], dec.name.text, summary, formatNode(vd.type));
+			string summary = readAndWriteComment(f,
+				dec.comment is null ? vd.comment : dec.comment, macros,
+				prevComments);
+			memberStack[$ - 2].variables ~= Item(findSplitAfter(f.name, "/")[1],
+				dec.name.text, summary, formatNode(vd.type));
 		}
 		if (vd.comment !is null && vd.autoDeclaration !is null) foreach (ident; vd.autoDeclaration.identifiers)
 		{
 			File f = pushSymbol(ident.text);
 			scope(exit) popSymbol(f);
 			writeBreadcrumbs(f);
-			string summary = readAndWriteComment(f, vd.comment);
+			string summary = readAndWriteComment(f, vd.comment, macros, prevComments);
 			if (vd.storageClass.token == tok!"enum")
-				memberStack[$ - 2].enums ~= Item(findSplitAfter(f.name, "/")[1], ident.text, summary, str(vd.storageClass.token.type));
+				memberStack[$ - 2].enums ~= Item(findSplitAfter(f.name, "/")[1],
+					ident.text, summary, str(vd.storageClass.token.type));
 			else
-				memberStack[$ - 2].variables ~= Item(findSplitAfter(f.name, "/")[1], ident.text, summary, str(vd.storageClass.token.type));
+				memberStack[$ - 2].variables ~= Item(findSplitAfter(f.name, "/")[1],
+					ident.text, summary, str(vd.storageClass.token.type));
 		}
 	}
 
@@ -387,7 +400,7 @@ class DocVisitor : ASTVisitor
 			formatter.format(fd.constraint);
 		}
 		writer.put("\n</code></pre>");
-		string summary = readAndWriteComment(f, fd.comment);
+		string summary = readAndWriteComment(f, fd.comment, macros, prevComments);
 		memberStack[$ - 2].functions ~= Item(findSplitAfter(f.name, "/")[1], fd.name.text, summary);
 		prevComments.length = prevComments.length + 1;
 		fd.accept(this);
@@ -459,70 +472,6 @@ private:
 		f.writeln(`<div class="content">`);
 	}
 
-	/**
-	 * Returns: the summary
-	 */
-	string readAndWriteComment(File f, string comment)
-	{
-		import std.d.lexer;
-		import std.array;
-//		writeln("readAndWriteComment");
-		auto app = appender!string();
-		comment.unDecorateComment(app);
-//		writeln(comment, " undecorated to ", app.data);
-		Comment c = parseComment(app.data, macros);
-		if (c.isDitto)
-			c = prevComments[$ - 1];
-		else
-			prevComments[$ - 1] = c;
-		writeComment(f, c);
-		if (c.sections.length && c.sections[0].name == "Summary")
-			return c.sections[0].content;
-		foreach (section; c.sections)
-		{
-			if (section.name == "Returns")
-				return "Returns: " ~ section.content;
-		}
-		return "";
-	}
-
-	void writeComment(File f, Comment comment)
-	{
-//		writeln("writeComment: ", comment.sections.length, " sections.");
-		foreach (section; comment.sections)
-		{
-			if (section.name == "Macros")
-				continue;
-			f.writeln(`<div class="section">`);
-			if (section.name != "Summary" && section.name != "Description")
-			{
-				f.write("<h3>");
-				f.write(section.name);
-				f.writeln("</h3>");
-			}
-			if (section.name == "Params")
-			{
-				f.writeln(`<table class="params">`);
-				foreach (k, v; section.mapping)
-				{
-					f.write(`<tr class="param"><td class="paramName">`);
-					f.write(k);
-					f.write(`</td><td class="paramDoc">`);
-					f.write(v);
-					f.writeln("</td></tr>");
-				}
-				f.write("</table>");
-			}
-			else
-			{
-//				f.writeln("<p>");
-				f.writeln(section.content);
-//				f.writeln("</p>");
-			}
-			f.writeln(`</div>`);
-		}
-	}
-
 	File pushSymbol(string name, size_t index = 0)
 	{
 		import std.array;
@@ -532,8 +481,10 @@ private:
 		string classDocFileName = index == 0 ?
 			format("%s.%s.html", moduleFileBase, join(stack[baseLength .. $], ".").array)
 			: format("%s.%s%d.html", moduleFileBase, join(stack[baseLength .. $], ".").array, index);
-		searchIndex.writefln(`{"%s" : "%s"},`, join(stack, ".").array,
-			stripLeadingDirectory(classDocFileName));
+		string path = (classDocFileName.length > 2 && classDocFileName[0 .. 2] == "./")
+				? stripLeadingDirectory(classDocFileName[2 .. $])
+				: classDocFileName;
+		searchIndex.writefln(`{"%s" : "%s"},`, join(stack, ".").array, path);
 		auto f = File(classDocFileName, "w");
 		writeHeader(f, name, baseLength - 1);
 		return f;
@@ -560,4 +511,68 @@ string stripLeadingDirectory(string s)
 {
 	import std.algorithm;
 	return findSplitAfter(s, "/")[1];
+}
+
+/**
+ * Returns: the summary
+ */
+string readAndWriteComment(File f, string comment, ref string[string] macros,
+	Comment[] prevComments = null)
+{
+	import std.d.lexer;
+	import std.array;
+	auto app = appender!string();
+	comment.unDecorateComment(app);
+//		writeln(comment, " undecorated to ", app.data);
+	Comment c = parseComment(app.data, macros);
+	if (c.isDitto)
+		c = prevComments[$ - 1];
+	else if (prevComments.length > 0)
+		prevComments[$ - 1] = c;
+	writeComment(f, c);
+	if (c.sections.length && c.sections[0].name == "Summary")
+		return c.sections[0].content;
+	foreach (section; c.sections)
+	{
+		if (section.name == "Returns")
+			return "Returns: " ~ section.content;
+	}
+	return "";
+}
+
+void writeComment(File f, Comment comment)
+{
+//		writeln("writeComment: ", comment.sections.length, " sections.");
+	foreach (section; comment.sections)
+	{
+		if (section.name == "Macros")
+			continue;
+		f.writeln(`<div class="section">`);
+		if (section.name != "Summary" && section.name != "Description")
+		{
+			f.write("<h3>");
+			f.write(section.name);
+			f.writeln("</h3>");
+		}
+		if (section.name == "Params")
+		{
+			f.writeln(`<table class="params">`);
+			foreach (k, v; section.mapping)
+			{
+				f.write(`<tr class="param"><td class="paramName">`);
+				f.write(k);
+				f.write(`</td><td class="paramDoc">`);
+				f.write(v);
+				f.writeln("</td></tr>");
+			}
+			f.write("</table>");
+		}
+		else
+		{
+//				f.writeln("<p>");
+			f.writeln(section.content);
+//				f.writeln("</p>");
+		}
+		f.writeln(`</div>`);
+	}
 }
