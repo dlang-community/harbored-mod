@@ -1,27 +1,27 @@
 html {
-    font-family: sans;
-    margin: 0;
-    padding: 0;
-    background-color: #eee;
+	font-family: sans;
+	margin: 0;
+	padding: 0;
+	background-color: #eee;
 }
 
 body {
-    margin: 0;
-    padding: 0;
+	margin: 0;
+	padding: 0;
 }
 
 div.breadcrumbs {
-    color: white;
-    background-color: #333;
-    padding: 1em;
-    box-shadow: 0 0 .5em .5em black;
-    background: linear-gradient(180deg, #333, #222);
-    text-align: right;
+	color: white;
+	background-color: #333;
+	padding: 1em;
+	box-shadow: 0 0 .5em .5em black;
+	background: linear-gradient(180deg, #333, #222);
+	text-align: right;
 	margin: 0 0 2em 20em;
 }
 
 div.breadcrumbs a {
-    color: white;
+	color: white;
 
 }
 
@@ -47,63 +47,68 @@ div.breadcrumbs input {
 }
 
 div.content {
-    margin-left: 20em;
-    padding: 0;
-    border: none;
+	margin-left: 20em;
+	padding: 0;
+	border: none;
 }
 
 div.section {
-    padding: .5em;
-    margin: .5em;
+	padding: .5em;
+	margin: .5em;
 }
 
 div.section h3 {
-    margin: 0 0 .5em 0;
+	margin: 0 0 .5em 0;
 }
 
 div.section tr {
-    margin: 0;
+	margin: 0;
 }
 
 div.section table {
-    border-collapse: collapse;
-    border-bottom: 1px dashed grey;
-    margin: 1em 0;
+	border-collapse: collapse;
+	border-bottom: 1px dashed grey;
+	margin: 1em 0;
 }
 
 div.section td {
-    border-top: 1px dashed grey;
-    margin: 0;
-    padding: .25em;
+	border-top: 1px dashed grey;
+	margin: 0;
+	padding: .25em;
 }
 
 div.section code {
-    background-color: #333;
-    color: #eee;
-    padding: 1em;
-    border-radius: .5em;
-    display: block;
+	background-color: #333;
+	color: #eee;
+	padding: 1em;
+	border-radius: .5em;
+	display: block;
 }
 
 div.content > pre > code {
-    margin: .5em;
-    border-radius: .5em;
-    padding: 1em;
+	margin: .5em;
+	border-radius: .5em;
+	padding: 1em;
 }
 
 iframe {
-    float: left;
-    width: 20em;
-    height: 100%;
-    position: fixed;
-    border: none;
-    font-family: sans;
+	float: left;
+	width: 20em;
+	height: 100%;
+	position: fixed;
+	border: none;
+	font-family: sans;
 	border-right: .25em solid #333;
 }
 
+.d_inlinecode {
+	font-family: monospace;
+	font-weight: bold;
+}
+
 .hljs {
-    display: block; padding: 1em;
-    background: #282B2E;
+	display: block; padding: 1em;
+	background: #282B2E;
 }
 
 .hljs-keyword,
@@ -116,57 +121,57 @@ iframe {
 .nginx .hljs-title,
 .css .hljs-id,
 .tex .hljs-special {
-    color: #93C763;
+	color: #93C763;
 }
 
 .hljs-number {
-    color: #FFCD22;
+	color: #FFCD22;
 }
 
 .hljs {
-    color: #E0E2E4;
+	color: #E0E2E4;
 }
 
 .css .hljs-tag,
 .css .hljs-pseudo {
-    color: #D0D2B5;
+	color: #D0D2B5;
 }
 
 .hljs-attribute,
 .hljs .hljs-constant {
-    color: #668BB0;
+	color: #668BB0;
 }
 
 .xml .hljs-attribute {
-    color: #B3B689;
+	color: #B3B689;
 }
 
 .xml .hljs-tag .hljs-value {
-    color: #E8E2B7;
+	color: #E8E2B7;
 }
 
 .hljs-code,
 .hljs-class .hljs-title,
 .hljs-header {
-    color: white;
+	color: white;
 }
 
 .hljs-class,
 .hljs-hexcolor {
-    color: #93C763;
+	color: #93C763;
 }
 
 .hljs-regexp {
-    color: #D39745;
+	color: #D39745;
 }
 
 .hljs-at_rule,
 .hljs-at_rule .hljs-keyword {
-    color: #A082BD;
+	color: #A082BD;
 }
 
 .hljs-doctype {
-    color: #557182;
+	color: #557182;
 }
 
 .hljs-link_url,
@@ -197,11 +202,11 @@ iframe {
 .apache .hljs-cbracket,
 .tex .hljs-command,
 .hljs-prompt {
-    color: #8CBBAD;
+	color: #8CBBAD;
 }
 
 .hljs-string {
-    color: #EC7600;
+	color: #EC7600;
 }
 
 .hljs-comment,
@@ -215,7 +220,7 @@ iframe {
 .hljs-shebang,
 .apache .hljs-sqbracket,
 .tex .hljs-formula {
-    color: #818E96;
+	color: #818E96;
 }
 
 .hljs-keyword,
@@ -238,7 +243,7 @@ iframe {
 .hljs-request,
 .hljs-at_rule .hljs-keyword,
 .hljs-status {
-    font-weight: bold;
+	font-weight: bold;
 }
 
 .coffeescript .javascript,
@@ -248,5 +253,5 @@ iframe {
 .xml .vbscript,
 .xml .css,
 .xml .hljs-cdata {
-    opacity: 0.5;
+	opacity: 0.5;
 }
