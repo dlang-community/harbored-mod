@@ -14,4 +14,4 @@ all:
 	-rm bin/*.o
 
 clean:
-	-rm -r bin/
+	rm -rf bin/

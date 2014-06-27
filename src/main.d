@@ -6,6 +6,7 @@
  */
 module main;
 
+import std.algorithm;
 import std.array;
 import std.conv;
 import std.d.ast;
@@ -17,6 +18,7 @@ import std.path;
 import std.stdio;
 import visitor;
 import macros;
+import tocbuilder;
 
 int main(string[] args)
 {
@@ -83,27 +85,12 @@ void generateDocumentation(string outputDirectory, string indexContent,
 </html>`);
 	}
 
-	File toc = File(buildPath(outputDirectory, "toc.html"), "w");
-	toc.writeln(`<!DOCTYPE html>
-<head>
-<style type="text/css">
-html {
-	background-color: #eee;
-}
-ul {
-	margin: 0;
-	list-style: none;
-	padding: 0;
-	font-family: sans;
-}
-</style>
-</head>
-<body>`);
-	toc.writeln(`<ul>`);
-
 	File search = File(buildPath(outputDirectory, "search.js"), "w");
 	search.writeln(`"use strict";`);
 	search.writeln(`var items = [`);
+
+	string[] modules;
+	string[string] moduleMap;
 
 	foreach (f; files)
 	{
@@ -117,7 +104,10 @@ ul {
 				? stripLeadingDirectory(location[2 .. $])
 				: location;
 			if (moduleName != "")
-				toc.writeln(`<li><a target="_parent" href="`, path, `">`, moduleName, `</a></li>`);
+			{
+				modules ~= moduleName;
+				moduleMap[moduleName] = path;
+			}
 		}
 		catch (Exception e)
 		{
@@ -127,6 +117,62 @@ ul {
 	search.writeln(`];`);
 	search.writeln(searchjs);
 
+	File toc = File(buildPath(outputDirectory, "toc.html"), "w");
+	toc.writeln(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<style type="text/css">
+html {
+	background-color: #eee;
+}
+ul {
+	font-family: sans;
+    list-style: none;
+    padding: 0 0 0 1em;
+}
+ul ul ul {
+	display: none;
+}
+span {
+	cursor: pointer;
+	font-weight: bold;
+}
+
+.expanded::before {
+	content: "▼ ";
+}
+
+span::before {
+	content: "▶ ";
+}
+
+body > ul > li > span::before {
+	content: "▼ ";
+}
+
+</style>
+<script type="text/javascript">
+"use strict";
+function toggleChildren(t) {
+	var c = t.nextElementSibling;
+	if (c.style.display === "" || c.style.display === "none") {
+		c.style.display = "list-item";
+		t.className = "expanded";
+	} else {
+		c.style.display = "none";
+		t.className = "";
+	}
+}
+</script>
+</head>
+<body>`);
+	toc.writeln(`<ul>`);
+
+	sort(modules);
+	TocItem[] tocItems = buildTree(modules, moduleMap);
+	foreach (t; tocItems)
+		t.write(toc);
 	toc.writeln(`</ul></body></html>`);
 }
 
