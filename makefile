@@ -1,7 +1,6 @@
 .PHONY: all clean
 
 all:
-	-mkdir bin 2> /dev/null
 	dmd\
 		src/*.d\
 		libddoc/src/ddoc/*.d\
