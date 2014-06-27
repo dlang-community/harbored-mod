@@ -16,7 +16,8 @@ struct TocItem
 		if (url !is null)
 			output.writeln(`<li><a target="_parent" href="`, url, `">`, name, `</a></li>`);
 		else
-			output.writeln(`<li><span onclick="toggleChildren(this);">`, name, `</span>`);
+			output.writeln(`<li><span onclick="toggleChildren(this);"`,
+				(indent == 0 ? ` class="expanded"` : ``), `>`, name, `</span>`);
 		if (hasChildren)
 		{
 			foreach (i; 0 .. indent)

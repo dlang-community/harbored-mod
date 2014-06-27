@@ -146,17 +146,12 @@ span {
 span::before {
 	content: "▶ ";
 }
-
-body > ul > li > span::before {
-	content: "▼ ";
-}
-
 </style>
 <script type="text/javascript">
 "use strict";
 function toggleChildren(t) {
 	var c = t.nextElementSibling;
-	if (c.style.display === "" || c.style.display === "none") {
+	if (t.className != "expanded" && (c.style.display === "" || c.style.display === "none")) {
 		c.style.display = "list-item";
 		t.className = "expanded";
 	} else {
