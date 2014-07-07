@@ -62,7 +62,7 @@ struct Item
 		if (type is null)
 			f.write(`<td></td><td>`, summary ,`</td></tr>`);
 		else
-			f.write(`<td><pre><code>`, type, `</pre></code></td><td>`, summary ,`</td></tr>`);
+			f.write(`<td><pre><code>`, type, `</code></pre></td><td>`, summary ,`</td></tr>`);
 	}
 }
 
@@ -551,7 +551,7 @@ void writeComment(File f, Comment comment)
 		if (section.name != "Summary" && section.name != "Description")
 		{
 			f.write("<h3>");
-			f.write(section.name);
+			f.write(section.name == "See_also" ? "See Also" : section.name);
 			f.writeln("</h3>");
 		}
 		if (section.name == "Params")
