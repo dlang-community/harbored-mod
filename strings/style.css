@@ -109,6 +109,8 @@ iframe {
 .hljs {
 	display: block; padding: 1em;
 	background: #282B2E;
+	overflow-x: auto;
+	display: block;
 }
 
 .hljs-keyword,
