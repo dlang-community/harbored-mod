@@ -75,14 +75,21 @@ void generateDocumentation(string outputDirectory, string indexContent,
 		index.write(indexhtml);
 		if (indexContent !is null)
 		{
+			File frontPage = File(buildPath(outputDirectory, "index_content.html"), "w");
+			writeHeader(frontPage, "Index", 0);
+			frontPage.writeln(`<div class="breadcrumbs">
+<table id="results"></table>
+<input type="search" id="search" placeholder="Search" onkeyup="searchSubmit(this.value, event)"/>
+Main Page</div>`);
 			File indexContentFile = File(indexContent);
 			ubyte[] indexContentBytes = new ubyte[indexContentFile.size];
 			indexContentFile.rawRead(indexContentBytes);
-			readAndWriteComment(index, cast(string) indexContentBytes, macros);
-		}
-        index.writeln(`</div>
+			readAndWriteComment(frontPage, cast(string) indexContentBytes, macros);
+			frontPage.writeln(`
 	</body>
 </html>`);
+		}
+
 	}
 
 	File search = File(buildPath(outputDirectory, "search.js"), "w");
@@ -125,11 +132,19 @@ void generateDocumentation(string outputDirectory, string indexContent,
 <style type="text/css">
 html {
 	background-color: #eee;
+    padding: 0;
+    margin: 0;
 }
+
+body {
+    padding: 0;
+    margin: 0;
+}
+
 ul {
-	font-family: sans;
+    font-family: sans;
     list-style: none;
-    padding: 0 0 0 1em;
+    padding: 0 0 0 1.5em;
 }
 ul ul ul {
 	display: none;

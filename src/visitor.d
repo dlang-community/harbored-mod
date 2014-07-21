@@ -15,7 +15,6 @@ import ddoc.comments;
 import std.algorithm;
 
 enum HTML_END = `
-</div>
 <script>hljs.initHighlightingOnLoad();</script>
 </body>
 </html>`;
@@ -442,7 +441,6 @@ private:
 		import std.array;
 		import std.conv;
 		import std.range;
-		f.writeln(`<iframe seamless="seamless" src="toc.html"></iframe>`);
 		f.writeln(`<div class="breadcrumbs">`);
 		f.writeln(`<table id="results"></table>`);
 		f.writeln(`<input type="search" id="search" placeholder="Search" onkeyup="searchSubmit(this.value, event)"/>`);
@@ -469,7 +467,6 @@ private:
 				f.write(stack[i]);
 		}
 		f.writeln(`</div>`);
-		f.writeln(`<div class="content">`);
 	}
 
 	File pushSymbol(string name, size_t index = 0)

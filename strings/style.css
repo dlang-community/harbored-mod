@@ -17,7 +17,7 @@ div.breadcrumbs {
 	box-shadow: 0 0 .5em .5em black;
 	background: linear-gradient(180deg, #333, #222);
 	text-align: right;
-	margin: 0 0 2em 20em;
+	margin: 0 0 2em 0;
 }
 
 div.breadcrumbs a {
@@ -44,12 +44,6 @@ div.breadcrumbs input {
 
 #results a {
 	color: blue;
-}
-
-div.content {
-	margin-left: 20em;
-	padding: 0;
-	border: none;
 }
 
 div.section {
@@ -85,20 +79,10 @@ div.section code {
 	display: block;
 }
 
-div.content > pre > code {
+pre > code {
 	margin: .5em;
 	border-radius: .5em;
 	padding: 1em;
-}
-
-iframe {
-	float: left;
-	width: 20em;
-	height: 100%;
-	position: fixed;
-	border: none;
-	font-family: sans;
-	border-right: .25em solid #333;
 }
 
 .d_inlinecode {
