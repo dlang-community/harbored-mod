@@ -82,7 +82,7 @@ void generateDocumentation(string outputDirectory, string indexContent,
 <input type="search" id="search" placeholder="Search" onkeyup="searchSubmit(this.value, event)"/>
 Main Page</div>`);
 			File indexContentFile = File(indexContent);
-			ubyte[] indexContentBytes = new ubyte[indexContentFile.size];
+			ubyte[] indexContentBytes = new ubyte[cast(uint) indexContentFile.size];
 			indexContentFile.rawRead(indexContentBytes);
 			readAndWriteComment(frontPage, cast(string) indexContentBytes, macros);
 			frontPage.writeln(`
