@@ -146,7 +146,7 @@ ul {
     list-style: none;
     padding: 0 0 0 1.5em;
 }
-ul ul ul {
+ul ul {
 	display: none;
 }
 span {
