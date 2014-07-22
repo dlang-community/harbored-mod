@@ -3,6 +3,8 @@ html {
 	margin: 0;
 	padding: 0;
 	background-color: #eee;
+	border-left: .2em solid #333;
+	min-height: 100%;
 }
 
 body {

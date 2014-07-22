@@ -428,7 +428,7 @@ class DocVisitor : ASTVisitor
 			formatter.format(fd.constraint);
 		}
 		writer.put("\n</code></pre>");
-		string summary = readAndWriteComment(f, fd.comment, macros, prevComments);
+		string summary = readAndWriteComment(f, fd.comment, macros, prevComments, fd.functionBody);
 		memberStack[$ - 2].functions ~= Item(findSplitAfter(f.name, "/")[1], fd.name.text, summary);
 		prevComments.length = prevComments.length + 1;
 		fd.accept(this);
@@ -554,7 +554,7 @@ string stripLeadingDirectory(string s)
  * Returns: the summary
  */
 string readAndWriteComment(File f, string comment, ref string[string] macros,
-	Comment[] prevComments = null)
+	Comment[] prevComments = null, const FunctionBody functionBody = null)
 {
 	import std.d.lexer;
 	import std.array;
@@ -566,7 +566,7 @@ string readAndWriteComment(File f, string comment, ref string[string] macros,
 		c = prevComments[$ - 1];
 	else if (prevComments.length > 0)
 		prevComments[$ - 1] = c;
-	writeComment(f, c);
+	writeComment(f, c, functionBody);
 	if (c.sections.length && c.sections[0].name == "Summary")
 		return c.sections[0].content;
 	foreach (section; c.sections)
@@ -577,10 +577,21 @@ string readAndWriteComment(File f, string comment, ref string[string] macros,
 	return "";
 }
 
-void writeComment(File f, Comment comment)
+void writeComment(File f, Comment comment, const FunctionBody functionBody = null)
 {
 //		writeln("writeComment: ", comment.sections.length, " sections.");
-	foreach (section; comment.sections)
+
+	size_t i;
+	for (i = 0; i < comment.sections.length && (comment.sections[i].name == "Summary"
+		|| comment.sections[i].name == "description"); i++)
+	{
+		f.writeln(`<div class="section">`);
+		f.writeln(comment.sections[i].content);
+		f.writeln(`</div>`);
+	}
+	if (functionBody !is null)
+		writeContracts(f, functionBody.inStatement, functionBody.outStatement);
+	foreach (section; comment.sections[i .. $])
 	{
 		if (section.name == "Macros")
 			continue;
@@ -606,10 +617,28 @@ void writeComment(File f, Comment comment)
 		}
 		else
 		{
-//				f.writeln("<p>");
 			f.writeln(section.content);
-//				f.writeln("</p>");
 		}
 		f.writeln(`</div>`);
 	}
+}
+
+void writeContracts(File f, const InStatement inStatement,
+	const OutStatement outStatement)
+{
+	if (inStatement is null && outStatement is null)
+		return;
+	auto s = f.lockingTextWriter();
+	f.write(`<div class="section"><h3>Contracts</h3><pre><code>`);
+	auto formatter = new Formatter!(File.LockingTextWriter)(f.lockingTextWriter());
+	scope(exit) formatter.sink = File.LockingTextWriter.init;
+	if (inStatement !is null)
+	{
+		formatter.format(inStatement);
+		if (outStatement !is null)
+			f.writeln();
+	}
+	if (outStatement !is null)
+		formatter.format(outStatement);
+	f.writeln("</code></pre></div>");
 }
