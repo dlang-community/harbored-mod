@@ -547,7 +547,8 @@ private:
 string stripLeadingDirectory(string s)
 {
 	import std.algorithm;
-	return findSplitAfter(s, "/")[1];
+	import std.path;
+	return findSplitAfter(s, dirSeparator)[1];
 }
 
 /**
