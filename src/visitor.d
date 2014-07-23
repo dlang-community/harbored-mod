@@ -402,13 +402,6 @@ class DocVisitor : ASTVisitor
 			formatter.format(fd.returnType);
 			writer.put(" ");
 		}
-		else
-		{
-			if (fd.hasAuto)
-				writer.put("auto ");
-			if (fd.hasRef)
-				writer.put("ref ");
-		}
 		formatter.format(fd.name);
 		if (fd.templateParameters !is null)
 			formatter.format(fd.templateParameters);
