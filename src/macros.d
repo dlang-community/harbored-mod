@@ -20,8 +20,8 @@ void readMacroFile(string fileName, ref string[string] macros)
 {
 	if (!exists(fileName))
 	{
-		stderr.writeln("Could not read macro definitions from ", fileName,
-			" because it does not exist");
+		throw new Exception("Could not read macro definitions from " ~ fileName
+			~ " because it does not exist.");
 		return;
 	}
 	string currentMacroName;

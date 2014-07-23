@@ -37,7 +37,14 @@ int main(string[] args)
 		return 0;
 	}
 
-	string[string] macros = readMacros(macroFiles);
+	string[string] macros;
+	try
+		macros = readMacros(macroFiles);
+	catch (Exception e)
+	{
+		stderr.writeln(e.msg);
+		return 1;
+	}
 
 	if (outputDirectory is null)
 		outputDirectory = "./doc";
