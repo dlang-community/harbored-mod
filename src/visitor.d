@@ -365,16 +365,16 @@ class DocVisitor : ASTVisitor
 		}
 	}
 
-//	override void visit(const Declaration dec)
-//	{
-//		if (dec.attributes.length > 0)
-//			pushAttributes(dec.attributes);
-//
-//		dec.accept(this);
-//
-//		if (dec.attributes.length > 0)
-//			popAttributes();
-//	}
+	override void visit(const Declaration dec)
+	{
+		if (dec.attributes.length > 0)
+			pushAttributes(dec.attributes);
+
+		dec.accept(this);
+
+		if (dec.attributes.length > 0)
+			popAttributes();
+	}
 
 //	override void visit(const AttributeDeclaration dec)
 //	{
@@ -392,9 +392,11 @@ class DocVisitor : ASTVisitor
 		auto formatter = new Formatter!(File.LockingTextWriter)(writer);
 		scope(exit) formatter.sink = File.LockingTextWriter.init;
 		writer.put(`<pre><code>`);
-//		foreach (aa; attributes)
-//			foreach (a; aa)
-//				formatter.format(a);
+		foreach (i, a; fd.attributes)
+		{
+			formatter.format(a);
+			writer.put(" ");
+		}
 		if (fd.returnType)
 		{
 			formatter.format(fd.returnType);
@@ -412,11 +414,6 @@ class DocVisitor : ASTVisitor
 			formatter.format(fd.templateParameters);
 		if (fd.parameters !is null)
 			formatter.format(fd.parameters);
-		foreach (i, a; fd.attributes)
-		{
-			writer.put(" ");
-			formatter.format(a);
-		}
 		foreach (i, a; fd.memberFunctionAttributes)
 		{
 			writer.put(" ");
