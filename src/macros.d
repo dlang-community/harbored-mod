@@ -22,7 +22,6 @@ void readMacroFile(string fileName, ref string[string] macros)
 	{
 		throw new Exception("Could not read macro definitions from " ~ fileName
 			~ " because it does not exist.");
-		return;
 	}
 	string currentMacroName;
 	foreach (line; File(fileName, "r").byLine(KeepTerminator.no))
