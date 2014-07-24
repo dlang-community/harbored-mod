@@ -140,6 +140,7 @@ class DocVisitor : ASTVisitor
 
 		if (mod.moduleDeclaration is null)
 			return;
+		pushAttributes();
 		stack = cast(string[]) mod.moduleDeclaration.moduleName.identifiers.map!(a => a.text).array;
 		baseLength = stack.length;
 		moduleFileBase = chain(only(outputDirectory), stack).buildPath;
@@ -365,21 +366,32 @@ class DocVisitor : ASTVisitor
 		}
 	}
 
-	override void visit(const Declaration dec)
+	override void visit(const StructBody sb)
 	{
-		if (dec.attributes.length > 0)
-			pushAttributes(dec.attributes);
-
-		dec.accept(this);
-
-		if (dec.attributes.length > 0)
-			popAttributes();
+		pushAttributes();
+		sb.accept(this);
+		popAttributes();
 	}
 
-//	override void visit(const AttributeDeclaration dec)
-//	{
-//
-//	}
+	override void visit(const BlockStatement bs)
+	{
+		pushAttributes([]);
+		bs.accept(this);
+		popAttributes();
+	}
+
+	override void visit(const Declaration dec)
+	{
+		attributes[$ - 1] ~= dec.attributes;
+		dec.accept(this);
+		if (dec.attributeDeclaration is null)
+			attributes[$ - 1] = attributes[$ - 1][0 .. $ - dec.attributes.length];
+	}
+
+	override void visit(const AttributeDeclaration dec)
+	{
+		attributes[$ - 1] ~= dec.attribute;
+	}
 
 	override void visit(const FunctionDeclaration fd)
 	{
@@ -392,11 +404,7 @@ class DocVisitor : ASTVisitor
 		auto formatter = new Formatter!(File.LockingTextWriter)(writer);
 		scope(exit) formatter.sink = File.LockingTextWriter.init;
 		writer.put(`<pre><code>`);
-		foreach (i, a; fd.attributes)
-		{
-			formatter.format(a);
-			writer.put(" ");
-		}
+		writeAttributes(formatter, writer);
 		if (fd.returnType)
 		{
 			formatter.format(fd.returnType);
@@ -432,6 +440,30 @@ class DocVisitor : ASTVisitor
 	string location;
 
 private:
+
+	void writeAttributes(F, W)(F formatter, W writer)
+	{
+		IdType protection;
+		if (attributes.length > 0) foreach (a; attributes[$ - 1])
+		{
+			if (isProtection(a.attribute))
+				protection = a.attribute;
+		}
+		switch (protection)
+		{
+		case tok!"private": writer.put("private "); break;
+		case tok!"package": writer.put("package "); break;
+		default: writer.put("public "); break;
+		}
+		if (attributes.length > 0) foreach (a; attributes[$ - 1])
+		{
+			if (!isProtection(a.attribute))
+			{
+				formatter.format(a);
+				writer.put(" ");
+			}
+		}
+	}
 
 	static string formatNode(T)(const T t)
 	{
@@ -513,9 +545,9 @@ private:
 		memberStack = memberStack[0 .. $ - 1];
 	}
 
-	void pushAttributes(const(Attribute)[] a)
+	void pushAttributes()
 	{
-		attributes ~= a;
+		attributes.length = attributes.length + 1;
 	}
 
 	void popAttributes()
