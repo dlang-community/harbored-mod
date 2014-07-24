@@ -375,7 +375,7 @@ class DocVisitor : ASTVisitor
 
 	override void visit(const BlockStatement bs)
 	{
-		pushAttributes([]);
+		pushAttributes();
 		bs.accept(this);
 		popAttributes();
 	}
@@ -628,12 +628,12 @@ void writeComment(File f, Comment comment, const FunctionBody functionBody = nul
 		if (section.name == "Params")
 		{
 			f.writeln(`<table class="params">`);
-			foreach (k, v; section.mapping)
+			foreach (kv; section.mapping)
 			{
 				f.write(`<tr class="param"><td class="paramName">`);
-				f.write(k);
+				f.write(kv[0]);
 				f.write(`</td><td class="paramDoc">`);
-				f.write(v);
+				f.write(kv[1]);
 				f.writeln("</td></tr>");
 			}
 			f.write("</table>");
@@ -651,7 +651,6 @@ void writeContracts(File f, const InStatement inStatement,
 {
 	if (inStatement is null && outStatement is null)
 		return;
-	auto s = f.lockingTextWriter();
 	f.write(`<div class="section"><h3>Contracts</h3><pre><code>`);
 	auto formatter = new Formatter!(File.LockingTextWriter)(f.lockingTextWriter());
 	scope(exit) formatter.sink = File.LockingTextWriter.init;
