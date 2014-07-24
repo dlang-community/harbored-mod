@@ -66,10 +66,12 @@ struct Item
 }
 
 private alias FunctionAttributeTuple = Tuple!(const(FunctionDeclaration), const(Attribute)[]);
+private alias ConstructorAttributeTuple = Tuple!(const(Constructor), const(Attribute)[]);
 
 struct Members
 {
 	FunctionAttributeTuple[][string] functionDeclarations;
+	ConstructorAttributeTuple[] constructorDeclarations;
 	Item[] aliases;
 	Item[] classes;
 	Item[] enums;
@@ -191,6 +193,15 @@ class DocVisitor : ASTVisitor
 		memberStack[$ - 1].write(f);
 	}
 
+	override void visit(const Constructor cons)
+	{
+//		stderr.writeln("Visiting constructor");
+		if (cons.comment is null)
+			return;
+		memberStack[$ - 1].constructorDeclarations ~=
+			tuple(cons, attributes[$ - 1]);
+	}
+
 	override void visit(const EnumDeclaration ed)
 	{
 		visitAggregateDeclaration!(EnumDeclaration, "enums")(ed);
@@ -231,6 +242,7 @@ class DocVisitor : ASTVisitor
 		prevComments.length = prevComments.length + 1;
 		cd.accept(this);
 		prevComments = prevComments[0 .. $ - 1];
+		writeConstructorDocumentation();
 		writeFunctionDocumentation();
 		memberStack[$ - 1].write(f);
 	}
@@ -258,6 +270,7 @@ class DocVisitor : ASTVisitor
 		prevComments.length = prevComments.length + 1;
 		td.accept(this);
 		prevComments = prevComments[0 .. $ - 1];
+		writeConstructorDocumentation();
 		writeFunctionDocumentation();
 		memberStack[$ - 1].write(f);
 	}
@@ -285,6 +298,7 @@ class DocVisitor : ASTVisitor
 		prevComments.length = prevComments.length + 1;
 		sd.accept(this);
 		prevComments = prevComments[0 .. $ - 1];
+		writeConstructorDocumentation();
 		writeFunctionDocumentation();
 		memberStack[$ - 1].write(f);
 	}
@@ -314,6 +328,7 @@ class DocVisitor : ASTVisitor
 		prevComments.length = prevComments.length + 1;
 		id.accept(this);
 		prevComments = prevComments[0 .. $ - 1];
+		writeConstructorDocumentation();
 		writeFunctionDocumentation();
 		memberStack[$ - 1].write(f);
 	}
@@ -416,34 +431,56 @@ class DocVisitor : ASTVisitor
 
 private:
 
+	void writeConstructorDocumentation()
+	{
+		writeConstructorDocumentation(memberStack[$ - 1].constructorDeclarations);
+	}
+
 	void writeFunctionDocumentation()
 	{
 		foreach (v; memberStack[$ - 1].functionDeclarations)
 			writeFunctionDocumentation(v);
 	}
 
+	void writeConstructorDocumentation(ConstructorAttributeTuple[] constructors)
+	{
+		writeFnDocumentation(constructors);
+	}
+
 	void writeFunctionDocumentation(FunctionAttributeTuple[] functions)
 	{
-		if (functions.length == 0)
-			return;
+		writeFnDocumentation(functions);
+	}
 
-		File f = pushSymbol(functions[0][0].name.text);
+	void writeFnDocumentation(FnAttrTuple)(FnAttrTuple[] tuples)
+	{
+		if (tuples.length == 0)
+			return;
+		static if (__traits(hasMember, typeof(tuples[0][0]), "name"))
+			File f = pushSymbol(tuples[0][0].name.text);
+		else
+			File f = pushSymbol("this");
 		scope(exit) popSymbol(f);
 		writeBreadcrumbs(f);
 		auto writer = f.lockingTextWriter();
 		auto formatter = new Formatter!(File.LockingTextWriter)(writer);
 		scope(exit) formatter.sink = File.LockingTextWriter.init;
-		foreach (i, tup; functions)
+		foreach (i, tup; tuples)
 		{
 			auto fd = tup[0];
 			writer.put(`<pre><code>`);
 			writeAttributes(formatter, writer, tup[1]);
-			if (fd.returnType)
+			static if (__traits(hasMember, typeof(tup[0]), "returnType"))
 			{
-				formatter.format(fd.returnType);
-				writer.put(" ");
+				if (fd.returnType)
+				{
+					formatter.format(fd.returnType);
+					writer.put(" ");
+				}
+				formatter.format(fd.name);
 			}
-			formatter.format(fd.name);
+			else
+				writer.put("this");
 			if (fd.templateParameters !is null)
 				formatter.format(fd.templateParameters);
 			if (fd.parameters !is null)
@@ -460,11 +497,16 @@ private:
 			}
 			writer.put("\n</code></pre>");
 			string summary = readAndWriteComment(f, fd.comment, macros, prevComments, fd.functionBody);
-			memberStack[$ - 2].functions ~= Item(findSplitAfter(f.name, "/")[1], fd.name.text, summary);
+			string fdName;
+			static if (__traits(hasMember, typeof(fd), "name"))
+				fdName = fd.name.text;
+			else
+				fdName = "this";
+			memberStack[$ - 2].functions ~= Item(findSplitAfter(f.name, "/")[1], fdName, summary);
 			prevComments.length = prevComments.length + 1;
 			fd.accept(this);
 			prevComments = prevComments[0 .. $ - 1];
-			if (i + 1 < functions.length)
+			if (i + 1 < tuples.length)
 				writer.put("<hr/>");
 		}
 	}
