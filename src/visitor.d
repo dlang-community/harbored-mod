@@ -70,8 +70,7 @@ private alias ConstructorAttributeTuple = Tuple!(const(Constructor), const(Attri
 
 struct Members
 {
-	FunctionAttributeTuple[][string] functionDeclarations;
-	ConstructorAttributeTuple[] constructorDeclarations;
+	File[string] functionFiles;
 	Item[] aliases;
 	Item[] classes;
 	Item[] enums;
@@ -111,7 +110,14 @@ struct Members
 		if (variables.length > 0)
 			write(f, variables, "Variables");
 		f.writeln(`</div>`);
+		foreach (f; functionFiles)
+		{
+			f.writeln(HTML_END);
+			f.close();
+		}
 	}
+
+private:
 
 	void write(File f, Item[] items, string name)
 	{
@@ -169,7 +175,6 @@ class DocVisitor : ASTVisitor
 
 		mod.accept(this);
 
-		writeFunctionDocumentation();
 		memberStack[$ - 1].write(output);
 
 		output.writeln(HTML_END);
@@ -191,15 +196,6 @@ class DocVisitor : ASTVisitor
 		ad.accept(this);
 		prevComments = prevComments[0 .. $ - 1];
 		memberStack[$ - 1].write(f);
-	}
-
-	override void visit(const Constructor cons)
-	{
-//		stderr.writeln("Visiting constructor");
-		if (cons.comment is null)
-			return;
-		memberStack[$ - 1].constructorDeclarations ~=
-			tuple(cons, attributes[$ - 1]);
 	}
 
 	override void visit(const EnumDeclaration ed)
@@ -242,8 +238,6 @@ class DocVisitor : ASTVisitor
 		prevComments.length = prevComments.length + 1;
 		cd.accept(this);
 		prevComments = prevComments[0 .. $ - 1];
-		writeConstructorDocumentation();
-		writeFunctionDocumentation();
 		memberStack[$ - 1].write(f);
 	}
 
@@ -270,8 +264,6 @@ class DocVisitor : ASTVisitor
 		prevComments.length = prevComments.length + 1;
 		td.accept(this);
 		prevComments = prevComments[0 .. $ - 1];
-		writeConstructorDocumentation();
-		writeFunctionDocumentation();
 		memberStack[$ - 1].write(f);
 	}
 
@@ -298,8 +290,6 @@ class DocVisitor : ASTVisitor
 		prevComments.length = prevComments.length + 1;
 		sd.accept(this);
 		prevComments = prevComments[0 .. $ - 1];
-		writeConstructorDocumentation();
-		writeFunctionDocumentation();
 		memberStack[$ - 1].write(f);
 	}
 
@@ -328,8 +318,6 @@ class DocVisitor : ASTVisitor
 		prevComments.length = prevComments.length + 1;
 		id.accept(this);
 		prevComments = prevComments[0 .. $ - 1];
-		writeConstructorDocumentation();
-		writeFunctionDocumentation();
 		memberStack[$ - 1].write(f);
 	}
 
@@ -416,12 +404,22 @@ class DocVisitor : ASTVisitor
 		attributes[$ - 1] ~= dec.attribute;
 	}
 
+	override void visit(const Constructor cons)
+	{
+		if (cons.comment is null)
+			return;
+		bool first;
+		File f = pushFunction("this", first);
+		writeFnDocumentation(f, cons, attributes[$ - 1], first);
+	}
+
 	override void visit(const FunctionDeclaration fd)
 	{
 		if (fd.comment is null)
 			return;
-		memberStack[$ - 1].functionDeclarations[fd.name.text] ~=
-			tuple(fd, attributes[$ - 1]);
+		bool first;
+		File f = pushFunction(fd.name.text, first);
+		writeFnDocumentation(f, fd, attributes[$ - 1], first);
 	}
 
 	alias visit = ASTVisitor.visit;
@@ -431,84 +429,54 @@ class DocVisitor : ASTVisitor
 
 private:
 
-	void writeConstructorDocumentation()
+	void writeFnDocumentation(Fn)(File f, Fn fn, const(Attribute)[] attrs, bool first)
 	{
-		writeConstructorDocumentation(memberStack[$ - 1].constructorDeclarations);
-	}
-
-	void writeFunctionDocumentation()
-	{
-		foreach (v; memberStack[$ - 1].functionDeclarations)
-			writeFunctionDocumentation(v);
-	}
-
-	void writeConstructorDocumentation(ConstructorAttributeTuple[] constructors)
-	{
-		writeFnDocumentation(constructors);
-	}
-
-	void writeFunctionDocumentation(FunctionAttributeTuple[] functions)
-	{
-		writeFnDocumentation(functions);
-	}
-
-	void writeFnDocumentation(FnAttrTuple)(FnAttrTuple[] tuples)
-	{
-		if (tuples.length == 0)
-			return;
-		static if (__traits(hasMember, typeof(tuples[0][0]), "name"))
-			File f = pushSymbol(tuples[0][0].name.text);
-		else
-			File f = pushSymbol("this");
-		scope(exit) popSymbol(f);
-		writeBreadcrumbs(f);
 		auto writer = f.lockingTextWriter();
+		if (first)
+			writeBreadcrumbs(f);
+		else
+			writer.put("<hr/>");
 		auto formatter = new Formatter!(File.LockingTextWriter)(writer);
 		scope(exit) formatter.sink = File.LockingTextWriter.init;
-		foreach (i, tup; tuples)
+		writer.put(`<pre><code>`);
+		writeAttributes(formatter, writer, attrs);
+		static if (__traits(hasMember, typeof(fn), "returnType"))
 		{
-			auto fd = tup[0];
-			writer.put(`<pre><code>`);
-			writeAttributes(formatter, writer, tup[1]);
-			static if (__traits(hasMember, typeof(tup[0]), "returnType"))
+			if (fn.returnType)
 			{
-				if (fd.returnType)
-				{
-					formatter.format(fd.returnType);
-					writer.put(" ");
-				}
-				formatter.format(fd.name);
-			}
-			else
-				writer.put("this");
-			if (fd.templateParameters !is null)
-				formatter.format(fd.templateParameters);
-			if (fd.parameters !is null)
-				formatter.format(fd.parameters);
-			foreach (a; fd.memberFunctionAttributes)
-			{
+				formatter.format(fn.returnType);
 				writer.put(" ");
-				formatter.format(a);
 			}
-			if (fd.constraint)
-			{
-				writer.put(" ");
-				formatter.format(fd.constraint);
-			}
-			writer.put("\n</code></pre>");
-			string summary = readAndWriteComment(f, fd.comment, macros, prevComments, fd.functionBody);
-			string fdName;
-			static if (__traits(hasMember, typeof(fd), "name"))
-				fdName = fd.name.text;
-			else
-				fdName = "this";
-			memberStack[$ - 2].functions ~= Item(findSplitAfter(f.name, "/")[1], fdName, summary);
-			prevComments.length = prevComments.length + 1;
-			fd.accept(this);
-			prevComments = prevComments[0 .. $ - 1];
-			if (i + 1 < tuples.length)
-				writer.put("<hr/>");
+			formatter.format(fn.name);
 		}
+		else
+			writer.put("this");
+		if (fn.templateParameters !is null)
+			formatter.format(fn.templateParameters);
+		if (fn.parameters !is null)
+			formatter.format(fn.parameters);
+		foreach (a; fn.memberFunctionAttributes)
+		{
+			writer.put(" ");
+			formatter.format(a);
+		}
+		if (fn.constraint)
+		{
+			writer.put(" ");
+			formatter.format(fn.constraint);
+		}
+		writer.put("\n</code></pre>");
+		string summary = readAndWriteComment(f, fn.comment, macros, prevComments, fn.functionBody);
+		string fdName;
+		static if (__traits(hasMember, typeof(fn), "name"))
+			fdName = fn.name.text;
+		else
+			fdName = "this";
+		memberStack[$ - 1].functions ~= Item(findSplitAfter(f.name, "/")[1], fdName, summary);
+		prevComments.length = prevComments.length + 1;
+		fn.accept(this);
+		prevComments = prevComments[0 .. $ - 1];
+		stack = stack[0 .. $ - 1];
 	}
 
 	void writeAttributes(F, W)(F formatter, W writer, const(Attribute)[] attrs)
@@ -590,6 +558,33 @@ private:
 				f.write(stack[i]);
 		}
 		f.writeln(`</div>`);
+	}
+
+	File pushFunction(string name, ref bool first)
+	{
+		import std.array;
+		import std.string;
+		stack ~= name;
+		string classDocFileName = format("%s.%s.html", moduleFileBase,
+			join(stack[baseLength .. $], ".").array);
+		string path = (classDocFileName.length > 2 && classDocFileName[0 .. 2] == "./")
+				? stripLeadingDirectory(classDocFileName[2 .. $])
+				: classDocFileName;
+		searchIndex.writefln(`{"%s" : "%s"},`, join(stack, ".").array, path);
+		File f;
+		if (classDocFileName in memberStack[$ - 1].functionFiles)
+		{
+			f = memberStack[$ - 1].functionFiles[classDocFileName];
+			first = false;
+		}
+		else
+		{
+			first = true;
+			f = File(classDocFileName, "w");
+			memberStack[$ - 1].functionFiles[classDocFileName] = f;
+			writeHeader(f, name, baseLength - 1);
+		}
+		return f;
 	}
 
 	File pushSymbol(string name)
