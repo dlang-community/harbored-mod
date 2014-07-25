@@ -688,7 +688,10 @@ void writeComment(File f, Comment comment, const FunctionBody functionBody = nul
 		if (section.name != "Summary" && section.name != "Description")
 		{
 			f.write("<h3>");
-			f.write(section.name == "See_also" ? "See Also" : section.name);
+			string sectionName = section.name;
+			if (sectionName == "See_also") sectionName = "See Also";
+			if (sectionName == "Params") sectionName = "Parameters";
+			f.write(sectionName);
 			f.writeln("</h3>");
 		}
 		if (section.name == "Params")
