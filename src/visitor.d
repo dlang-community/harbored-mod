@@ -688,10 +688,7 @@ void writeComment(File f, Comment comment, const FunctionBody functionBody = nul
 		if (section.name != "Summary" && section.name != "Description")
 		{
 			f.write("<h3>");
-			string sectionName = section.name;
-			if (sectionName == "See_also") sectionName = "See Also";
-			if (sectionName == "Params") sectionName = "Parameters";
-			f.write(sectionName);
+			f.write(prettySectionName(section.name));
 			f.writeln("</h3>");
 		}
 		if (section.name == "Params")
@@ -732,4 +729,14 @@ void writeContracts(File f, const InStatement inStatement,
 	if (outStatement !is null)
 		formatter.format(outStatement);
 	f.writeln("</code></pre></div>");
+}
+
+private string prettySectionName(string sectionName)
+{
+	switch (sectionName)
+	{
+	case "See_also": return "See Also";
+	case "Params": return "Parameters";
+	default: return sectionName;
+	}
 }
