@@ -31,6 +31,10 @@ div.breadcrumbs input {
 	float: left;
 }
 
+.paramDoc:before {
+	content: "- ";
+}
+
 #results {
 	position: absolute;
 	max-height: 30em;
