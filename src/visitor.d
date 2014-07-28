@@ -6,13 +6,15 @@
  */
 module visitor;
 
-import std.stdio;
-import std.file;
-import std.d.formatter;
-import std.d.lexer;
-import std.d.ast;
 import ddoc.comments;
 import std.algorithm;
+import std.d.ast;
+import std.d.formatter;
+import std.d.lexer;
+import std.file;
+import std.stdio;
+import std.typecons;
+import unittest_preprocessor;
 
 enum HTML_END = `
 <script>hljs.initHighlightingOnLoad();</script>
@@ -134,11 +136,14 @@ private:
 class DocVisitor : ASTVisitor
 {
 	import std.path;
-	this(string outputDirectory, string[string] macros, File searchIndex)
+	this(string outputDirectory, string[string] macros, File searchIndex,
+		TestRange[][size_t] unitTestMapping, const(ubyte[]) fileBytes)
 	{
 		this.outputDirectory = outputDirectory;
 		this.macros = macros;
 		this.searchIndex = searchIndex;
+		this.unitTestMapping = unitTestMapping;
+		this.fileBytes = fileBytes;
 	}
 
 	override void visit(const Module mod)
@@ -190,7 +195,8 @@ class DocVisitor : ASTVisitor
 		scope(exit) popSymbol(f);
 		writeBreadcrumbs(f);
 
-		string summary = readAndWriteComment(f, ad.comment, macros, prevComments);
+		string summary = readAndWriteComment(f, ad.comment, macros, prevComments,
+			null, getUnittestDocTuple(ad));
 		mixin(`memberStack[$ - 2].` ~ name ~ ` ~= Item(findSplitAfter(f.name, "/")[1], ad.name.text, summary);`);
 		prevComments.length = prevComments.length + 1;
 		ad.accept(this);
@@ -209,7 +215,7 @@ class DocVisitor : ASTVisitor
 			return;
 		File blackHole = File("/dev/null", "w");
 		string summary = readAndWriteComment(blackHole, member.comment, macros,
-			prevComments);
+			prevComments, null, getUnittestDocTuple(member));
 		memberStack[$ - 1].values ~= Item("#", member.name.text, summary);
 	}
 
@@ -232,7 +238,8 @@ class DocVisitor : ASTVisitor
 		if (cd.constraint !is null)
 			formatter.format(cd.constraint);
 		f.writeln(`</code></pre>`);
-		string summary = readAndWriteComment(f, cd.comment, macros, prevComments);
+		string summary = readAndWriteComment(f, cd.comment, macros, prevComments,
+			null, getUnittestDocTuple(cd));
 		memberStack[$ - 2].classes ~= Item(findSplitAfter(f.name, "/")[1],
 			cd.name.text, summary);
 		prevComments.length = prevComments.length + 1;
@@ -258,7 +265,8 @@ class DocVisitor : ASTVisitor
 		if (td.constraint)
 			formatter.format(td.constraint);
 		f.writeln(`</code></pre>`);
-		string summary = readAndWriteComment(f, td.comment, macros, prevComments);
+		string summary = readAndWriteComment(f, td.comment, macros, prevComments,
+			null, getUnittestDocTuple(td));
 		memberStack[$ - 2].templates ~= Item(findSplitAfter(f.name, "/")[1],
 			td.name.text, summary);
 		prevComments.length = prevComments.length + 1;
@@ -284,7 +292,8 @@ class DocVisitor : ASTVisitor
 		if (sd.constraint)
 			formatter.format(sd.constraint);
 		f.writeln(`</code></pre>`);
-		string summary = readAndWriteComment(f, sd.comment, macros, prevComments);
+		string summary = readAndWriteComment(f, sd.comment, macros, prevComments,
+			null, getUnittestDocTuple(sd));
 		memberStack[$ - 2].structs ~= Item(findSplitAfter(f.name, "/")[1],
 			sd.name.text, summary);
 		prevComments.length = prevComments.length + 1;
@@ -312,7 +321,8 @@ class DocVisitor : ASTVisitor
 		if (id.constraint !is null)
 			formatter.format(id.constraint);
 		f.writeln(`</code></pre>`);
-		string summary = readAndWriteComment(f, id.comment, macros, prevComments);
+		string summary = readAndWriteComment(f, id.comment, macros, prevComments,
+			null, getUnittestDocTuple(id));
 		memberStack[$ - 2].interfaces ~= Item(findSplitAfter(f.name, "/")[1],
 			id.name.text, summary);
 		prevComments.length = prevComments.length + 1;
@@ -429,6 +439,20 @@ class DocVisitor : ASTVisitor
 
 private:
 
+	Tuple!(string, string)[] getUnittestDocTuple(T)(const T t)
+	{
+		immutable size_t index = cast(size_t) (cast(void*) t);
+//		writeln("Searching for unittest associated with ", index);
+		auto tupArray = index in unitTestMapping;
+		if (tupArray is null)
+			return [];
+//		writeln("Found a doc unit test for ", cast(size_t) &t);
+		Tuple!(string, string)[] rVal;
+		foreach (tup; *tupArray)
+			rVal ~= tuple(cast(string) fileBytes[tup[0] + 2 .. tup[1]], tup[2]);
+		return rVal;
+	}
+
 	void writeFnDocumentation(Fn)(File f, Fn fn, const(Attribute)[] attrs, bool first)
 	{
 		auto writer = f.lockingTextWriter();
@@ -466,7 +490,8 @@ private:
 			formatter.format(fn.constraint);
 		}
 		writer.put("\n</code></pre>");
-		string summary = readAndWriteComment(f, fn.comment, macros, prevComments, fn.functionBody);
+		string summary = readAndWriteComment(f, fn.comment, macros,
+			prevComments, fn.functionBody, getUnittestDocTuple(fn));
 		string fdName;
 		static if (__traits(hasMember, typeof(fn), "name"))
 			fdName = fn.name.text;
@@ -630,6 +655,8 @@ private:
 	string[string] macros;
 	Members[] memberStack;
 	File searchIndex;
+	TestRange[][size_t] unitTestMapping;
+	const(ubyte[]) fileBytes;
 }
 
 string stripLeadingDirectory(string s)
@@ -643,7 +670,8 @@ string stripLeadingDirectory(string s)
  * Returns: the summary
  */
 string readAndWriteComment(File f, string comment, ref string[string] macros,
-	Comment[] prevComments = null, const FunctionBody functionBody = null)
+	Comment[] prevComments = null, const FunctionBody functionBody = null,
+	Tuple!(string, string)[] testDocs = null)
 {
 	import std.d.lexer;
 	import std.array;
@@ -656,14 +684,30 @@ string readAndWriteComment(File f, string comment, ref string[string] macros,
 	else if (prevComments.length > 0)
 		prevComments[$ - 1] = c;
 	writeComment(f, c, functionBody);
+	string rVal = "";
 	if (c.sections.length && c.sections[0].name == "Summary")
-		return c.sections[0].content;
-	foreach (section; c.sections)
+		rVal = c.sections[0].content;
+	else
 	{
-		if (section.name == "Returns")
-			return "Returns: " ~ section.content;
+		foreach (section; c.sections)
+		{
+			if (section.name == "Returns")
+				rVal = "Returns: " ~ section.content;
+		}
 	}
-	return "";
+	if (testDocs !is null) foreach (doc; testDocs)
+	{
+//		writeln("Writing a unittest doc comment");
+		import std.string;
+		f.writeln(`<div class="section"><h3>Example</h3>`);
+		auto docApp = appender!string();
+		doc[1].unDecorateComment(app);
+		Comment dc = parseComment(docApp.data, macros);
+		writeComment(f, dc);
+		f.writeln(`<pre><code>`, outdent(doc[0]), `</code></pre>`);
+		f.writeln(`</div>`);
+	}
+	return rVal;
 }
 
 void writeComment(File f, Comment comment, const FunctionBody functionBody = null)

@@ -17,6 +17,7 @@ import std.getopt;
 import std.path;
 import std.stdio;
 import visitor;
+import unittest_preprocessor;
 import macros;
 import tocbuilder;
 
@@ -208,7 +209,9 @@ void writeDocumentation(string outputDirectory, string path,
 	StringCache cache = StringCache(1024 * 4);
 	auto tokens = getTokensForParser(fileBytes, config, &cache).array;
 	Module m = parseModule(tokens, path, null, &doNothing);
-	DocVisitor visitor = new DocVisitor(outputDirectory, macros, search);
+	TestRange[][size_t] unitTestMapping = getUnittestMap(m);
+	DocVisitor visitor = new DocVisitor(outputDirectory, macros, search,
+		unitTestMapping, fileBytes);
 	visitor.visit(m);
 	moduleName = visitor.moduleName;
 	location = visitor.location;
@@ -228,8 +231,6 @@ string[] getFilesToProcess(string[] args)
 	}
 	return files.data;
 }
-
-enum foo = 0;
 
 enum helpString = `
 Generates documentation for D source code.
