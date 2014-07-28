@@ -11,14 +11,27 @@ import std.typecons;
 import std.d.ast;
 import std.d.lexer;
 
+/**
+ * $(UL $(LI First field: the byte index of the opening brace of the unittest)
+ * $(LI Second field: the byte index of the closing brace of the unittest)
+ * $(LI Third field: the comment attached to the unittest))
+ */
 alias TestRange = Tuple!(size_t, size_t, string);
 
+/**
+ * Params:
+ *     m = the module
+ * Returns: A mapping of declaration addresses to an array of documentation
+ *     unittest blocks for that declaration
+ */
 TestRange[][size_t] getUnittestMap(const Module m)
 {
 	UnittestVisitor visitor = new UnittestVisitor;
 	visitor.visit(m);
 	return visitor.mapping;
 }
+
+private:
 
 class UnittestVisitor : ASTVisitor
 {
