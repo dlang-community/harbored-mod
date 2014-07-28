@@ -19,10 +19,19 @@ import unittest_preprocessor;
 
 
 /**
- *
+ * Generates documentation for a module.
  */
 class DocVisitor : ASTVisitor
 {
+	/**
+	 * Params:
+	 *     outputDirectory = The directory where files will be written
+	 *     macros = Macro definitions used in processing documentation comments
+	 *     searchIndex = A file where the search information will be written
+	 *     unitTestMapping = The mapping of declaration addresses to their
+	 *         documentation unittests
+	 *     fileBytes = The source code of the module as a byte array.
+	 */
 	this(string outputDirectory, string[string] macros, File searchIndex,
 		TestRange[][size_t] unitTestMapping, const(ubyte[]) fileBytes)
 	{
@@ -74,26 +83,9 @@ class DocVisitor : ASTVisitor
 
 	}
 
-	void visitAggregateDeclaration(A, string name)(const A ad)
-	{
-		if (ad.comment is null)
-			return;
-		File f = pushSymbol(ad.name.text);
-		scope(exit) popSymbol(f);
-		writeBreadcrumbs(f);
-
-		string summary = readAndWriteComment(f, ad.comment, macros, prevComments,
-			null, getUnittestDocTuple(ad));
-		mixin(`memberStack[$ - 2].` ~ name ~ ` ~= Item(findSplitAfter(f.name, "/")[1], ad.name.text, summary);`);
-		prevComments.length = prevComments.length + 1;
-		ad.accept(this);
-		prevComments = prevComments[0 .. $ - 1];
-		memberStack[$ - 1].write(f);
-	}
-
 	override void visit(const EnumDeclaration ed)
 	{
-		visitAggregateDeclaration!(EnumDeclaration, "enums")(ed);
+		visitAggregateDeclaration!("", "enums")(ed);
 	}
 
 	override void visit(const EnumMember member)
@@ -108,114 +100,53 @@ class DocVisitor : ASTVisitor
 
 	override void visit(const ClassDeclaration cd)
 	{
-		if (cd.comment is null)
-			return;
-		File f = pushSymbol(cd.name.text);
-		scope(exit) popSymbol(f);
-		writeBreadcrumbs(f);
-		f.write(`<pre><code>`);
-		f.write("class ", cd.name.text);
-		auto writer = f.lockingTextWriter();
-		auto formatter = new Formatter!(File.LockingTextWriter)(writer);
-		scope(exit) formatter.sink = File.LockingTextWriter.init;
-		if (cd.baseClassList !is null)
-			formatter.format(cd.baseClassList);
-		if (cd.templateParameters !is null)
-			formatter.format(cd.templateParameters);
-		if (cd.constraint !is null)
-			formatter.format(cd.constraint);
-		f.writeln(`</code></pre>`);
-		string summary = readAndWriteComment(f, cd.comment, macros, prevComments,
-			null, getUnittestDocTuple(cd));
-		memberStack[$ - 2].classes ~= Item(findSplitAfter(f.name, "/")[1],
-			cd.name.text, summary);
-		prevComments.length = prevComments.length + 1;
-		cd.accept(this);
-		prevComments = prevComments[0 .. $ - 1];
-		memberStack[$ - 1].write(f);
+		enum formattingCode = q{
+		f.write("class ", ad.name.text);
+		if (ad.baseClassList !is null)
+			formatter.format(ad.baseClassList);
+		if (ad.templateParameters !is null)
+			formatter.format(ad.templateParameters);
+		if (ad.constraint !is null)
+			formatter.format(ad.constraint);
+		};
+		visitAggregateDeclaration!(formattingCode, "classes")(cd);
 	}
 
 	override void visit(const TemplateDeclaration td)
 	{
-		if (td.comment is null)
-			return;
-		File f = pushSymbol(td.name.text);
-		scope(exit) popSymbol(f);
-		writeBreadcrumbs(f);
-		f.write(`<pre><code>`);
-		f.write("template ", td.name.text);
-		auto writer = f.lockingTextWriter();
-		auto formatter = new Formatter!(File.LockingTextWriter)(writer);
-		scope(exit) formatter.sink = File.LockingTextWriter.init;
-		if (td.templateParameters !is null)
-			formatter.format(td.templateParameters);
-		if (td.constraint)
-			formatter.format(td.constraint);
-		f.writeln(`</code></pre>`);
-		string summary = readAndWriteComment(f, td.comment, macros, prevComments,
-			null, getUnittestDocTuple(td));
-		memberStack[$ - 2].templates ~= Item(findSplitAfter(f.name, "/")[1],
-			td.name.text, summary);
-		prevComments.length = prevComments.length + 1;
-		td.accept(this);
-		prevComments = prevComments[0 .. $ - 1];
-		memberStack[$ - 1].write(f);
+		enum formattingCode = q{
+		f.write("template ", ad.name.text);
+		if (ad.templateParameters !is null)
+			formatter.format(ad.templateParameters);
+		if (ad.constraint)
+			formatter.format(ad.constraint);
+		};
+		visitAggregateDeclaration!(formattingCode, "templates")(td);
 	}
 
 	override void visit(const StructDeclaration sd)
 	{
-		if (sd.comment is null)
-			return;
-		File f = pushSymbol(sd.name.text);
-		scope(exit) popSymbol(f);
-		writeBreadcrumbs(f);
-		f.write(`<pre><code>`);
-		f.write("struct ", sd.name.text);
-		auto writer = f.lockingTextWriter();
-		auto formatter = new Formatter!(File.LockingTextWriter)(writer);
-		scope(exit) formatter.sink = File.LockingTextWriter.init;
-		if (sd.templateParameters)
-			formatter.format(sd.templateParameters);
-		if (sd.constraint)
-			formatter.format(sd.constraint);
-		f.writeln(`</code></pre>`);
-		string summary = readAndWriteComment(f, sd.comment, macros, prevComments,
-			null, getUnittestDocTuple(sd));
-		memberStack[$ - 2].structs ~= Item(findSplitAfter(f.name, "/")[1],
-			sd.name.text, summary);
-		prevComments.length = prevComments.length + 1;
-		sd.accept(this);
-		prevComments = prevComments[0 .. $ - 1];
-		memberStack[$ - 1].write(f);
+		enum formattingCode = q{
+		f.write("struct ", ad.name.text);
+		if (ad.templateParameters)
+			formatter.format(ad.templateParameters);
+		if (ad.constraint)
+			formatter.format(ad.constraint);
+		};
+		visitAggregateDeclaration!(formattingCode, "structs")(sd);
 	}
 
 	override void visit(const InterfaceDeclaration id)
 	{
-		if (id.comment is null)
-			return;
-		File f = pushSymbol(id.name.text);
-		scope(exit) popSymbol(f);
-		writeBreadcrumbs(f);
-		f.write(`<pre><code>`);
-		f.write("interface ", id.name.text);
-		auto writer = f.lockingTextWriter();
-		auto formatter = new Formatter!(File.LockingTextWriter)(writer);
-		scope(exit) formatter.sink = File.LockingTextWriter.init;
-		if (id.baseClassList !is null)
-			formatter.format(id.baseClassList);
-		if (id.templateParameters !is null)
-			formatter.format(id.templateParameters);
-		if (id.constraint !is null)
-			formatter.format(id.constraint);
-		f.writeln(`</code></pre>`);
-		string summary = readAndWriteComment(f, id.comment, macros, prevComments,
-			null, getUnittestDocTuple(id));
-		memberStack[$ - 2].interfaces ~= Item(findSplitAfter(f.name, "/")[1],
-			id.name.text, summary);
-		prevComments.length = prevComments.length + 1;
-		id.accept(this);
-		prevComments = prevComments[0 .. $ - 1];
-		memberStack[$ - 1].write(f);
+		enum formattingCode = q{
+		if (ad.baseClassList !is null)
+			formatter.format(ad.baseClassList);
+		if (ad.templateParameters !is null)
+			formatter.format(ad.templateParameters);
+		if (ad.constraint !is null)
+			formatter.format(ad.constraint);
+		};
+		visitAggregateDeclaration!(formattingCode, "interfaces")(id);
 	}
 
 	override void visit(const AliasDeclaration ad)
@@ -227,7 +158,7 @@ class DocVisitor : ASTVisitor
 			File f = pushSymbol(ad.name.text);
 			scope(exit) popSymbol(f);
 			writeBreadcrumbs(f);
-			string type = writeType(f, ad.name.text, ad.type);
+			string type = writeAliasType(f, ad.name.text, ad.type);
 			string summary = readAndWriteComment(f, ad.comment, macros, prevComments);
 			memberStack[$ - 2].aliases ~= Item(findSplitAfter(f.name, "/")[1],
 				ad.name.text, summary, type);
@@ -237,7 +168,7 @@ class DocVisitor : ASTVisitor
 			File f = pushSymbol(initializer.name.text);
 			scope(exit) popSymbol(f);
 			writeBreadcrumbs(f);
-			string type = writeType(f, initializer.name.text, initializer.type);
+			string type = writeAliasType(f, initializer.name.text, initializer.type);
 			string summary = readAndWriteComment(f, ad.comment, macros, prevComments);
 			memberStack[$ - 2].aliases ~= Item(findSplitAfter(f.name, "/")[1],
 				initializer.name.text, summary, type);
@@ -321,11 +252,45 @@ class DocVisitor : ASTVisitor
 
 	alias visit = ASTVisitor.visit;
 
+	/// The module name in "package.package.module" format.
 	string moduleName;
+
+	/// The path to the HTML file that was generated for the module being
+	/// processed.
 	string location;
 
 private:
 
+	void visitAggregateDeclaration(string formattingCode, string name, A)(const A ad)
+	{
+		if (ad.comment is null)
+			return;
+		File f = pushSymbol(ad.name.text);
+		scope(exit) popSymbol(f);
+		writeBreadcrumbs(f);
+		f.write(`<pre><code>`);
+		auto writer = f.lockingTextWriter();
+		auto formatter = new Formatter!(File.LockingTextWriter)(writer);
+		scope(exit) formatter.sink = File.LockingTextWriter.init;
+		writeAttributes(formatter, writer, attributes[$ - 1]);
+		mixin(formattingCode);
+		f.writeln(`</code></pre>`);
+		string summary = readAndWriteComment(f, ad.comment, macros, prevComments,
+			null, getUnittestDocTuple(ad));
+		mixin(`memberStack[$ - 2].` ~ name ~ ` ~= Item(findSplitAfter(f.name, "/")[1], ad.name.text, summary);`);
+		prevComments.length = prevComments.length + 1;
+		ad.accept(this);
+		prevComments = prevComments[0 .. $ - 1];
+		memberStack[$ - 1].write(f);
+	}
+
+	/**
+	 * Params:
+	 *     t = The declaration.
+	 * Returns: An array of tuples where the first item is the contents of the
+	 *     unittest block and the second item is the doc comment for the
+	 *     unittest block. This array may be empty.
+	 */
 	Tuple!(string, string)[] getUnittestDocTuple(T)(const T t)
 	{
 		immutable size_t index = cast(size_t) (cast(void*) t);
@@ -340,6 +305,9 @@ private:
 		return rVal;
 	}
 
+	/**
+	 *
+	 */
 	void writeFnDocumentation(Fn)(File f, Fn fn, const(Attribute)[] attrs, bool first)
 	{
 		auto writer = f.lockingTextWriter();
@@ -391,6 +359,15 @@ private:
 		stack = stack[0 .. $ - 1];
 	}
 
+	/**
+	 * Writes attributes to the given writer using the given formatter.
+	 * Params:
+	 *     F = The formatter type
+	 *     W = The writer type
+	 *     formatter = The formatter instance to use
+	 *     writer = The writer that will be output to.
+	 *     attrs = The attributes to write.
+	 */
 	void writeAttributes(F, W)(F formatter, W writer, const(Attribute)[] attrs)
 	{
 		IdType protection;
@@ -417,6 +394,9 @@ private:
 		}
 	}
 
+	/**
+	 * Formats an AST node to a string
+	 */
 	static string formatNode(T)(const T t)
 	{
 		import std.array;
@@ -426,7 +406,15 @@ private:
 		return writer.data;
 	}
 
-	static string writeType(File f, string name, const Type t)
+	/**
+	 * Writes an alias' type to the given file and returns it.
+	 * Params:
+	 *     f = The file to write to
+	 *     name = the name of the alias
+	 *     t = the aliased type
+	 * Returns: A string reperesentation of the given type.
+	 */
+	static string writeAliasType(File f, string name, const Type t)
 	{
 		import std.array;
 		if (t is null)
@@ -439,6 +427,9 @@ private:
 		return formatted;
 	}
 
+	/**
+	 * Writes navigation breadcrumbs in HTML format to the given file.
+	 */
 	void writeBreadcrumbs(File f)
 	{
 		import std.array;
@@ -472,6 +463,14 @@ private:
 		f.writeln(`</div>`);
 	}
 
+	/**
+	 * Similar to $(B pushSymbol), but for functions.
+	 * Params:
+	 *     name = The symbol's name
+	 *     first = True if this is the first time that pushFunction has been
+	 *         called for this name.
+	 * Returns: A file that the function's documentation should be written to.
+	 */
 	File pushFunction(string name, ref bool first)
 	{
 		import std.array;
@@ -546,6 +545,14 @@ private:
 	const(ubyte[]) fileBytes;
 }
 
+/**
+ * Writes HTML header information to the given file.
+ * Params:
+ *     f = The file to write to
+ *     title = The content of the HTML "title" element
+ *     depth = The directory depth of the file. This is used for ensuring that
+ *         the "base" element is correct so that links resolve properly.
+ */
 void writeHeader(File f, string title, size_t depth)
 {
 	f.write(`<!DOCTYPE html>
@@ -572,7 +579,17 @@ void writeHeader(File f, string title, size_t depth)
 }
 
 /**
- * Returns: the summary
+ * Writes a doc comment to the given file and returns the summary text.
+ * Params:
+ *     f = The file to write the comment to
+ *     comment = The comment to write
+ *     macros = Macro definitions used in processing the comment
+ *     prevComments = Previously encountered comments. This is used for handling
+ *         "ditto" comments. May be null.
+ *     functionBody = A function body used for writing contract information. May
+ *         be null.
+ *     testdocs = Pairs of unittest bodies and unittest doc comments. May be null.
+ * Returns: the summary from the given comment
  */
 string readAndWriteComment(File f, string comment, ref string[string] macros,
 	Comment[] prevComments = null, const FunctionBody functionBody = null,
@@ -615,11 +632,20 @@ string readAndWriteComment(File f, string comment, ref string[string] macros,
 	return rVal;
 }
 
+/**
+ * Returns: the input string with its first directory removed.
+ */
 string stripLeadingDirectory(string s)
 {
 	import std.algorithm;
 	import std.path;
 	return findSplitAfter(s, dirSeparator)[1];
+}
+
+///
+unittest
+{
+	assert (stripLeadingDirectory("foo/bar/baz") == "bar/baz");
 }
 
 private:
