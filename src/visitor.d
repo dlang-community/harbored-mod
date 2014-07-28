@@ -546,13 +546,29 @@ private:
 	const(ubyte[]) fileBytes;
 }
 
-private:
-
-string stripLeadingDirectory(string s)
+void writeHeader(File f, string title, size_t depth)
 {
-	import std.algorithm;
-	import std.path;
-	return findSplitAfter(s, dirSeparator)[1];
+	f.write(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<link rel="stylesheet" type="text/css" href="`);
+	foreach (i; 0 .. depth)
+		f.write("../");
+	f.write(`style.css"/><script src="`);
+	foreach (i; 0 .. depth)
+		f.write("../");
+	f.write(`highlight.pack.js"></script>
+<title>`);
+	f.write(title);
+	f.writeln(`</title>`);
+	f.write(`<base href="`);
+	foreach (i; 0 .. depth)
+		f.write("../");
+	f.write(`"/>
+<script src="search.js"></script>
+</head>
+<body>`);
 }
 
 /**
@@ -598,6 +614,15 @@ string readAndWriteComment(File f, string comment, ref string[string] macros,
 	}
 	return rVal;
 }
+
+string stripLeadingDirectory(string s)
+{
+	import std.algorithm;
+	import std.path;
+	return findSplitAfter(s, dirSeparator)[1];
+}
+
+private:
 
 void writeComment(File f, Comment comment, const FunctionBody functionBody = null)
 {
@@ -678,31 +703,6 @@ enum HTML_END = `
 <script>hljs.initHighlightingOnLoad();</script>
 </body>
 </html>`;
-
-void writeHeader(File f, string title, size_t depth)
-{
-	f.write(`<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8"/>
-<link rel="stylesheet" type="text/css" href="`);
-	foreach (i; 0 .. depth)
-		f.write("../");
-	f.write(`style.css"/><script src="`);
-	foreach (i; 0 .. depth)
-		f.write("../");
-	f.write(`highlight.pack.js"></script>
-<title>`);
-	f.write(title);
-	f.writeln(`</title>`);
-	f.write(`<base href="`);
-	foreach (i; 0 .. depth)
-		f.write("../");
-	f.write(`"/>
-<script src="search.js"></script>
-</head>
-<body>`);
-}
 
 struct Item
 {
