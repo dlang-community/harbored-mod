@@ -12,130 +12,17 @@ import std.d.ast;
 import std.d.formatter;
 import std.d.lexer;
 import std.file;
+import std.path;
 import std.stdio;
 import std.typecons;
 import unittest_preprocessor;
 
-enum HTML_END = `
-<script>hljs.initHighlightingOnLoad();</script>
-</body>
-</html>`;
 
-void writeHeader(File f, string title, size_t depth)
-{
-	f.write(`<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8"/>
-<link rel="stylesheet" type="text/css" href="`);
-	foreach (i; 0 .. depth)
-		f.write("../");
-	f.write(`style.css"/><script src="`);
-	foreach (i; 0 .. depth)
-		f.write("../");
-	f.write(`highlight.pack.js"></script>
-<title>`);
-	f.write(title);
-	f.writeln(`</title>`);
-	f.write(`<base href="`);
-	foreach (i; 0 .. depth)
-		f.write("../");
-	f.write(`"/>
-<script src="search.js"></script>
-</head>
-<body>`);
-}
-
-struct Item
-{
-	string url;
-	string name;
-	string summary;
-	string type;
-
-	void write(File f)
-	{
-		f.write(`<tr><td>`);
-		if (url == "#")
-			f.write(name, `</td>`);
-		else
-			f.write(`<a href="`, stripLeadingDirectory(url), `">`, name, `</a></td>`);
-		if (type is null)
-			f.write(`<td></td><td>`, summary ,`</td></tr>`);
-		else
-			f.write(`<td><pre><code>`, type, `</code></pre></td><td>`, summary ,`</td></tr>`);
-	}
-}
-
-private alias FunctionAttributeTuple = Tuple!(const(FunctionDeclaration), const(Attribute)[]);
-private alias ConstructorAttributeTuple = Tuple!(const(Constructor), const(Attribute)[]);
-
-struct Members
-{
-	File[string] functionFiles;
-	Item[] aliases;
-	Item[] classes;
-	Item[] enums;
-	Item[] functions;
-	Item[] interfaces;
-	Item[] structs;
-	Item[] templates;
-	Item[] values;
-	Item[] variables;
-
-	void write(File f)
-	{
-		if (aliases.length == 0 && classes.length == 0 && enums.length == 0
-			&& functions.length == 0 && interfaces.length == 0
-			&& structs.length == 0 && templates.length == 0 && values.length == 0
-			&& variables.length == 0)
-		{
-			return;
-		}
-		f.writeln(`<div class="section">`);
-		if (aliases.length > 0)
-			write(f, aliases, "Aliases");
-		if (classes.length > 0)
-			write(f, classes, "Classes");
-		if (enums.length > 0)
-			write(f, enums, "Enums");
-		if (functions.length > 0)
-			write(f, functions, "Functions");
-		if (interfaces.length > 0)
-			write(f, interfaces, "Interfaces");
-		if (structs.length > 0)
-			write(f, structs, "Structs");
-		if (templates.length > 0)
-			write(f, templates, "Templates");
-		if (values.length > 0)
-			write(f, values, "Values");
-		if (variables.length > 0)
-			write(f, variables, "Variables");
-		f.writeln(`</div>`);
-		foreach (f; functionFiles)
-		{
-			f.writeln(HTML_END);
-			f.close();
-		}
-	}
-
-private:
-
-	void write(File f, Item[] items, string name)
-	{
-		f.writeln(`<h3>`, name, `</h3>`);
-		f.writeln(`<table>`);
-//		f.writeln(`<thead><tr><th>Name</th><th>Summary</th></tr></thead>`);
-		foreach (i; items)
-			i.write(f);
-		f.writeln(`</table>`);
-	}
-}
-
-///
+/**
+ *
+ */
 class DocVisitor : ASTVisitor
 {
-	import std.path;
 	this(string outputDirectory, string[string] macros, File searchIndex,
 		TestRange[][size_t] unitTestMapping, const(ubyte[]) fileBytes)
 	{
@@ -659,6 +546,8 @@ private:
 	const(ubyte[]) fileBytes;
 }
 
+private:
+
 string stripLeadingDirectory(string s)
 {
 	import std.algorithm;
@@ -775,12 +664,125 @@ void writeContracts(File f, const InStatement inStatement,
 	f.writeln("</code></pre></div>");
 }
 
-private string prettySectionName(string sectionName)
+string prettySectionName(string sectionName)
 {
 	switch (sectionName)
 	{
 	case "See_also": return "See Also";
 	case "Params": return "Parameters";
 	default: return sectionName;
+	}
+}
+
+enum HTML_END = `
+<script>hljs.initHighlightingOnLoad();</script>
+</body>
+</html>`;
+
+void writeHeader(File f, string title, size_t depth)
+{
+	f.write(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<link rel="stylesheet" type="text/css" href="`);
+	foreach (i; 0 .. depth)
+		f.write("../");
+	f.write(`style.css"/><script src="`);
+	foreach (i; 0 .. depth)
+		f.write("../");
+	f.write(`highlight.pack.js"></script>
+<title>`);
+	f.write(title);
+	f.writeln(`</title>`);
+	f.write(`<base href="`);
+	foreach (i; 0 .. depth)
+		f.write("../");
+	f.write(`"/>
+<script src="search.js"></script>
+</head>
+<body>`);
+}
+
+struct Item
+{
+	string url;
+	string name;
+	string summary;
+	string type;
+
+	void write(File f)
+	{
+		f.write(`<tr><td>`);
+		if (url == "#")
+			f.write(name, `</td>`);
+		else
+			f.write(`<a href="`, stripLeadingDirectory(url), `">`, name, `</a></td>`);
+		if (type is null)
+			f.write(`<td></td><td>`, summary ,`</td></tr>`);
+		else
+			f.write(`<td><pre><code>`, type, `</code></pre></td><td>`, summary ,`</td></tr>`);
+	}
+}
+
+struct Members
+{
+	File[string] functionFiles;
+	Item[] aliases;
+	Item[] classes;
+	Item[] enums;
+	Item[] functions;
+	Item[] interfaces;
+	Item[] structs;
+	Item[] templates;
+	Item[] values;
+	Item[] variables;
+
+	void write(File f)
+	{
+		if (aliases.length == 0 && classes.length == 0 && enums.length == 0
+			&& functions.length == 0 && interfaces.length == 0
+			&& structs.length == 0 && templates.length == 0 && values.length == 0
+			&& variables.length == 0)
+		{
+			return;
+		}
+		f.writeln(`<div class="section">`);
+		if (enums.length > 0)
+			write(f, enums, "Enums");
+		if (aliases.length > 0)
+			write(f, aliases, "Aliases");
+		if (variables.length > 0)
+			write(f, variables, "Variables");
+		if (functions.length > 0)
+			write(f, functions, "Functions");
+		if (structs.length > 0)
+			write(f, structs, "Structs");
+		if (interfaces.length > 0)
+			write(f, interfaces, "Interfaces");
+		if (classes.length > 0)
+			write(f, classes, "Classes");
+		if (templates.length > 0)
+			write(f, templates, "Templates");
+		if (values.length > 0)
+			write(f, values, "Values");
+		f.writeln(`</div>`);
+		foreach (f; functionFiles)
+		{
+			f.writeln(HTML_END);
+			f.close();
+		}
+	}
+
+private:
+
+	void write(File f, Item[] items, string name)
+	{
+		f.writeln(`<h3>`, name, `</h3>`);
+		f.writeln(`<table>`);
+//		f.writeln(`<thead><tr><th>Name</th><th>Summary</th></tr></thead>`);
+		foreach (i; items)
+			i.write(f);
+		f.writeln(`</table>`);
 	}
 }
