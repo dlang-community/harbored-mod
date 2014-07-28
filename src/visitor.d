@@ -85,7 +85,15 @@ class DocVisitor : ASTVisitor
 
 	override void visit(const EnumDeclaration ed)
 	{
-		visitAggregateDeclaration!("", "enums")(ed);
+		enum formattingCode = q{
+		f.write("enum ", ad.name.text);
+		if (ad.type !is null)
+		{
+			f.write(" : ");
+			formatter.format(ad.type);
+		}
+		};
+		visitAggregateDeclaration!(formattingCode, "enums")(ed);
 	}
 
 	override void visit(const EnumMember member)
