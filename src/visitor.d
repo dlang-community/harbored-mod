@@ -204,12 +204,18 @@ class DocVisitor : ASTVisitor
 			scope(exit) popSymbol(f);
 			writeBreadcrumbs(f);
 			string summary = readAndWriteComment(f, vd.comment, macros, prevComments);
-			if (vd.storageClass.token == tok!"enum")
-				memberStack[$ - 2].enums ~= Item(findSplitAfter(f.name, "/")[1],
-					ident.text, summary, str(vd.storageClass.token.type));
+			string storageClass;
+			foreach (attr; vd.attributes)
+			{
+				if (attr.storageClass !is null)
+					storageClass = str(attr.storageClass.token.type);
+			}
+			auto i = Item(findSplitAfter(f.name, "/")[1], ident.text,
+				summary, storageClass == "enum" ? null : "auto");
+			if (storageClass == "enum")
+				memberStack[$ - 2].enums ~= i;
 			else
-				memberStack[$ - 2].variables ~= Item(findSplitAfter(f.name, "/")[1],
-					ident.text, summary, str(vd.storageClass.token.type));
+				memberStack[$ - 2].variables ~= i;
 		}
 	}
 
