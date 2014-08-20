@@ -161,15 +161,18 @@ class DocVisitor : ASTVisitor
 	{
 		if (ad.comment is null)
 			return;
-		if (ad.name != tok!"")
+		if (ad.identifierList !is null)
 		{
-			File f = pushSymbol(ad.name.text);
-			scope(exit) popSymbol(f);
-			writeBreadcrumbs(f);
-			string type = writeAliasType(f, ad.name.text, ad.type);
-			string summary = readAndWriteComment(f, ad.comment, macros, prevComments);
-			memberStack[$ - 2].aliases ~= Item(findSplitAfter(f.name, "/")[1],
-				ad.name.text, summary, type);
+			foreach (name; ad.identifierList.identifiers)
+			{
+				File f = pushSymbol(name.text);
+				scope(exit) popSymbol(f);
+				writeBreadcrumbs(f);
+				string type = writeAliasType(f, name.text, ad.type);
+				string summary = readAndWriteComment(f, ad.comment, macros, prevComments);
+				memberStack[$ - 2].aliases ~= Item(findSplitAfter(f.name, "/")[1],
+					name.text, summary, type);
+			}
 		}
 		else foreach (initializer; ad.initializers)
 		{

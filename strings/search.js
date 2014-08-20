@@ -35,6 +35,7 @@ function searchSubmit(value, event) {
 		var link = document.createElement("a");
 		link.href = v;
 		link.textContent = k;
+		link.attributes.id = "link" + i;
 		var row = resultTable.insertRow();
 		row.appendChild(link);
 	}
