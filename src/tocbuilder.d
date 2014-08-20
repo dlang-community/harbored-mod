@@ -48,7 +48,7 @@ TocItem[] buildTree(string[] strings, string[string] links, size_t offset = 0)
 		item.name = strings[i][offset .. offset + prefix.length];
 		if (prefix.length != 0 && suffix.length != 0)
 		{
-			while (j < strings.length && strings[j][offset .. $].startsWith(prefix))
+			while (j < strings.length && strings[j][offset .. $].startsWith(prefix ~ s[1]))
 				j++;
 			if (i < j)
 			{
