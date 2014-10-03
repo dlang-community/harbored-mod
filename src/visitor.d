@@ -44,11 +44,12 @@ class DocVisitor : ASTVisitor
 
 	override void visit(const Module mod)
 	{
-		import std.algorithm;
-		import std.path;
-		import std.range;
-		import std.file;
-		import std.conv;
+		import std.array : array;
+		import std.algorithm : map;
+		import std.path : dirName;
+		import std.range : chain, only, join;
+		import std.file : mkdirRecurse;
+		import std.conv : to;
 
 		if (mod.moduleDeclaration is null)
 			return;
@@ -70,7 +71,7 @@ class DocVisitor : ASTVisitor
 
 		if (mod.moduleDeclaration.comment !is null)
 			readAndWriteComment(output, mod.moduleDeclaration.comment, macros,
-				prevComments);
+				prevComments, null, getUnittestDocTuple(mod.moduleDeclaration));
 
 		memberStack.length = 1;
 

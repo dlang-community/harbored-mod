@@ -37,6 +37,11 @@ class UnittestVisitor : ASTVisitor
 {
 	alias visit = ASTVisitor.visit;
 
+	override void visit(const ModuleDeclaration modDec)
+	{
+		setPrevNode(modDec);
+	}
+
 	override void visit(const Unittest uTest)
 	{
 		setUnittest(uTest);
@@ -45,6 +50,14 @@ class UnittestVisitor : ASTVisitor
 	override void visit(const FunctionDeclaration fd)
 	{
 		setPrevNode(fd);
+	}
+
+	override void visit(const TemplateDeclaration td)
+	{
+		setPrevNode(td);
+		pushScope();
+		td.accept(this);
+		popScope();
 	}
 
 	mixin template VisitScope(T)
@@ -73,7 +86,6 @@ class UnittestVisitor : ASTVisitor
 	mixin VisitAggregate!ClassDeclaration;
 	mixin VisitAggregate!InterfaceDeclaration;
 	mixin VisitAggregate!StructDeclaration;
-	mixin VisitAggregate!TemplateDeclaration;
 	mixin VisitAggregate!UnionDeclaration;
 
 private:
