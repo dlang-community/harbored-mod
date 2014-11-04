@@ -81,7 +81,6 @@ class DocVisitor : ASTVisitor
 
 		output.writeln(HTML_END);
 		output.close();
-
 	}
 
 	override void visit(const EnumDeclaration ed)
@@ -101,8 +100,7 @@ class DocVisitor : ASTVisitor
 	{
 		if (member.comment is null)
 			return;
-		File blackHole = File("/dev/null", "w");
-		string summary = readAndWriteComment(blackHole, member.comment, macros,
+		string summary = readAndWriteComment(File.init, member.comment, macros,
 			prevComments, null, getUnittestDocTuple(member));
 		memberStack[$ - 1].values ~= Item("#", member.name.text, summary);
 	}
