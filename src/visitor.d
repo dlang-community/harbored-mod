@@ -162,11 +162,12 @@ class DocVisitor : ASTVisitor
 	{
 		if (ad.comment is null)
 			return;
+		bool first;
 		if (ad.identifierList !is null)
 		{
 			foreach (name; ad.identifierList.identifiers)
 			{
-				File f = pushSymbol(name.text);
+				File f = pushSymbol(name.text, first);
 				scope(exit) popSymbol(f);
 				writeBreadcrumbs(f);
 				string type = writeAliasType(f, name.text, ad.type);
@@ -177,7 +178,7 @@ class DocVisitor : ASTVisitor
 		}
 		else foreach (initializer; ad.initializers)
 		{
-			File f = pushSymbol(initializer.name.text);
+			File f = pushSymbol(initializer.name.text, first);
 			scope(exit) popSymbol(f);
 			writeBreadcrumbs(f);
 			string type = writeAliasType(f, initializer.name.text, initializer.type);
@@ -189,11 +190,12 @@ class DocVisitor : ASTVisitor
 
 	override void visit(const VariableDeclaration vd)
 	{
+		bool first;
 		foreach (const Declarator dec; vd.declarators)
 		{
 			if (vd.comment is null && dec.comment is null)
 				continue;
-			File f = pushSymbol(dec.name.text);
+			File f = pushSymbol(dec.name.text, first);
 			scope(exit) popSymbol(f);
 			writeBreadcrumbs(f);
 			string summary = readAndWriteComment(f,
@@ -204,7 +206,7 @@ class DocVisitor : ASTVisitor
 		}
 		if (vd.comment !is null && vd.autoDeclaration !is null) foreach (ident; vd.autoDeclaration.identifiers)
 		{
-			File f = pushSymbol(ident.text);
+			File f = pushSymbol(ident.text, first);
 			scope(exit) popSymbol(f);
 			writeBreadcrumbs(f);
 			string summary = readAndWriteComment(f, vd.comment, macros, prevComments);
@@ -255,7 +257,7 @@ class DocVisitor : ASTVisitor
 		if (cons.comment is null)
 			return;
 		bool first;
-		File f = pushFunction("this", first);
+		File f = pushSymbol("this", first);
 		writeFnDocumentation(f, cons, attributes[$ - 1], first);
 	}
 
@@ -264,7 +266,7 @@ class DocVisitor : ASTVisitor
 		if (fd.comment is null)
 			return;
 		bool first;
-		File f = pushFunction(fd.name.text, first);
+		File f = pushSymbol(fd.name.text, first);
 		writeFnDocumentation(f, fd, attributes[$ - 1], first);
 	}
 
@@ -281,18 +283,23 @@ private:
 
 	void visitAggregateDeclaration(string formattingCode, string name, A)(const A ad)
 	{
+		bool first;
 		if (ad.comment is null)
 			return;
-		File f = pushSymbol(ad.name.text);
-		scope(exit) popSymbol(f);
-		writeBreadcrumbs(f);
-		f.write(`<pre><code>`);
-		auto writer = f.lockingTextWriter();
-		auto formatter = new Formatter!(File.LockingTextWriter)(writer);
-		scope(exit) formatter.sink = File.LockingTextWriter.init;
-		writeAttributes(formatter, writer, attributes[$ - 1]);
-		mixin(formattingCode);
-		f.writeln(`</code></pre>`);
+		File f = pushSymbol(ad.name.text, first);
+		if (first)
+			writeBreadcrumbs(f);
+		else
+			f.writeln("<hr/>");
+		{
+			auto writer = f.lockingTextWriter();
+			writer.put(`<pre><code>`);
+			auto formatter = new Formatter!(File.LockingTextWriter)(writer);
+			scope(exit) formatter.sink = File.LockingTextWriter.init;
+			writeAttributes(formatter, writer, attributes[$ - 1]);
+			mixin(formattingCode);
+			writer.put("\n</code></pre>");
+		}
 		string summary = readAndWriteComment(f, ad.comment, macros, prevComments,
 			null, getUnittestDocTuple(ad));
 		mixin(`memberStack[$ - 2].` ~ name ~ ` ~= Item(findSplitAfter(f.name, "/")[1], ad.name.text, summary);`);
@@ -300,6 +307,9 @@ private:
 		ad.accept(this);
 		prevComments = prevComments[0 .. $ - 1];
 		memberStack[$ - 1].write(f);
+
+		stack = stack[0 .. $ - 1];
+		memberStack = memberStack[0 .. $ - 1];
 	}
 
 	/**
@@ -370,11 +380,12 @@ private:
 			fdName = fn.name.text;
 		else
 			fdName = "this";
-		memberStack[$ - 1].functions ~= Item(findSplitAfter(f.name, "/")[1], fdName, summary);
+		memberStack[$ - 2].functions ~= Item(findSplitAfter(f.name, "/")[1], fdName, summary);
 		prevComments.length = prevComments.length + 1;
 		fn.accept(this);
 		prevComments = prevComments[0 .. $ - 1];
 		stack = stack[0 .. $ - 1];
+		memberStack = memberStack[0 .. $ - 1];
 	}
 
 	/**
@@ -434,7 +445,6 @@ private:
 	 */
 	static string writeAliasType(File f, string name, const Type t)
 	{
-		import std.array;
 		if (t is null)
 			return null;
 		f.write(`<pre><code>`);
@@ -450,9 +460,9 @@ private:
 	 */
 	void writeBreadcrumbs(File f)
 	{
-		import std.array;
-		import std.conv;
-		import std.range;
+		import std.array : join;
+		import std.conv : to;
+		import std.range : chain, only;
 		f.writeln(`<div class="breadcrumbs">`);
 		f.writeln(`<table id="results"></table>`);
 		f.writeln(`<input type="search" id="search" placeholder="Search" onkeyup="searchSubmit(this.value, event)"/>`);
@@ -482,44 +492,18 @@ private:
 	}
 
 	/**
-	 * Similar to $(B pushSymbol), but for functions.
 	 * Params:
 	 *     name = The symbol's name
-	 *     first = True if this is the first time that pushFunction has been
+	 *     first = True if this is the first time that pushSymbol has been
 	 *         called for this name.
-	 * Returns: A file that the function's documentation should be written to.
+	 *     isFunction = True if the symbol being pushed is a function, false
+	 *         otherwise.
+	 * Returns: A file that the symbol's documentation should be written to.
 	 */
-	File pushFunction(string name, ref bool first)
+	File pushSymbol(string name, ref bool first)
 	{
-		import std.array;
-		import std.string;
-		stack ~= name;
-		string classDocFileName = format("%s.%s.html", moduleFileBase,
-			join(stack[baseLength .. $], ".").array);
-		string path = (classDocFileName.length > 2 && classDocFileName[0 .. 2] == "./")
-				? stripLeadingDirectory(classDocFileName[2 .. $])
-				: classDocFileName;
-		searchIndex.writefln(`{"%s" : "%s"},`, join(stack, ".").array, path);
-		File f;
-		if (classDocFileName in memberStack[$ - 1].functionFiles)
-		{
-			f = memberStack[$ - 1].functionFiles[classDocFileName];
-			first = false;
-		}
-		else
-		{
-			first = true;
-			f = File(classDocFileName, "w");
-			memberStack[$ - 1].functionFiles[classDocFileName] = f;
-			writeHeader(f, name, baseLength - 1);
-		}
-		return f;
-	}
-
-	File pushSymbol(string name)
-	{
-		import std.array;
-		import std.string;
+		import std.array : array, join;
+		import std.string : format;
 		stack ~= name;
 		memberStack.length = memberStack.length + 1;
 		string classDocFileName = format("%s.%s.html", moduleFileBase,
@@ -528,9 +512,20 @@ private:
 				? stripLeadingDirectory(classDocFileName[2 .. $])
 				: classDocFileName;
 		searchIndex.writefln(`{"%s" : "%s"},`, join(stack, ".").array, path);
-		auto f = File(classDocFileName, "w");
-		writeHeader(f, name, baseLength - 1);
-		return f;
+		immutable size_t i = memberStack.length - 2;
+		assert (i < memberStack.length, "%s %s".format(i, memberStack.length));
+		auto p = classDocFileName in memberStack[i].overloadFiles;
+		first = p is null;
+		if (first)
+		{
+			first = true;
+			auto f = File(classDocFileName, "w");
+			memberStack[i].overloadFiles[classDocFileName] = f;
+			writeHeader(f, name, baseLength - 1);
+			return f;
+		}
+		else
+			return *p;
 	}
 
 	void popSymbol(File f)
@@ -771,7 +766,7 @@ struct Item
 
 struct Members
 {
-	File[string] functionFiles;
+	File[string] overloadFiles;
 	Item[] aliases;
 	Item[] classes;
 	Item[] enums;
@@ -811,7 +806,7 @@ struct Members
 		if (values.length > 0)
 			write(f, values, "Values");
 		f.writeln(`</div>`);
-		foreach (f; functionFiles)
+		foreach (f; overloadFiles)
 		{
 			f.writeln(HTML_END);
 			f.close();
