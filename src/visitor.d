@@ -160,6 +160,7 @@ class DocVisitor : ASTVisitor
 
 	override void visit(const AliasDeclaration ad)
 	{
+		import std.path : pathSeparator;
 		if (ad.comment is null)
 			return;
 		bool first;
@@ -172,7 +173,7 @@ class DocVisitor : ASTVisitor
 				writeBreadcrumbs(f);
 				string type = writeAliasType(f, name.text, ad.type);
 				string summary = readAndWriteComment(f, ad.comment, macros, prevComments);
-				memberStack[$ - 2].aliases ~= Item(findSplitAfter(f.name, "/")[1],
+				memberStack[$ - 2].aliases ~= Item(findSplitAfter(f.name, pathSeparator)[1],
 					name.text, summary, type);
 			}
 		}
@@ -183,7 +184,7 @@ class DocVisitor : ASTVisitor
 			writeBreadcrumbs(f);
 			string type = writeAliasType(f, initializer.name.text, initializer.type);
 			string summary = readAndWriteComment(f, ad.comment, macros, prevComments);
-			memberStack[$ - 2].aliases ~= Item(findSplitAfter(f.name, "/")[1],
+			memberStack[$ - 2].aliases ~= Item(findSplitAfter(f.name, pathSeparator)[1],
 				initializer.name.text, summary, type);
 		}
 	}
@@ -201,7 +202,7 @@ class DocVisitor : ASTVisitor
 			string summary = readAndWriteComment(f,
 				dec.comment is null ? vd.comment : dec.comment, macros,
 				prevComments);
-			memberStack[$ - 2].variables ~= Item(findSplitAfter(f.name, "/")[1],
+			memberStack[$ - 2].variables ~= Item(findSplitAfter(f.name, pathSeparator)[1],
 				dec.name.text, summary, formatNode(vd.type));
 		}
 		if (vd.comment !is null && vd.autoDeclaration !is null) foreach (ident; vd.autoDeclaration.identifiers)
@@ -216,7 +217,7 @@ class DocVisitor : ASTVisitor
 				if (attr.storageClass !is null)
 					storageClass = str(attr.storageClass.token.type);
 			}
-			auto i = Item(findSplitAfter(f.name, "/")[1], ident.text,
+			auto i = Item(findSplitAfter(f.name, pathSeparator)[1], ident.text,
 				summary, storageClass == "enum" ? null : "auto");
 			if (storageClass == "enum")
 				memberStack[$ - 2].enums ~= i;
@@ -302,7 +303,7 @@ private:
 		}
 		string summary = readAndWriteComment(f, ad.comment, macros, prevComments,
 			null, getUnittestDocTuple(ad));
-		mixin(`memberStack[$ - 2].` ~ name ~ ` ~= Item(findSplitAfter(f.name, "/")[1], ad.name.text, summary);`);
+		mixin(`memberStack[$ - 2].` ~ name ~ ` ~= Item(findSplitAfter(f.name, pathSeparator)[1], ad.name.text, summary);`);
 		prevComments.length = prevComments.length + 1;
 		ad.accept(this);
 		prevComments = prevComments[0 .. $ - 1];
@@ -380,7 +381,7 @@ private:
 			fdName = fn.name.text;
 		else
 			fdName = "this";
-		memberStack[$ - 2].functions ~= Item(findSplitAfter(f.name, "/")[1], fdName, summary);
+		memberStack[$ - 2].functions ~= Item(findSplitAfter(f.name, pathSeparator)[1], fdName, summary);
 		prevComments.length = prevComments.length + 1;
 		fn.accept(this);
 		prevComments = prevComments[0 .. $ - 1];
@@ -608,8 +609,8 @@ string readAndWriteComment(File f, string comment, ref string[string] macros,
 	Comment[] prevComments = null, const FunctionBody functionBody = null,
 	Tuple!(string, string)[] testDocs = null)
 {
-	import std.d.lexer;
-	import std.array;
+	import std.d.lexer : unDecorateComment;
+	import std.array : appender;
 	auto app = appender!string();
 	comment.unDecorateComment(app);
 //		writeln(comment, " undecorated to ", app.data);
@@ -633,7 +634,7 @@ string readAndWriteComment(File f, string comment, ref string[string] macros,
 	if (testDocs !is null) foreach (doc; testDocs)
 	{
 //		writeln("Writing a unittest doc comment");
-		import std.string;
+		import std.string : outdent;
 		f.writeln(`<div class="section"><h3>Example</h3>`);
 		auto docApp = appender!string();
 		doc[1].unDecorateComment(app);
@@ -650,8 +651,8 @@ string readAndWriteComment(File f, string comment, ref string[string] macros,
  */
 string stripLeadingDirectory(string s)
 {
-	import std.algorithm;
-	import std.path;
+	import std.algorithm : findSplitAfter;
+	import std.path : dirSeparator;
 	return findSplitAfter(s, dirSeparator)[1];
 }
 
