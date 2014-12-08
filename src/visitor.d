@@ -617,7 +617,8 @@ string readAndWriteComment(File f, string comment, ref string[string] macros,
 		c = prevComments[$ - 1];
 	else if (prevComments.length > 0)
 		prevComments[$ - 1] = c;
-	writeComment(f, c, functionBody);
+	if (f != File.init)
+		writeComment(f, c, functionBody);
 	string rVal = "";
 	if (c.sections.length && c.sections[0].name == "Summary")
 		rVal = c.sections[0].content;
@@ -629,7 +630,7 @@ string readAndWriteComment(File f, string comment, ref string[string] macros,
 				rVal = "Returns: " ~ section.content;
 		}
 	}
-	if (testDocs !is null) foreach (doc; testDocs)
+	if (f != File.init && testDocs !is null) foreach (doc; testDocs)
 	{
 //		writeln("Writing a unittest doc comment");
 		import std.string : outdent;
