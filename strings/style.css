@@ -12,14 +12,23 @@ body {
 	padding: 0;
 }
 
+div.main {
+	overflow: hidden;
+	background-color: #F8F8F8;
+}
+
 div.breadcrumbs {
 	color: white;
 	background-color: #333;
-	padding: 1em;
-	box-shadow: 0 0 .5em .5em black;
-	background: linear-gradient(180deg, #333, #222);
+	padding-top: 1em;
+	padding-left: 1em;
+	padding-right: 1em;
+	box-sizing: border-box;
 	text-align: right;
-	margin: 0 0 2em 0;
+	top: 0;
+	position: fixed;
+	width: 100%;
+	height: 3em;
 }
 
 div.breadcrumbs a {
@@ -27,8 +36,64 @@ div.breadcrumbs a {
 
 }
 
+div.breadcrumbs a.home {
+	float: left;
+	font-weight: bold;
+	font-size: 200%;
+	margin: 0 2% 0 0%;
+	margin-top: -0.3em;
+	text-decoration: none;
+}
+
 div.breadcrumbs input {
 	float: left;
+}
+
+div.toc {
+	float: left;
+	margin-top: 3em;
+	padding: 1em;
+	margin-right: -1px;
+	border-right: 1px solid #D0D0D0;
+}
+
+
+div.toc ul {
+	list-style-type: none;
+	padding-left: 0;
+	padding-bottom: 0.5em;
+}
+
+div.toc ul ul {
+	list-style-type: none;
+	padding-left: 0.5em;
+}
+
+
+div.toc li {
+	line-height: 0.8em;
+}
+
+div.toc a {
+	font-size: 0.65em;
+	color: #111;
+}
+
+div.toc span.package {
+	line-height: 1.8em;
+	font-size: 0.65em;
+	font-weight: bold;
+	border: 1px solid rgba(0, 0, 0, 0.12);
+	border-radius: 3px;
+	background-color: #F0F0F0;
+}
+
+div.content {
+	padding: 1em;
+	font-size: 90%;
+	margin-top: 3em;
+	overflow: hidden;
+	border-left: 1px solid #D0D0D0;
 }
 
 .paramDoc:before {

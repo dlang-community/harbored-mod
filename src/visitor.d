@@ -608,7 +608,9 @@ void writeHeader(File f, string title, size_t depth)
 	f.write(`"/>
 <script src="search.js"></script>
 </head>
-<body>`);
+<body>
+<div class="main">
+`);
 }
 
 /** Writes the table of contents to specified file.
@@ -797,6 +799,7 @@ string prettySectionName(string sectionName)
 
 enum HTML_END = `
 <script>hljs.initHighlightingOnLoad();</script>
+</div>
 </div>
 </body>
 </html>`;
