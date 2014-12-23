@@ -1,6 +1,7 @@
 module tocbuilder;
 
 import std.algorithm;
+import std.array: empty;
 import std.stdio;
 
 struct TocItem
@@ -34,7 +35,7 @@ struct TocItem
 	}
 }
 
-TocItem[] buildTree(string[] strings, string[string] links, size_t offset = 0)
+TocItem[] buildTree(string[] strings, string[string] links, const size_t offset = 0)
 {
 	TocItem[] items;
 	size_t i = 0;
@@ -42,10 +43,9 @@ TocItem[] buildTree(string[] strings, string[string] links, size_t offset = 0)
 	{
 		size_t j = i + 1;
 		auto s = strings[i][offset .. $].findSplit(".");
-		string prefix = s[0];
+		const string prefix = s[0];
 		string suffix = s[2];
 		TocItem item;
-		item.name = strings[i][offset .. offset + prefix.length];
 		if (prefix.length != 0 && suffix.length != 0)
 		{
 			while (j < strings.length && strings[j][offset .. $].startsWith(prefix ~ s[1]))
@@ -58,6 +58,10 @@ TocItem[] buildTree(string[] strings, string[string] links, size_t offset = 0)
 		}
 		else
 			item.url = links[strings[i]];
+
+		// short name (only module, no package):
+		// item.name = strings[i][offset .. offset + prefix.length];
+		item.name = strings[i][0 .. item.items.empty ? $ : offset + prefix.length];
 		items ~= item;
 		i = j;
 	}
