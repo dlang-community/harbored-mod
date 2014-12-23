@@ -484,9 +484,7 @@ private:
 		import std.array : join;
 		import std.conv : to;
 		import std.range : chain, only;
-		f.writeln(`<div class="breadcrumbs">`);
-		f.writeln(`<table id="results"></table>`);
-		f.writeln(`<input type="search" id="search" placeholder="Search" onkeyup="searchSubmit(this.value, event)"/>`);
+		string heading;
 		foreach (i; 0 .. stack.length)
 		{
 			if (i + 1 < stack.length)
@@ -495,21 +493,20 @@ private:
 				{
 					string link = buildPath(chain(stack[0 .. baseLength - 1],
 						only(stack[baseLength - 1.. $ - 1].join("."))));
-//					writeln(link, ".html");
-					f.write(`<a href="`, link, `.html">`);
-					f.write(stack[i]);
-					f.write(`</a>.`);
+					heading  ~= `<a href="` ~ link ~ `.html">`;
+					heading  ~= stack[i];
+					heading  ~= `</a>.`;
 				}
 				else
 				{
-					f.write(stack[i]);
-					f.write(".");
+					heading ~= stack[i];
+					heading ~= ".";
 				}
 			}
 			else
-				f.write(stack[i]);
+				heading ~= stack[i];
 		}
-		f.writeln(`</div>`);
+		.writeBreadcrumbs(f, heading);
 	}
 
 	/**
@@ -611,6 +608,24 @@ void writeHeader(File f, string title, size_t depth)
 <script src="search.js"></script>
 </head>
 <body>`);
+}
+
+
+/**
+  * Writes navigation breadcrumbs in HTML format to the given file.
+  *
+  * Also starts the "content" <div>; must be called after writeTOC(), before writing
+  * main content.
+  */
+void writeBreadcrumbs(File f, string heading)
+{
+	f.writeln(`<div class="breadcrumbs">`);
+	f.writeln(`<table id="results"></table>`);
+	f.writeln(`<a class="home" href=index.html>⌂</a>`);
+	f.writeln(`<input type="search" id="search" placeholder="Search" onkeyup="searchSubmit(this.value, event)"/>`);
+	f.write(heading);
+	f.writeln(`</div>`);
+	f.writeln(`<div class="content">`);
 }
 
 /**
@@ -766,6 +781,7 @@ string prettySectionName(string sectionName)
 
 enum HTML_END = `
 <script>hljs.initHighlightingOnLoad();</script>
+</div>
 </body>
 </html>`;
 
