@@ -42,27 +42,44 @@ class DocVisitor : ASTVisitor
 		this.fileBytes = fileBytes;
 	}
 
-	override void visit(const Module mod)
+	/**
+	 * Same as visit(const Module), but only determines the file (location) of the
+	 * documentation and module name, without actually writing the documentation.
+	 */
+	bool moduleInitLocation(const Module mod)
 	{
 		import std.array : array;
 		import std.algorithm : map;
-		import std.path : dirName;
 		import std.range : chain, only, join;
 		import std.file : mkdirRecurse;
 		import std.conv : to;
 
 		if (mod.moduleDeclaration is null)
-			return;
+			return false;
 		pushAttributes();
 		stack = cast(string[]) mod.moduleDeclaration.moduleName.identifiers.map!(a => a.text).array;
+
 		baseLength = stack.length;
 		moduleFileBase = chain(only(outputDirectory), stack).buildPath;
-		if (!exists(moduleFileBase.dirName()))
-			moduleFileBase.dirName().mkdirRecurse();
-		File output = File(moduleFileBase ~ ".html", "w");
 
-		location = output.name;
+		if (!exists(moduleFileBase))
+			moduleFileBase.mkdirRecurse();
+		const outputName = moduleFileBase ~ ".html";
+
+		location = outputName;
 		moduleName = to!string(stack.join("."));
+
+		return true;
+	}
+
+	override void visit(const Module mod)
+	{
+		if(!moduleInitLocation(mod))
+		{
+			return;
+		}
+
+		File output = File(location, "w");
 		writeHeader(output, moduleName, baseLength - 1);
 
 		writeBreadcrumbs(output);
