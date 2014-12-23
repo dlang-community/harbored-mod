@@ -148,21 +148,6 @@ void generateDocumentation(string outputDirectory, string indexContent,
 	}
 	search.writeln(`];`);
 	search.writeln(searchjs);
-
-	File toc = File(buildPath(outputDirectory, "toc.html"), "w");
-	toc.writeln(`<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8"/>
-</head>
-<body>`);
-	toc.writeln(`<ul>`);
-
-	sort(modules);
-	TocItem[] tocItems = buildTree(modules, moduleMap);
-	foreach (t; tocItems)
-		t.write(toc);
-	toc.writeln(`</ul></body></html>`);
 }
 
 /// Creates documentation for the module at the given path
