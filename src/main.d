@@ -74,6 +74,37 @@ void generateDocumentation(string outputDirectory, string indexContent,
 
 	mkdirRecurse(outputDirectory);
 
+
+	string[] moduleNames;
+	string[string] moduleNameToDocPath;
+
+	writeln("Collecting data for table of contents");
+	foreach(modulePath; files)
+	{
+		string moduleName;
+		string location;
+
+		try
+		{
+			getDocumentationLocation(outputDirectory, modulePath, moduleName, location);
+		}
+		catch(Exception e)
+		{
+			stderr.writeln("Could not build a TOC entry for ", modulePath, ": ", e.msg);
+			continue;
+		}
+		string path = (location.length > 2 && location[0 .. 2] == "./")
+			? stripLeadingDirectory(location[2 .. $])
+			: location;
+		if (moduleName != "")
+		{
+			moduleNames ~= moduleName;
+			moduleNameToDocPath[moduleName] = path;
+		}
+	}
+
+	TocItem[] tocItems = buildTree(moduleNames, moduleNameToDocPath);
+
 	{
 		File css = File(buildPath(outputDirectory, "style.css"), "w");
 		css.write(stylecss);
@@ -104,25 +135,12 @@ Main Page</div>`);
 	search.writeln(`"use strict";`);
 	search.writeln(`var items = [`);
 
-	string[] modules;
-	string[string] moduleMap;
-
 	foreach (f; files)
 	{
 		writeln("Generating documentation for ", f);
-		string moduleName;
-		string location;
 		try
 		{
-			writeDocumentation(outputDirectory, f, macros, moduleName, location, search);
-			string path = (location.length > 2 && location[0 .. 2] == "./")
-				? stripLeadingDirectory(location[2 .. $])
-				: location;
-			if (moduleName != "")
-			{
-				modules ~= moduleName;
-				moduleMap[moduleName] = path;
-			}
+			writeDocumentation(outputDirectory, f, macros, search, tocItems);
 		}
 		catch (Exception e)
 		{
@@ -150,8 +168,7 @@ Main Page</div>`);
 
 /// Creates documentation for the module at the given path
 void writeDocumentation(string outputDirectory, string path,
-	string[string] macros, ref string moduleName, ref string location,
-	File search)
+	string[string] macros, File search, TocItem[] tocItems)
 {
 	LexerConfig config;
 	config.fileName = path;
@@ -165,8 +182,27 @@ void writeDocumentation(string outputDirectory, string path,
 	Module m = parseModule(tokens, path, null, &doNothing);
 	TestRange[][size_t] unitTestMapping = getUnittestMap(m);
 	DocVisitor visitor = new DocVisitor(outputDirectory, macros, search,
-		unitTestMapping, fileBytes);
+		unitTestMapping, fileBytes, tocItems);
 	visitor.visit(m);
+}
+
+/// Gets location and module name for documentation of specified module.
+void getDocumentationLocation(string outputDirectory, string modulePath,
+	ref string moduleName, ref string location)
+{
+	LexerConfig config;
+	config.fileName = modulePath;
+	config.stringBehavior = StringBehavior.source;
+
+	File f = File(modulePath);
+	ubyte[] fileBytes = uninitializedArray!(ubyte[])(to!size_t(f.size));
+	f.rawRead(fileBytes);
+	StringCache cache = StringCache(1024 * 4);
+	auto tokens = getTokensForParser(fileBytes, config, &cache).array;
+	Module m = parseModule(tokens, modulePath, null, &doNothing);
+	DocVisitor visitor = new DocVisitor(outputDirectory, null, File.init, null,
+		fileBytes, null);
+	visitor.moduleInitLocation(m);
 	moduleName = visitor.moduleName;
 	location = visitor.location;
 }
