@@ -15,6 +15,7 @@ import std.file;
 import std.path;
 import std.stdio;
 import std.typecons;
+import tocbuilder: TocItem;
 import unittest_preprocessor;
 
 
@@ -31,15 +32,19 @@ class DocVisitor : ASTVisitor
 	 *     unitTestMapping = The mapping of declaration addresses to their
 	 *         documentation unittests
 	 *     fileBytes = The source code of the module as a byte array.
+	 *     tocItems = Items of the table of contents to write into each 
+	 *                documentation file.
 	 */
 	this(string outputDirectory, string[string] macros, File searchIndex,
-		TestRange[][size_t] unitTestMapping, const(ubyte[]) fileBytes)
+		TestRange[][size_t] unitTestMapping, const(ubyte[]) fileBytes,
+		TocItem[] tocItems)
 	{
 		this.outputDirectory = outputDirectory;
 		this.macros = macros;
 		this.searchIndex = searchIndex;
 		this.unitTestMapping = unitTestMapping;
 		this.fileBytes = fileBytes;
+		this.tocItems = tocItems;
 	}
 
 	/**
@@ -572,6 +577,7 @@ private:
 	File searchIndex;
 	TestRange[][size_t] unitTestMapping;
 	const(ubyte[]) fileBytes;
+	TocItem[] tocItems;
 }
 
 /**
