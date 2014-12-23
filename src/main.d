@@ -74,6 +74,9 @@ void generateDocumentation(string outputDirectory, string indexContent,
 
 	mkdirRecurse(outputDirectory);
 
+	File search = File(buildPath(outputDirectory, "search.js"), "w");
+	search.writeln(`"use strict";`);
+	search.writeln(`var items = [`);
 
 	string[] moduleNames;
 	string[string] moduleNameToDocPath;
@@ -105,35 +108,31 @@ void generateDocumentation(string outputDirectory, string indexContent,
 
 	TocItem[] tocItems = buildTree(moduleNames, moduleNameToDocPath);
 
+	// Write index.html and style.css
 	{
 		File css = File(buildPath(outputDirectory, "style.css"), "w");
 		css.write(stylecss);
 		File js = File(buildPath(outputDirectory, "highlight.pack.js"), "w");
 		js.write(hljs);
 		File index = File(buildPath(outputDirectory, "index.html"), "w");
-		index.write(indexhtml);
+		index.writeHeader("Index", 0);
+		index.writeTOC(tocItems);
+		index.writeBreadcrumbs("Main Page");
+
 		if (indexContent !is null)
 		{
-			File frontPage = File(buildPath(outputDirectory, "index_content.html"), "w");
-			writeHeader(frontPage, "Index", 0);
-			frontPage.writeln(`<div class="breadcrumbs">
-<table id="results"></table>
-<input type="search" id="search" placeholder="Search" onkeyup="searchSubmit(this.value, event)"/>
-Main Page</div>`);
 			File indexContentFile = File(indexContent);
 			ubyte[] indexContentBytes = new ubyte[cast(uint) indexContentFile.size];
 			indexContentFile.rawRead(indexContentBytes);
-			readAndWriteComment(frontPage, cast(string) indexContentBytes, macros);
-			frontPage.writeln(`
-	</body>
-</html>`);
+			readAndWriteComment(index, cast(string) indexContentBytes, macros);
 		}
-
+		index.writeln(`
+</div>
+</div>
+</body>
+</html>`);
 	}
 
-	File search = File(buildPath(outputDirectory, "search.js"), "w");
-	search.writeln(`"use strict";`);
-	search.writeln(`var items = [`);
 
 	foreach (f; files)
 	{
@@ -255,5 +254,4 @@ void doNothing(string, size_t, size_t, string, bool) {}
 
 immutable string hljs = import("highlight.pack.js");
 immutable string stylecss = import("style.css");
-immutable string indexhtml = import("index.html");
 immutable string searchjs = import("search.js");
