@@ -9,27 +9,26 @@ struct TocItem
 	string name;
 	string url;
 	TocItem[] items;
-	void write(File output, size_t indent = 0)
+
+	void write(File output)
 	{
 		bool hasChildren = items.length != 0;
-		foreach (i; 0 .. indent)
-			output.write("    ");
 		if (url !is null)
-			output.writeln(`<li><a target="docframe" href="`, url, `">`, name, `</a></li>`);
+		{
+			output.writeln(`<li><a href="`, url, `">`, name, `</a></li>`);
+		}
 		else
-			output.writeln(`<li><span onclick="toggleChildren(this);">`, name, `</span>`);
+		{
+			output.writeln(`<li><span class="package">`, name, `</span>`);
+		}
 		if (hasChildren)
 		{
-			foreach (i; 0 .. indent)
-				output.write("    ");
 			output.writeln(`<ul>`);
 		}
 		foreach (item; items)
-			item.write(output, indent + 1);
+			item.write(output);
 		if (hasChildren)
 		{
-			foreach (i; 0 .. indent)
-				output.write("    ");
 			output.writeln(`</ul></li>`);
 		}
 	}

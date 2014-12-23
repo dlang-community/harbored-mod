@@ -137,52 +137,6 @@ Main Page</div>`);
 <html>
 <head>
 <meta charset="utf-8"/>
-<style type="text/css">
-html {
-	background-color: #eee;
-    padding: 0;
-    margin: 0;
-}
-
-body {
-    padding: 0;
-    margin: 0;
-}
-
-ul {
-    font-family: sans;
-    list-style: none;
-    padding: 0 0 0 1.5em;
-}
-ul ul {
-	display: none;
-}
-span {
-	cursor: pointer;
-	font-weight: bold;
-}
-
-.expanded::before {
-	content: "▼ ";
-}
-
-span::before {
-	content: "▶ ";
-}
-</style>
-<script type="text/javascript">
-"use strict";
-function toggleChildren(t) {
-	var c = t.nextElementSibling;
-	if (t.className != "expanded" && (c.style.display === "" || c.style.display === "none")) {
-		c.style.display = "list-item";
-		t.className = "expanded";
-	} else {
-		c.style.display = "none";
-		t.className = "";
-	}
-}
-</script>
 </head>
 <body>`);
 	toc.writeln(`<ul>`);
