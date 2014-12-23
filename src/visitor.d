@@ -86,7 +86,7 @@ class DocVisitor : ASTVisitor
 
 		File output = File(location, "w");
 		writeHeader(output, moduleName, baseLength - 1);
-
+		writeTOC(output, tocItems);
 		writeBreadcrumbs(output);
 
 		prevComments.length = 1;
@@ -540,6 +540,7 @@ private:
 			auto f = File(classDocFileName, "w");
 			memberStack[i].overloadFiles[classDocFileName] = f;
 			writeHeader(f, name, baseLength);
+			writeTOC(f, tocItems);
 			return f;
 		}
 		else
@@ -610,6 +611,21 @@ void writeHeader(File f, string title, size_t depth)
 <body>`);
 }
 
+/** Writes the table of contents to specified file.
+ *
+ * Params:
+ *     f        = File to write to.
+ *     tocItems = Items of the table of contents to write.
+ */
+void writeTOC(File f, TocItem[] tocItems)
+{
+	f.writeln(`<div class="toc">`);
+	f.writeln(`<ul>`);
+	foreach (t; tocItems)
+		t.write(f);
+	f.writeln(`</ul>`);
+	f.writeln(`</div>`);
+}
 
 /**
   * Writes navigation breadcrumbs in HTML format to the given file.
