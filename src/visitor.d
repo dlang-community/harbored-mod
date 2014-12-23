@@ -527,8 +527,8 @@ private:
 		import std.string : format;
 		stack ~= name;
 		memberStack.length = memberStack.length + 1;
-		string classDocFileName = format("%s.%s.html", moduleFileBase,
-			join(stack[baseLength .. $], ".").array);
+		string classDocFileName = moduleFileBase.buildPath(format("%s.html",
+			join(stack[baseLength .. $], ".").array));
 		string path = (classDocFileName.length > 2 && classDocFileName[0 .. 2] == "./")
 				? stripLeadingDirectory(classDocFileName[2 .. $])
 				: classDocFileName;
@@ -542,7 +542,7 @@ private:
 			first = true;
 			auto f = File(classDocFileName, "w");
 			memberStack[i].overloadFiles[classDocFileName] = f;
-			writeHeader(f, name, baseLength - 1);
+			writeHeader(f, name, baseLength);
 			return f;
 		}
 		else
