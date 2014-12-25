@@ -7,6 +7,7 @@
 module visitor;
 
 import ddoc.comments;
+import formatter;
 import std.algorithm;
 import std.d.ast;
 import std.d.formatter;
@@ -315,7 +316,7 @@ private:
 		{
 			auto writer = f.lockingTextWriter();
 			writer.put(`<pre><code>`);
-			auto formatter = new Formatter!(File.LockingTextWriter)(writer);
+			auto formatter = new HarboredFormatter!(File.LockingTextWriter)(writer);
 			scope(exit) formatter.sink = File.LockingTextWriter.init;
 			writeAttributes(formatter, writer, attributes[$ - 1]);
 			mixin(formattingCode);
@@ -365,8 +366,10 @@ private:
 			writeBreadcrumbs(f);
 		else
 			writer.put("<hr/>");
-		auto formatter = new Formatter!(File.LockingTextWriter)(writer);
+
+		auto formatter = new HarboredFormatter!(File.LockingTextWriter)(writer);
 		scope(exit) formatter.sink = File.LockingTextWriter.init;
+
 		// Function signature start //
 		writer.put(`<pre><code>`);
 		// Attributes like public, etc.
@@ -461,7 +464,7 @@ private:
 	{
 		import std.array;
 		auto writer = appender!string();
-		auto formatter = new Formatter!(typeof(writer))(writer);
+		auto formatter = new HarboredFormatter!(typeof(writer))(writer);
 		formatter.format(t);
 		return writer.data;
 	}
@@ -802,7 +805,7 @@ void writeContracts(File f, const InStatement inStatement,
 	if (inStatement is null && outStatement is null)
 		return;
 	f.write(`<div class="section"><h3>Contracts</h3><pre><code>`);
-	auto formatter = new Formatter!(File.LockingTextWriter)(f.lockingTextWriter());
+	auto formatter = new HarboredFormatter!(File.LockingTextWriter)(f.lockingTextWriter());
 	scope(exit) formatter.sink = File.LockingTextWriter.init;
 	if (inStatement !is null)
 	{
