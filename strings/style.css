@@ -143,18 +143,32 @@ div.section td {
 	padding: .25em;
 }
 
-div.section code {
+/* DDoc code examples */
+code {
 	background-color: #333;
 	color: #eee;
-	padding: 1em;
-	border-radius: .5em;
+	padding: 0.8em;
+	border-radius: .1em;
 	display: block;
 }
 
-pre > code {
+/* Markdown inline code */
+code.prettyprint {
+	font-family: monospace;
+	color: #333;
+	background-color: #E0E0E0;
+	border-radius: .15em;
+	border: 1px solid #C0C0C0;
+	padding: 0.3em;
+	display: inline;
+}
+
+
+/*do not affect the first <pre>, which is not in a section*/
+div.section pre > code {
 	margin: .5em;
-	border-radius: .5em;
-	padding: 1em;
+	border-radius: .1em;
+	padding: 0.8em;
 }
 
 .d_inlinecode {
