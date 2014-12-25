@@ -679,6 +679,24 @@ string readAndWriteComment(File f, string comment, ref string[string] macros,
 	comment.unDecorateComment(app);
 //		writeln(comment, " undecorated to ", app.data);
 	Comment c = parseComment(app.data, macros);
+
+	// Run sections through markdown.
+	foreach(ref section; c.sections) {
+		// Do not run code examples through markdown.
+		//
+		// We could also check for section.name == "Examples" but code blocks can
+		// be even outside examples. Alternatively, we could look for *multi-line*
+		// <pre>/<code> blocks, or, before parsing comments, for "---" pairs.
+		//
+		// Alternatively, dmarkdown could be changed to ignore <pre>/<code>
+		// blocks.
+		import dmarkdown;
+		if(!section.content.canFind("<pre><code>")) {
+			section.content = filterMarkdown(section.content,
+			                                 MarkdownFlags.alternateSubheaders);
+		}
+	}
+
 	if (c.isDitto)
 		c = prevComments[$ - 1];
 	else if (prevComments.length > 0)
