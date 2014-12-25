@@ -96,8 +96,9 @@ div.content {
 	border-left: 1px solid #D0D0D0;
 }
 
-.paramDoc:before {
-	content: "- ";
+.paramName {
+	font-weight: bold;
+	width: 6em;
 }
 
 #results {

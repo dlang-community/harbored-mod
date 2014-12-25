@@ -6,3 +6,6 @@
 	path = libddoc
 	url = https://github.com/economicmodeling/libddoc.git
 	branch = master
+[submodule "dmarkdown"]
+	path = dmarkdown
+	url = https://github.com/kiith-sa/dmarkdown.git
