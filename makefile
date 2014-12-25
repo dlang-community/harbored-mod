@@ -3,10 +3,12 @@
 SRC:=src/*.d\
 	libddoc/src/ddoc/*.d\
 	libdparse/src/std/*.d\
-	libdparse/src/std/d/*.d
+	libdparse/src/std/d/*.d\
+	dmarkdown/source/dmarkdown/*.d
 
 IMPORTS:=-Ilibdparse/src\
 	-Ilibddoc/src\
+	-Idmarkdown/source\
 	-Jstrings
 
 FLAGS:=-O -inline
