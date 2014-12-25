@@ -692,9 +692,10 @@ string readAndWriteComment(File f, string comment, ref string[string] macros,
 {
 	import std.d.lexer : unDecorateComment;
 	import std.array : appender;
+
 	auto app = appender!string();
 	comment.unDecorateComment(app);
-//		writeln(comment, " undecorated to ", app.data);
+//	writeln(comment, " undecorated to ", app.data);
 	Comment c = parseComment(app.data, macros);
 
 	// Run sections through markdown.
@@ -720,6 +721,8 @@ string readAndWriteComment(File f, string comment, ref string[string] macros,
 		prevComments[$ - 1] = c;
 	if (f != File.init)
 		writeComment(f, c, functionBody);
+
+	// Find summary and return value info
 	string rVal = "";
 	if (c.sections.length && c.sections[0].name == "Summary")
 		rVal = c.sections[0].content;
