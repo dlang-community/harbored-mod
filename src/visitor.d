@@ -735,7 +735,7 @@ string readAndWriteComment(File f, string comment, ref string[string] macros,
 	{
 //		writeln("Writing a unittest doc comment");
 		import std.string : outdent;
-		f.writeln(`<div class="section"><h3>Example</h3>`);
+		f.writeln(`<div class="section"><h2>Example</h2>`);
 		auto docApp = appender!string();
 		doc[1].unDecorateComment(app);
 		Comment dc = parseComment(docApp.data, macros);
@@ -788,9 +788,9 @@ void writeComment(File f, Comment comment, const FunctionBody functionBody = nul
 		f.writeln(`<div class="section">`);
 		if (section.name != "Summary" && section.name != "Description")
 		{
-			f.write("<h3>");
+			f.write("<h2>");
 			f.write(prettySectionName(section.name));
-			f.writeln("</h3>");
+			f.writeln("</h2>");
 		}
 		if (section.name == "Params")
 		{
@@ -818,7 +818,7 @@ void writeContracts(File f, const InStatement inStatement,
 {
 	if (inStatement is null && outStatement is null)
 		return;
-	f.write(`<div class="section"><h3>Contracts</h3><pre><code>`);
+	f.write(`<div class="section"><h2>Contracts</h2><pre><code>`);
 	auto formatter = new HarboredFormatter!(File.LockingTextWriter)(f.lockingTextWriter());
 	scope(exit) formatter.sink = File.LockingTextWriter.init;
 	if (inStatement !is null)
@@ -923,7 +923,7 @@ private:
 
 	void write(File f, Item[] items, string name)
 	{
-		f.writeln(`<h3>`, name, `</h3>`);
+		f.writeln(`<h2>`, name, `</h2>`);
 		f.writeln(`<table>`);
 //		f.writeln(`<thead><tr><th>Name</th><th>Summary</th></tr></thead>`);
 		foreach (i; items)

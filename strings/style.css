@@ -123,8 +123,14 @@ div.section {
 	margin: 0;
 }
 
+div.section h2 {
+	margin: .35em 0 .5em 0;
+	padding-top: .35em;
+	font-size: 1.35em;
+}
+
 div.section h3 {
-	margin: 0 0 .5em 0;
+	font-size: 1.1em;
 }
 
 div.section tr {
