@@ -232,18 +232,32 @@ class DocVisitor : ASTVisitor
 			scope(exit) popSymbol(f);
 			writeBreadcrumbs(f);
 			string summary = readAndWriteComment(f, vd.comment, macros, prevComments);
-			string storageClass;
-			foreach (attr; vd.attributes)
+			// TODO this was hastily updated to get harbored-mod to compile
+			// after a libdparse update. Revisit and validate/fix any errors.
+			string[] storageClasses;
+			foreach(stor; vd.storageClasses)
 			{
-				if (attr.storageClass !is null)
-					storageClass = str(attr.storageClass.token.type);
+				storageClasses ~= str(stor.token.type);
 			}
 			auto i = Item(findSplitAfter(f.name, dirSeparator)[1], ident.text,
-				summary, storageClass == "enum" ? null : "auto");
-			if (storageClass == "enum")
+				summary, storageClasses.canFind("enum") ? null : "auto");
+			if (storageClasses.canFind("enum"))
 				memberStack[$ - 2].enums ~= i;
 			else
 				memberStack[$ - 2].variables ~= i;
+
+			// string storageClass;
+			// foreach (attr; vd.attributes)
+			// {
+			// 	if (attr.storageClass !is null)
+			// 		storageClass = str(attr.storageClass.token.type);
+			// }
+			// auto i = Item(findSplitAfter(f.name, dirSeparator)[1], ident.text,
+			// 	summary, storageClass == "enum" ? null : "auto");
+			// if (storageClass == "enum")
+			// 	memberStack[$ - 2].enums ~= i;
+			// else
+			// 	memberStack[$ - 2].variables ~= i;
 		}
 	}
 
@@ -438,8 +452,8 @@ private:
 			attrs = attributes[$ - 1];
 		if (attributes.length > 0) foreach (a; attrs)
 		{
-			if (isProtection(a.attribute))
-				protection = a.attribute;
+			if (isProtection(a.attribute.type))
+				protection = a.attribute.type;
 		}
 		switch (protection)
 		{
@@ -449,7 +463,7 @@ private:
 		}
 		if (attributes.length > 0) foreach (a; attrs)
 		{
-			if (!isProtection(a.attribute))
+			if (!isProtection(a.attribute.type))
 			{
 				formatter.format(a);
 				writer.put(" ");
