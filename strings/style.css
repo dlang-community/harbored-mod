@@ -89,7 +89,7 @@ div.toc span.package {
 }
 
 div.content {
-	padding: 1em;
+	padding: 1.5em;
 	font-size: 90%;
 	margin-top: 3em;
 	overflow: hidden;
@@ -119,8 +119,8 @@ div.content {
 }
 
 div.section {
-	padding: .5em;
-	margin: .5em;
+	padding: 0;
+	margin: 0;
 }
 
 div.section h3 {
