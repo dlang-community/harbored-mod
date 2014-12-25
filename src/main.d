@@ -28,14 +28,29 @@ int main(string[] args)
 	string outputDirectory;
 	bool help;
 	string indexContent;
+	string customCSS;
+	string generateCSSPath;
 
-	getopt(args, "m|macros", &macroFiles, "o|output-directory", &outputDirectory,
-		"h|help", &help, "i|index", &indexContent, "e|exclude", &excludes);
+	getopt(args, std.getopt.config.caseSensitive,
+		"m|macros", &macroFiles, "o|output-directory", &outputDirectory,
+		"h|help", &help, "i|index", &indexContent, "e|exclude", &excludes,
+		"c|css", &customCSS, "C|generate-css", &generateCSSPath);
 
 	if (help)
 	{
 		writeln(helpString);
 		return 0;
+	}
+	try if (generateCSSPath !is null)
+	{
+		std.file.write(generateCSSPath, stylecss);
+		return 0;
+	}
+	catch(Exception e)
+	{
+		writefln("Failed to generate default CSS to file `%s` : %s", 
+			generateCSSPath, e.msg);
+		return 1;
 	}
 
 	string[string] macros;
@@ -50,7 +65,7 @@ int main(string[] args)
 	if (outputDirectory is null)
 		outputDirectory = "./doc";
 
-	generateDocumentation(outputDirectory, indexContent, macros, args[1 .. $]);
+	generateDocumentation(outputDirectory, indexContent, customCSS, macros, args[1 .. $]);
 
 	return 0;
 }
@@ -66,7 +81,7 @@ string[string] readMacros(const string[] macroFiles)
 }
 
 void generateDocumentation(string outputDirectory, string indexContent,
-	string[string] macros, string[] args)
+	string customCSS, string[string] macros, string[] args)
 {
 	string[] files = getFilesToProcess(args);
 	import std.stdio;
@@ -111,7 +126,7 @@ void generateDocumentation(string outputDirectory, string indexContent,
 	// Write index.html and style.css
 	{
 		File css = File(buildPath(outputDirectory, "style.css"), "w");
-		css.write(stylecss);
+		css.write(getCSS(customCSS));
 		File js = File(buildPath(outputDirectory, "highlight.pack.js"), "w");
 		js.write(hljs);
 		File index = File(buildPath(outputDirectory, "index.html"), "w");
@@ -148,6 +163,24 @@ void generateDocumentation(string outputDirectory, string indexContent,
 	}
 	search.writeln(`];`);
 	search.writeln(searchjs);
+}
+
+/** Get the CSS content to write into style.css.
+ *
+ * If customCSS is not null, try to load from that file.
+ */
+string getCSS(string customCSS)
+{
+	if(customCSS is null) { return stylecss; }
+	try
+	{
+		return readText(customCSS);
+	}
+	catch(Exception e)
+	{
+		stderr.writefln("Failed to load custom CSS `%s`: %s", customCSS, e.msg);
+		return stylecss;
+	}
 }
 
 /// Creates documentation for the module at the given path
@@ -230,6 +263,13 @@ Options:
     --index | -i DDOC_FILE
         Use DDOC_FILE as the content of the index.html page. By default this
         page will be blank.
+
+    --css | -c CSS_FILE
+        Use CSS_FILE to style the documentation instead of using default CSS.
+
+    --generate-css | -C CSS_OUT_FILE
+        Generate default CSS file and write it to CSS_OUT_FILE. This file can
+        be modified and then passed using the --css option.
 
     --help | -h
         Prints this message.
