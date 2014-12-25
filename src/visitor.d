@@ -360,14 +360,18 @@ private:
 	void writeFnDocumentation(Fn)(File f, Fn fn, const(Attribute)[] attrs, bool first)
 	{
 		auto writer = f.lockingTextWriter();
+		// Stuff above the function doc
 		if (first)
 			writeBreadcrumbs(f);
 		else
 			writer.put("<hr/>");
 		auto formatter = new Formatter!(File.LockingTextWriter)(writer);
 		scope(exit) formatter.sink = File.LockingTextWriter.init;
+		// Function signature start //
 		writer.put(`<pre><code>`);
+		// Attributes like public, etc.
 		writeAttributes(formatter, writer, attrs);
+		// Return type and function name, with special case fo constructor
 		static if (__traits(hasMember, typeof(fn), "returnType"))
 		{
 			if (fn.returnType)
@@ -379,21 +383,27 @@ private:
 		}
 		else
 			writer.put("this");
+		// Template params
 		if (fn.templateParameters !is null)
 			formatter.format(fn.templateParameters);
+		// Function params
 		if (fn.parameters !is null)
 			formatter.format(fn.parameters);
+		// Attributes like const, nothrow, etc.
 		foreach (a; fn.memberFunctionAttributes)
 		{
 			writer.put(" ");
 			formatter.format(a);
 		}
+		// Template constraint
 		if (fn.constraint)
 		{
 			writer.put(" ");
 			formatter.format(fn.constraint);
 		}
 		writer.put("\n</code></pre>");
+		// Function signature end//
+
 		string summary = readAndWriteComment(f, fn.comment, macros,
 			prevComments, fn.functionBody, getUnittestDocTuple(fn));
 		string fdName;
