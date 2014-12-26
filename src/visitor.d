@@ -740,7 +740,7 @@ string readAndWriteComment(File f, string comment, ref string[string] macros,
 		import std.string : outdent;
 		f.writeln(`<div class="section"><h2>Example</h2>`);
 		auto docApp = appender!string();
-		doc[1].unDecorateComment(app);
+		doc[1].unDecorateComment(docApp);
 		Comment dc = parseComment(docApp.data, macros);
 		writeComment(f, dc);
 		f.writeln(`<pre><code>`, outdent(doc[0]), `</code></pre>`);
