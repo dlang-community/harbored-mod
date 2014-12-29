@@ -805,13 +805,23 @@ void writeComment(File f, Comment comment, const FunctionBody functionBody = nul
 	{
 		if (seealsoNames.canFind(section.name) || section.name == "Macros")
 			continue;
-		f.writeln(`<div class="section">`);
+
+		// Note sections a use different style
+		const isNote = section.name == "Note";
+		string extraClasses;
+
+		if(isNote)
+			extraClasses ~= " note";
+
+		f.writeln(`<div class="section`, extraClasses, `">`);
 		if (section.name != "Summary" && section.name != "Description")
 		{
 			f.write("<h2>");
 			f.write(prettySectionName(section.name));
 			f.writeln("</h2>");
 		}
+		if(isNote)
+			f.writeln(`<div class="note-content">`);
 		if (section.name == "Params")
 		{
 			f.writeln(`<table class="params">`);
@@ -829,6 +839,8 @@ void writeComment(File f, Comment comment, const FunctionBody functionBody = nul
 		{
 			f.writeln(section.content);
 		}
+		if(isNote)
+			f.writeln(`</div>`);
 		f.writeln(`</div>`);
 	}
 
@@ -878,6 +890,7 @@ string prettySectionName(string sectionName)
 	switch (sectionName)
 	{
 	case "See_also", "See_Also", "See also", "See Also": return "See Also:";
+	case "Note": return "Note:";
 	case "Params": return "Parameters";
 	default: return sectionName;
 	}
