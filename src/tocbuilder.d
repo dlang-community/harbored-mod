@@ -1,7 +1,7 @@
 module tocbuilder;
 
 import std.algorithm;
-import std.array: empty;
+import std.array: back, empty;
 import std.stdio;
 
 struct TocItem
@@ -12,10 +12,15 @@ struct TocItem
 
 	void write(File output)
 	{
+		import std.string: split;
+		
 		bool hasChildren = items.length != 0;
 		if (url !is null)
 		{
-			output.writeln(`<li><a href="`, url, `">`, name, `</a></li>`);
+			auto parts = name.split(".");
+			output.writeln(`<li>`, 
+				`<small>`, parts[0 .. $ - 1].joiner("."), `.</small>`,
+				`<a href="`, url, `">`, parts.back, `</a></li>`);
 		}
 		else
 		{
