@@ -798,9 +798,12 @@ void writeComment(File f, Comment comment, const FunctionBody functionBody = nul
 	}
 	if (functionBody !is null)
 		writeContracts(f, functionBody.inStatement, functionBody.outStatement);
+
+
+	const seealsoNames = ["See_also", "See_Also", "See also", "See Also"];
 	foreach (section; comment.sections[i .. $])
 	{
-		if (section.name == "Macros")
+		if (seealsoNames.canFind(section.name) || section.name == "Macros")
 			continue;
 		f.writeln(`<div class="section">`);
 		if (section.name != "Summary" && section.name != "Description")
@@ -828,6 +831,27 @@ void writeComment(File f, Comment comment, const FunctionBody functionBody = nul
 		}
 		f.writeln(`</div>`);
 	}
+
+	// Merge any see also sections into one, and draw it with different style than
+	// other sections.
+	{
+		auto seealsos = comment.sections.filter!(s => seealsoNames.canFind(s.name));
+		if(!seealsos.empty)
+		{
+			f.writeln(`<div class="section seealso">`);
+			f.write("<h2>");
+			f.write(prettySectionName(seealsos.front.name));
+			f.writeln("</h2>");
+			f.writeln(`<div class="seealso-content">`);
+			foreach(section; seealsos)
+			{
+				f.writeln(section.content);
+			}
+			f.writeln(`</div>`);
+			f.writeln(`</div>`);
+		}
+	}
+
 }
 
 void writeContracts(File f, const InStatement inStatement,
@@ -853,7 +877,7 @@ string prettySectionName(string sectionName)
 {
 	switch (sectionName)
 	{
-	case "See_also": return "See Also";
+	case "See_also", "See_Also", "See also", "See Also": return "See Also:";
 	case "Params": return "Parameters";
 	default: return sectionName;
 	}
