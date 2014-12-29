@@ -509,29 +509,47 @@ private:
 		import std.array : join;
 		import std.conv : to;
 		import std.range : chain, only;
+		import std.string: format;
+		
 		string heading;
-		foreach (i; 0 .. stack.length)
+		scope(exit) { .writeBreadcrumbs(f, heading); }
+
+		assert(baseLength <= stack.length, "stack shallower than the current module?");
+		size_t i;
+		string link() { return stack[0 .. i + 1].buildPath() ~ ".html"; }
+
+		// Module
 		{
-			if (i + 1 < stack.length)
+			heading ~= "<small>";
+			scope(exit) { heading ~= "</small>"; }
+			for(; i + 1 < baseLength; ++i)
 			{
-				if (i >= baseLength - 1)
-				{
-					string link = buildPath(chain(stack[0 .. baseLength - 1],
-						only(stack[baseLength - 1.. $ - 1].join("."))));
-					heading  ~= `<a href="` ~ link ~ `.html">`;
-					heading  ~= stack[i];
-					heading  ~= `</a>.`;
-				}
-				else
-				{
-					heading ~= stack[i];
-					heading ~= ".";
-				}
+				heading ~= stack[i] ~ ".";
 			}
+			// Module link if the module is a parent of the current page.
+			if(i + 1 < stack.length)
+			{
+				heading  ~= `<a href=%s>%s</a>.`.format(link(), stack[i]);
+				++i;
+			}
+			// Just the module name, not a link, if we're at the module page.
 			else
+			{
 				heading ~= stack[i];
+				return;
+			}
 		}
-		.writeBreadcrumbs(f, heading);
+
+		// Class/Function/etc. in the module
+		heading ~= `<span class="highlight">`;
+		// The rest of the stack except the last element (parents of current page).
+		for(; i + 1 < stack.length; ++i)
+		{
+			heading  ~= `<a href=%s.html>%s</a>.`.format(link(), stack[i]);
+		}
+		// The last element (no need to link to the current page).
+		heading ~= stack[i];
+		heading ~= `</span>`;
 	}
 
 	/**
