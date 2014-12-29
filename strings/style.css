@@ -261,6 +261,42 @@ div.section {
 }
 
 
+/**** SECTION-SPECIFIC STYLES ****/
+
+div.section.seealso, div.section.note {
+	font-size: 75%;
+	line-height: 135%;
+	/* background-color: #F0F0C0; */
+	/* background-color: #DA7F07; */
+	/* background-color: #DA8F07; */
+	/* background-color: #DA9F07; */
+	background-color: #DAAF07;
+	padding: 1em;
+}
+
+div.section.seealso h2, div.section.note h2 {
+	display: block;
+	float: left;
+	margin: 0 0.7em -0.05em 0em;
+	padding: 0;
+	font-size: 1.1em;
+}
+
+div.section.seealso div.seealso-content, div.section.note div.note-content {
+	display: block;
+	margin-left: 6.5em;
+}
+
+div.section.seealso p:first-child, div.section.note p:first-child {
+	margin-top: 0em;
+}
+
+div.section.seealso p:last-child, div.section.note p:last-child {
+	margin-bottom: 0em;
+}
+
+
+
 /**** CODE ****/
 
 /* DDoc code examples */
