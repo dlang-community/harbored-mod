@@ -112,6 +112,7 @@ div.breadcrumbs input {
 }
 
 
+/**** TABLE OF CONTENTS ****/
 div.toc {
 	float: left;
 	margin-top: 3em;
@@ -151,47 +152,81 @@ div.toc span.package {
 	background-color: #F0F0F0;
 }
 
+
+/**** MAIN CONTENT ****/
+
 div.content {
 	padding: 1.5em;
 	font-size: 90%;
+	line-height: 130%;
 	margin-top: 3em;
 	overflow: hidden;
 	border-left: 1px solid #D0D0D0;
+}
+@media only screen and (max-width: 800px)
+{
+	div.content {
+		font-size: 82%;
+	}
+}
+
+div.content h2 {
+	margin: .35em 0 .5em 0;
+	padding-top: .35em;
+	font-size: 1.35em;
+}
+
+div.content h3 {
+	font-size: 1.1em;
+}
+
+div.content tr {
+	margin: 0;
+}
+
+div.content table {
+	border-collapse: collapse;
+	border-bottom: 1px dashed #333;
+	font-size: 90%;
+	line-height: 130%;
+	margin: 1em 0;
+}
+
+div.content td {
+	border-top: 1px dashed #333;
+	margin: 0;
+	padding: .32em;
+}
+
+div.content td:first-child {
+	text-align: center;
+	display: block-inline;
+}
+
+/* prevent function attribs from wrapping, make the cell wider instead */
+div.content td:first-child * {
+	white-space: nowrap
+}
+
+/* The first markdown-generated paragraph in e.g. Params tables shouldn't add any vertical
+ * space
+ */
+div.content td p:first-child {
+	margin: 0;
+}
+
+div.content p strong {
+	font-size: 92%;
 }
 
 .paramName {
 	font-weight: bold;
 	width: 6em;
 }
+
 div.section {
 	padding: 0;
 	margin: 0;
-}
-
-div.section h2 {
-	margin: .35em 0 .5em 0;
-	padding-top: .35em;
-	font-size: 1.35em;
-}
-
-div.section h3 {
-	font-size: 1.1em;
-}
-
-div.section tr {
-	margin: 0;
-}
-
-div.section table {
-	border-collapse: collapse;
-	border-bottom: 1px dashed grey;
-	margin: 1em 0;
-}
-
-div.section td {
-	border-top: 1px dashed grey;
-	margin: 0;
-	padding: .25em;
 }
 
 
