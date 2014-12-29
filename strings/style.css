@@ -132,6 +132,9 @@ div.toc {
 	}
 }
 
+div.toc .toc-additional {
+	border-bottom: 1px dashed #333;
+	line-height: 1.5em;
 }
 
 div.toc .toc-additional p, div.toc .toc-additional ul {
@@ -259,6 +262,34 @@ div.section {
 	padding: 0;
 	margin: 0;
 }
+
+
+
+/**** EXTRA INFO IN FUNCTION/CLASS/ETC LISTS ****/
+
+div.content td .extrainfo{
+	display: block;
+	line-height: 105%;
+	font-family: monospace;
+	font-size: 85%;
+	text-align: center;
+}
+
+.extrainfo div {
+	display: block;
+	margin: 0;
+}
+
+.extrainfo .attr-const   { color: blueviolet; }
+.extrainfo .attr-pure    { color: darkslategray; }
+.extrainfo .attr-nothrow { color: brown; }
+.extrainfo .attr-nogc    { color: darkgreen; }
+.extrainfo .attr-safe    { color: darkblue; }
+.extrainfo .attr-trusted { color: firebrick; }
+.extrainfo .attr-system  { color: darkred; }
+.extrainfo .attr-final   { color: darkolivegreen; }
+.extrainfo .attr-ref     { color: fuchsia; }
+
 
 
 /**** SECTION-SPECIFIC STYLES ****/
