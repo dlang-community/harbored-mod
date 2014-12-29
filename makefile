@@ -14,11 +14,11 @@ IMPORTS:=-Ilibdparse/src\
 FLAGS:=-O -inline
 
 all: $(SRC)
-	dmd $(SRC) $(IMPORTS) $(FLAGS) -ofbin/harbored
+	dmd $(SRC) $(IMPORTS) $(FLAGS) -ofbin/hmod
 	rm -f bin/*.o
 
 clean:
 	rm -rf bin/
 
 doc:
-	./bin/harbored src/
+	./bin/hmod src/
