@@ -194,6 +194,9 @@ div.section td {
 	padding: .25em;
 }
 
+
+/**** CODE ****/
+
 /* DDoc code examples */
 code {
 	background-color: #333;
@@ -207,13 +210,12 @@ code {
 code.prettyprint {
 	font-family: monospace;
 	color: #333;
-	background-color: #E0E0E0;
+	background-color:rgba(0,0,0,0.04);
 	border-radius: .15em;
 	border: 1px solid #C0C0C0;
-	padding: 0.3em;
+	padding: 0.22em;
 	display: inline;
 }
-
 
 /*do not affect the first <pre>, which is not in a section*/
 div.section pre > code {
