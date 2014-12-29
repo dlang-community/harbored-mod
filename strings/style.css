@@ -222,6 +222,17 @@ div.section pre > code {
 	padding: 0.8em;
 }
 
+div.section td pre {
+	margin: 0;
+	padding: 0;
+}
+
+
+div.section td code:not(.prettyprint) {
+	margin: 0;
+	padding: 0.6em;
+}
+
 .d_inlinecode {
 	font-family: monospace;
 	font-weight: bold;
