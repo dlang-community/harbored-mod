@@ -90,6 +90,27 @@ div.breadcrumbs input {
 	float: left;
 }
 
+
+/** SEARCH RESULTS **/
+#results {
+	position: absolute;
+	max-height: 30em;
+	background-color: #eee;
+	box-shadow: 0 .25em .25em black;
+	display: none;
+	text-align: left;
+	color: black;
+	margin-top: 2em;
+	font-size: 70%;
+	z-index: 1000;
+	overflow-y: scroll;
+}
+
+#results a {
+	color: blue;
+}
+
+
 div.toc {
 	float: left;
 	margin-top: 3em;
@@ -141,24 +162,6 @@ div.content {
 	font-weight: bold;
 	width: 6em;
 }
-
-#results {
-	position: absolute;
-	max-height: 30em;
-	background-color: #eee;
-	box-shadow: 0 .25em .25em black;
-	display: none;
-	text-align: left;
-	color: black;
-	margin-top: 2em;
-	z-index: 1000;
-	overflow-y: scroll;
-}
-
-#results a {
-	color: blue;
-}
-
 div.section {
 	padding: 0;
 	margin: 0;
