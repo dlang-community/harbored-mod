@@ -9,6 +9,7 @@ module visitor;
 import ddoc.comments;
 import formatter;
 import std.algorithm;
+import std.array: appender, empty, array;
 import std.d.ast;
 import std.d.formatter;
 import std.d.lexer;
@@ -54,9 +55,7 @@ class DocVisitor : ASTVisitor
 	 */
 	bool moduleInitLocation(const Module mod)
 	{
-		import std.array : array;
-		import std.algorithm : map;
-		import std.range : chain, only, join;
+		import std.range : chain, iota, join, only;
 		import std.file : mkdirRecurse;
 		import std.conv : to;
 
@@ -476,7 +475,6 @@ private:
 	 */
 	static string formatNode(T)(const T t)
 	{
-		import std.array;
 		auto writer = appender!string();
 		auto formatter = new HarboredFormatter!(typeof(writer))(writer);
 		formatter.format(t);
@@ -691,8 +689,6 @@ string readAndWriteComment(File f, string comment, ref string[string] macros,
 	Tuple!(string, string)[] testDocs = null)
 {
 	import std.d.lexer : unDecorateComment;
-	import std.array : appender;
-
 	auto app = appender!string();
 	comment.unDecorateComment(app);
 //	writeln(comment, " undecorated to ", app.data);
