@@ -723,6 +723,14 @@ string readAndWriteComment(File f, string comment, ref string[string] macros,
 		// Alternatively, dmarkdown could be changed to ignore <pre>/<code>
 		// blocks.
 		import dmarkdown;
+		// Ensure param descriptions run through Markdown
+		if(section.name == "Params")
+		{
+			foreach(ref kv; section.mapping)
+			{
+				kv[1] = filterMarkdown(kv[1], MarkdownFlags.alternateSubheaders);
+			}
+		}
 		if(!section.content.canFind("<pre><code>")) {
 			section.content = filterMarkdown(section.content,
 			                                 MarkdownFlags.alternateSubheaders);
