@@ -17,6 +17,10 @@ div.main {
 	background-color: #F8F8F8;
 }
 
+
+
+/**** BREADCRUMBS ****/
+
 div.breadcrumbs {
 	color: white;
 	background-color: #333;
@@ -29,11 +33,48 @@ div.breadcrumbs {
 	position: fixed;
 	width: 100%;
 	height: 3em;
+	font-size: 95%;
 }
 
 div.breadcrumbs a {
 	color: white;
+}
 
+div.breadcrumbs span.highlight, div.breadcrumbs span a {
+	color: #DAAF07;
+}
+
+div.breadcrumbs input {
+	width: 7em;
+	margin-top: -0.1em;
+}
+
+div.breadcrumbs small {
+	font-size: 0.8em;
+}
+
+/** narrow screen hacks **/
+@media only screen and (max-width: 1000px)
+{
+	div.breadcrumbs span, div.breadcrumbs small {
+		font-size: 80%;
+	}
+}
+@media only screen and (max-width: 800px)
+{
+	div.breadcrumbs small {
+		display: none;
+		position: fixed;
+	}
+	div.breadcrumbs span {
+		font-size: 75%;
+	}
+}
+@media only screen and (max-width: 600px)
+{
+	div.breadcrumbs span {
+		font-size: 65%;
+	}
 }
 
 div.breadcrumbs a.home {
