@@ -427,7 +427,8 @@ private:
 			fdName = fn.name.text;
 		else
 			fdName = "this";
-		memberStack[$ - 2].functions ~= Item(findSplitAfter(f.name, dirSeparator)[1], fdName, summary);
+		auto fnItem = Item(fileRelative, fdName, summary, null, fn);
+		memberStack[$ - 2].functions ~= fnItem;
 		prevComments.length = prevComments.length + 1;
 		fn.accept(this);
 		prevComments = prevComments[0 .. $ - 1];
@@ -918,17 +919,82 @@ struct Item
 	string summary;
 	string type;
 
-	void write(File f)
+	/// AST node of the item. Only used for functions at the moment.
+	const ASTNode node;
+
+	void write(ref File f)
 	{
 		f.write(`<tr><td>`);
-		if (url == "#")
-			f.write(name, `</td>`);
+		void writeName()
+		{
+			if (url == "#")
+				f.write(name);
+			else
+				f.write(`<a href="`, url, `">`, name, `</a>`);
+		}
+
+		// TODO print attributes for everything, and move it to separate function/s
+		if(cast(FunctionDeclaration) node) with(cast(FunctionDeclaration) node)
+		{
+			import std.string: join;
+
+			auto writer = appender!(char[])();
+			// extremely inefficient, rewrite if too much slowdown
+			string format(T)(T attr)
+			{
+				auto formatter = new HarboredFormatter!(typeof(writer))(writer);
+				formatter.format(attr);
+				auto str = writer.data.idup;
+				writer.clear();
+				import std.ascii: isAlpha;
+				import std.conv: to;
+				auto strSane = str.filter!isAlpha.array.to!string;
+				return `<span class="attr-` ~ strSane ~ `">` ~ str ~ `</span>`;
+			}
+
+			void writeSpan(C)(string class_, C content)
+			{
+				f.write(`<span class="`, class_, `">`, content, `</span>`);
+			}
+
+			// Above the function name
+			if(!attributes.empty)
+			{
+				f.write(`<span class="extrainfo">`);
+				writeSpan("attribs", attributes.map!(a => format(a)).joiner(", "));
+				f.write(`</span>`);
+			}
+
+
+			// The actual function name
+			writeName();
+
+
+			// Below the function name
+			f.write(`<span class="extrainfo">`);
+			if(!memberFunctionAttributes.empty)
+			{
+				writeSpan("method-attribs",
+					memberFunctionAttributes.map!(a => format(a)).joiner(", "));
+			}
+			// TODO storage classes don't seem to work. libdparse issue?
+			if(!storageClasses.empty)
+			{
+				writeSpan("stor-classes", storageClasses.map!(a => format(a)).joiner(", "));
+			}
+			f.write(`</span>`);
+		}
 		else
-			f.write(`<a href="`, stripLeadingDirectory(url), `">`, name, `</a></td>`);
-		if (type is null)
-			f.write(`<td></td><td>`, summary ,`</td></tr>`);
-		else
-			f.write(`<td><pre><code>`, type, `</code></pre></td><td>`, summary ,`</td></tr>`);
+		{
+			writeName();
+		}
+
+		f.write(`</td>`);
+
+		f.write(`<td>`);
+		if (type !is null)
+			f.write(`<pre><code>`, type, `</code></pre>`);
+		f.write(`</td><td>`, summary ,`</td></tr>`);
 	}
 }
 
