@@ -2,8 +2,9 @@ html {
 	font-family: sans;
 	margin: 0;
 	padding: 0;
-	background-color: #eee;
+	background-color: #333;
 	border-left: .2em solid #333;
+	border-right: .2em solid #333;
 	min-height: 100%;
 }
 
