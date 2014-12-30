@@ -831,25 +831,6 @@ string readAndWriteComment(File f, string comment, const(Config)* config,
 	return rVal;
 }
 
-/**
- * Returns: the input string with its first directory removed.
- */
-string stripLeadingDirectory(string s)
-{
-	import std.algorithm : findSplitAfter;
-	import std.path : dirSeparator;
-	return findSplitAfter(s, dirSeparator)[1];
-}
-
-///
-unittest
-{
-	assert (stripLeadingDirectory(`foo/bar/baz`) == `bar/baz`);
-	assert (stripLeadingDirectory(`/foo/bar/baz`) == `bar/baz`);
-	assert (stripLeadingDirectory(`foo\bar\baz`) == `bar\baz`);
-	assert (stripLeadingDirectory(`C:\foo\bar\baz`) == `bar\baz`);
-}
-
 private:
 
 void writeComment(File f, Comment comment, const FunctionBody functionBody = null)
