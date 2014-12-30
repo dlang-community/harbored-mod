@@ -16,56 +16,76 @@ import std.file;
 import std.getopt;
 import std.path;
 import std.stdio;
-import visitor;
-import unittest_preprocessor;
+
+import config;
 import macros;
 import tocbuilder;
+import unittest_preprocessor;
+import visitor;
+
 
 int main(string[] args)
 {
-	string[] macroFiles;
-	string[] excludes;
-	string outputDirectory;
-	bool help;
-	string indexContent;
-	string customCSS;
-	string generateCSSPath;
-
-	getopt(args, std.getopt.config.caseSensitive,
-		"m|macros", &macroFiles, "o|output-directory", &outputDirectory,
-		"h|help", &help, "i|index", &indexContent, "e|exclude", &excludes,
-		"c|css", &customCSS, "C|generate-css", &generateCSSPath);
-
-	if (help)
+	Config config;
+	enum defaultConfigPath = "hmod.cfg";
+	config.loadConfigFile(defaultConfigPath);
+	config.loadCLI(args);
+	
+	if (config.doHelp)
 	{
 		writeln(helpString);
 		return 0;
 	}
-	try if (generateCSSPath !is null)
+
+	// Used to write default CSS/config with overwrite checking
+	int writeProtected(string path, string content, string type)
 	{
-		std.file.write(generateCSSPath, stylecss);
+		if(path.exists)
+		{
+			writefln("'%s' exists. Overwrite? (y/N)", path);
+			import std.ascii: toLower;
+			char overwrite;
+			readf("%s", &overwrite);
+			if(overwrite.toLower != 'y')
+			{
+				writefln("Exited without overwriting '%s'", path);
+				return 1;
+			}
+			writefln("Overwriting '%s'", path);
+		}
+		try
+		{
+		    std.file.write(path, content);
+		}
+		catch(Exception e)
+		{
+			writefln("Failed to write default %s to file `%s` : %s",
+				type, path, e.msg);
+			return 1;
+		}
 		return 0;
 	}
-	catch(Exception e)
+
+	if (config.doGenerateCSSPath !is null)
 	{
-		writefln("Failed to generate default CSS to file `%s` : %s", 
-			generateCSSPath, e.msg);
-		return 1;
+		return writeProtected(config.doGenerateCSSPath, stylecss, "CSS");
 	}
+	if(config.doGenerateConfig)
+	{
+		return writeProtected(defaultConfigPath, defaultConfigString, "config");
+	}
+
 
 	string[string] macros;
 	try
-		macros = readMacros(macroFiles);
+		macros = readMacros(config.macroFileNames);
 	catch (Exception e)
 	{
 		stderr.writeln(e.msg);
 		return 1;
 	}
 
-	if (outputDirectory is null)
-		outputDirectory = "./doc";
-
-	generateDocumentation(outputDirectory, indexContent, customCSS, macros, args[1 .. $]);
+	generateDocumentation(config, macros);
 
 	return 0;
 }
@@ -80,16 +100,15 @@ string[string] readMacros(const string[] macroFiles)
 	return rVal;
 }
 
-void generateDocumentation(string outputDirectory, string indexContent,
-	string customCSS, string[string] macros, string[] args)
+void generateDocumentation(ref const(Config) config, string[string] macros)
 {
-	string[] files = getFilesToProcess(args);
+	string[] files = getFilesToProcess(config.sourcePaths.dup);
 	import std.stdio;
-	stderr.writeln("Writing documentation to ", outputDirectory);
+	stderr.writeln("Writing documentation to ", config.outputDirectory);
 
-	mkdirRecurse(outputDirectory);
+	mkdirRecurse(config.outputDirectory);
 
-	File search = File(buildPath(outputDirectory, "search.js"), "w");
+	File search = File(buildPath(config.outputDirectory, "search.js"), "w");
 	search.writeln(`"use strict";`);
 	search.writeln(`var items = [`);
 
@@ -100,46 +119,59 @@ void generateDocumentation(string outputDirectory, string indexContent,
 	foreach(modulePath; files)
 	{
 		string moduleName;
-		string location;
+		string link;
 
 		try
 		{
-			getDocumentationLocation(outputDirectory, modulePath, moduleName, location);
+			getDocumentationLink(config, modulePath, moduleName, link);
 		}
 		catch(Exception e)
 		{
 			stderr.writeln("Could not build a TOC entry for ", modulePath, ": ", e.msg);
 			continue;
 		}
-		string path = (location.length > 2 && location[0 .. 2] == "./")
-			? stripLeadingDirectory(location[2 .. $])
-			: location;
+
 		if (moduleName != "")
 		{
 			moduleNames ~= moduleName;
-			moduleNameToDocPath[moduleName] = path;
+			moduleNameToDocPath[moduleName] = link;
 		}
 	}
 
 	TocItem[] tocItems = buildTree(moduleNames, moduleNameToDocPath);
 
+	string tocAdditional = config.tocAdditionalFileName is null 
+	                     ? null : readText(config.tocAdditionalFileName);
+	if (config.tocAdditionalFileName !is null)
+	{
+		// Hack so we don't have to pass all readAndWriteComments params to
+		// writeTOC. TODO rewrite readAndWriteComments and other writing
+		// functions so they generate strings and refactor them.
+		const tempName = ".hmod-additional-toc-temp";
+		auto temp = File(tempName, "w");
+		readAndWriteComment(temp, tocAdditional, &config, macros);
+		temp.close();
+		tocAdditional = readText(tempName);
+		std.file.remove(temp.name);
+	}
+
 	// Write index.html and style.css
 	{
-		File css = File(buildPath(outputDirectory, "style.css"), "w");
-		css.write(getCSS(customCSS));
-		File js = File(buildPath(outputDirectory, "highlight.pack.js"), "w");
+		File css = File(buildPath(config.outputDirectory, "style.css"), "w");
+		css.write(getCSS(config.cssFileName));
+		File js = File(buildPath(config.outputDirectory, "highlight.pack.js"), "w");
 		js.write(hljs);
-		File index = File(buildPath(outputDirectory, "index.html"), "w");
+		File index = File(buildPath(config.outputDirectory, "index.html"), "w");
 		index.writeHeader("Index", 0);
 		index.writeTOC(tocItems);
 		index.writeBreadcrumbs("Main Page");
 
-		if (indexContent !is null)
+		if (config.indexFileName !is null)
 		{
-			File indexContentFile = File(indexContent);
-			ubyte[] indexContentBytes = new ubyte[cast(uint) indexContentFile.size];
-			indexContentFile.rawRead(indexContentBytes);
-			readAndWriteComment(index, cast(string) indexContentBytes, macros);
+			File indexFile = File(config.indexFileName);
+			ubyte[] indexBytes = new ubyte[cast(uint) indexFile.size];
+			indexFile.rawRead(indexBytes);
+			readAndWriteComment(index, cast(string)indexBytes, &config, macros);
 		}
 		index.writeln(`
 </div>
@@ -154,7 +186,7 @@ void generateDocumentation(string outputDirectory, string indexContent,
 		writeln("Generating documentation for ", f);
 		try
 		{
-			writeDocumentation(outputDirectory, f, macros, search, tocItems);
+			writeDocumentation(config, f, search, tocItems, macros, tocAdditional);
 		}
 		catch (Exception e)
 		{
@@ -184,44 +216,44 @@ string getCSS(string customCSS)
 }
 
 /// Creates documentation for the module at the given path
-void writeDocumentation(string outputDirectory, string path,
-	string[string] macros, File search, TocItem[] tocItems)
+void writeDocumentation(ref const Config config, string path, File search, TocItem[] tocItems,
+	string[string] macros, string tocAdditional)
 {
-	LexerConfig config;
-	config.fileName = path;
-	config.stringBehavior = StringBehavior.source;
+	LexerConfig lexConfig;
+	lexConfig.fileName = path;
+	lexConfig.stringBehavior = StringBehavior.source;
 
 	File f = File(path);
 	ubyte[] fileBytes = uninitializedArray!(ubyte[])(to!size_t(f.size));
 	f.rawRead(fileBytes);
 	StringCache cache = StringCache(1024 * 4);
-	auto tokens = getTokensForParser(fileBytes, config, &cache).array;
+	auto tokens = getTokensForParser(fileBytes, lexConfig, &cache).array;
 	Module m = parseModule(tokens, path, null, &doNothing);
 	TestRange[][size_t] unitTestMapping = getUnittestMap(m);
-	DocVisitor visitor = new DocVisitor(outputDirectory, macros, search,
-		unitTestMapping, fileBytes, tocItems);
+	auto visitor = new DocVisitor(config, macros, search,
+		unitTestMapping, fileBytes, tocItems, tocAdditional);
 	visitor.visit(m);
 }
 
-/// Gets location and module name for documentation of specified module.
-void getDocumentationLocation(string outputDirectory, string modulePath,
-	ref string moduleName, ref string location)
+/// Gets link (in output directory) and module name for documentation of specified module.
+void getDocumentationLink(ref const Config config, string modulePath,
+	ref string moduleName, ref string link)
 {
-	LexerConfig config;
-	config.fileName = modulePath;
-	config.stringBehavior = StringBehavior.source;
+	LexerConfig lexConfig;
+	lexConfig.fileName = modulePath;
+	lexConfig.stringBehavior = StringBehavior.source;
 
 	File f = File(modulePath);
 	ubyte[] fileBytes = uninitializedArray!(ubyte[])(to!size_t(f.size));
 	f.rawRead(fileBytes);
 	StringCache cache = StringCache(1024 * 4);
-	auto tokens = getTokensForParser(fileBytes, config, &cache).array;
+	auto tokens = getTokensForParser(fileBytes, lexConfig, &cache).array;
 	Module m = parseModule(tokens, modulePath, null, &doNothing);
-	DocVisitor visitor = new DocVisitor(outputDirectory, null, File.init, null,
-		fileBytes, null);
+	auto visitor = new DocVisitor(config, null, File.init, null,
+		fileBytes, null, null);
 	visitor.moduleInitLocation(m);
 	moduleName = visitor.moduleName;
-	location = visitor.location;
+	link = visitor.link;
 }
 
 string[] getFilesToProcess(string[] args)

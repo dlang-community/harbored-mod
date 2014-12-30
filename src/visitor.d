@@ -6,6 +6,7 @@
  */
 module visitor;
 
+import config;
 import ddoc.comments;
 import formatter;
 import std.algorithm;
@@ -28,25 +29,26 @@ class DocVisitor : ASTVisitor
 {
 	/**
 	 * Params:
-	 *     outputDirectory = The directory where files will be written
-	 *     macros = Macro definitions used in processing documentation comments
+	 *     config = Configuration data, including macros and the output directory.
 	 *     searchIndex = A file where the search information will be written
 	 *     unitTestMapping = The mapping of declaration addresses to their
 	 *         documentation unittests
 	 *     fileBytes = The source code of the module as a byte array.
-	 *     tocItems = Items of the table of contents to write into each 
+	 *     tocItems = Items of the table of contents to write into each
 	 *                documentation file.
+	 *     tocAdditional = Additional content for the table of contents sidebar.
 	 */
-	this(string outputDirectory, string[string] macros, File searchIndex,
+	this(ref const Config config, string[string] macros, File searchIndex,
 		TestRange[][size_t] unitTestMapping, const(ubyte[]) fileBytes,
-		TocItem[] tocItems)
+		TocItem[] tocItems, string tocAdditional)
 	{
-		this.outputDirectory = outputDirectory;
 		this.macros = macros;
+		this.config = &config;
 		this.searchIndex = searchIndex;
 		this.unitTestMapping = unitTestMapping;
 		this.fileBytes = fileBytes;
 		this.tocItems = tocItems;
+		this.tocAdditional = tocAdditional;
 	}
 
 	/**
@@ -64,12 +66,27 @@ class DocVisitor : ASTVisitor
 		pushAttributes();
 		stack = cast(string[]) mod.moduleDeclaration.moduleName.identifiers.map!(a => a.text).array;
 
-		baseLength = stack.length;
-		moduleFileBase = chain(only(outputDirectory), stack).buildPath;
+		foreach(exclude; config.excludes)
+		{
+			// If module name is pkg1.pkg2.mod, we first check
+			// "pkg1", then "pkg1.pkg2", then "pkg1.pkg2.mod"
+			// i.e. we only check for full package/module names.
+			if(iota(stack.length + 1).map!(l => stack[0 .. l].join(".")).canFind(exclude))
+			{
+				writeln("Excluded module ", stack.join("."));
+				return false;
+			}
+		}
 
-		if (!exists(moduleFileBase))
-			moduleFileBase.mkdirRecurse();
-		const outputName = moduleFileBase ~ ".html";
+		baseLength = stack.length;
+		moduleFileBase = stack.buildPath;
+		link = moduleFileBase ~ ".html";
+
+
+		const moduleFileBaseAbs = config.outputDirectory.buildPath(moduleFileBase);
+		if (!exists(moduleFileBaseAbs))
+			moduleFileBaseAbs.mkdirRecurse();
+		const outputName = moduleFileBaseAbs ~ ".html";
 
 		location = outputName;
 		moduleName = to!string(stack.join("."));
@@ -92,7 +109,7 @@ class DocVisitor : ASTVisitor
 		prevComments.length = 1;
 
 		if (mod.moduleDeclaration.comment !is null)
-			readAndWriteComment(output, mod.moduleDeclaration.comment, macros,
+			readAndWriteComment(output, mod.moduleDeclaration.comment, config, macros,
 				prevComments, null, getUnittestDocTuple(mod.moduleDeclaration));
 
 		memberStack.length = 1;
@@ -122,7 +139,7 @@ class DocVisitor : ASTVisitor
 	{
 		if (member.comment is null)
 			return;
-		string summary = readAndWriteComment(File.init, member.comment, macros,
+		string summary = readAndWriteComment(File.init, member.comment, config, macros,
 			prevComments, null, getUnittestDocTuple(member));
 		memberStack[$ - 1].values ~= Item("#", member.name.text, summary);
 	}
@@ -188,24 +205,28 @@ class DocVisitor : ASTVisitor
 		{
 			foreach (name; ad.identifierList.identifiers)
 			{
-				File f = pushSymbol(name.text, first);
+				auto fileWithLink = pushSymbol(name.text, first);
+				File f = fileWithLink[0];
+				string link = fileWithLink[1];
+
 				scope(exit) popSymbol(f);
 				writeBreadcrumbs(f);
 				string type = writeAliasType(f, name.text, ad.type);
-				string summary = readAndWriteComment(f, ad.comment, macros, prevComments);
-				memberStack[$ - 2].aliases ~= Item(findSplitAfter(f.name, dirSeparator)[1],
-					name.text, summary, type);
+				string summary = readAndWriteComment(f, ad.comment, config, macros, prevComments);
+				memberStack[$ - 2].aliases ~= Item(link, name.text, summary, type);
 			}
 		}
 		else foreach (initializer; ad.initializers)
 		{
-			File f = pushSymbol(initializer.name.text, first);
+			auto fileWithLink = pushSymbol(initializer.name.text, first);
+			File f = fileWithLink[0];
+			string link = fileWithLink[1];
+
 			scope(exit) popSymbol(f);
 			writeBreadcrumbs(f);
 			string type = writeAliasType(f, initializer.name.text, initializer.type);
-			string summary = readAndWriteComment(f, ad.comment, macros, prevComments);
-			memberStack[$ - 2].aliases ~= Item(findSplitAfter(f.name, dirSeparator)[1],
-				initializer.name.text, summary, type);
+			string summary = readAndWriteComment(f, ad.comment, config, macros, prevComments);
+			memberStack[$ - 2].aliases ~= Item(link, initializer.name.text, summary, type);
 		}
 	}
 
@@ -216,21 +237,26 @@ class DocVisitor : ASTVisitor
 		{
 			if (vd.comment is null && dec.comment is null)
 				continue;
-			File f = pushSymbol(dec.name.text, first);
+			auto fileWithLink = pushSymbol(dec.name.text, first);
+			File f = fileWithLink[0];
+			string link = fileWithLink[1];
+
 			scope(exit) popSymbol(f);
 			writeBreadcrumbs(f);
 			string summary = readAndWriteComment(f,
-				dec.comment is null ? vd.comment : dec.comment, macros,
+				dec.comment is null ? vd.comment : dec.comment, config, macros,
 				prevComments);
-			memberStack[$ - 2].variables ~= Item(findSplitAfter(f.name, dirSeparator)[1],
-				dec.name.text, summary, formatNode(vd.type));
+			memberStack[$ - 2].variables ~= Item(link, dec.name.text, summary, formatNode(vd.type));
 		}
 		if (vd.comment !is null && vd.autoDeclaration !is null) foreach (ident; vd.autoDeclaration.identifiers)
 		{
-			File f = pushSymbol(ident.text, first);
+			auto fileWithLink = pushSymbol(ident.text, first);
+			File f = fileWithLink[0];
+			string link = fileWithLink[1];
+
 			scope(exit) popSymbol(f);
 			writeBreadcrumbs(f);
-			string summary = readAndWriteComment(f, vd.comment, macros, prevComments);
+			string summary = readAndWriteComment(f, vd.comment, config, macros, prevComments);
 			// TODO this was hastily updated to get harbored-mod to compile
 			// after a libdparse update. Revisit and validate/fix any errors.
 			string[] storageClasses;
@@ -238,8 +264,7 @@ class DocVisitor : ASTVisitor
 			{
 				storageClasses ~= str(stor.token.type);
 			}
-			auto i = Item(findSplitAfter(f.name, dirSeparator)[1], ident.text,
-				summary, storageClasses.canFind("enum") ? null : "auto");
+			auto i = Item(link, ident.text, summary, storageClasses.canFind("enum") ? null : "auto");
 			if (storageClasses.canFind("enum"))
 				memberStack[$ - 2].enums ~= i;
 			else
@@ -251,7 +276,7 @@ class DocVisitor : ASTVisitor
 			// 	if (attr.storageClass !is null)
 			// 		storageClass = str(attr.storageClass.token.type);
 			// }
-			// auto i = Item(findSplitAfter(f.name, dirSeparator)[1], ident.text,
+			// auto i = Item(name, ident.text,
 			// 	summary, storageClass == "enum" ? null : "auto");
 			// if (storageClass == "enum")
 			// 	memberStack[$ - 2].enums ~= i;
@@ -292,8 +317,12 @@ class DocVisitor : ASTVisitor
 		if (cons.comment is null)
 			return;
 		bool first;
-		File f = pushSymbol("this", first);
-		writeFnDocumentation(f, cons, attributes[$ - 1], first);
+		auto fileWithLink = pushSymbol("this", first);
+		File f = fileWithLink[0];
+		string link = fileWithLink[1];
+
+
+		writeFnDocumentation(f, link, cons, attributes[$ - 1], first);
 	}
 
 	override void visit(const FunctionDeclaration fd)
@@ -301,8 +330,11 @@ class DocVisitor : ASTVisitor
 		if (fd.comment is null)
 			return;
 		bool first;
-		File f = pushSymbol(fd.name.text, first);
-		writeFnDocumentation(f, fd, attributes[$ - 1], first);
+		auto fileWithLink = pushSymbol(fd.name.text, first);
+		File f = fileWithLink[0];
+		string link = fileWithLink[1];
+
+		writeFnDocumentation(f, link, fd, attributes[$ - 1], first);
 	}
 
 	alias visit = ASTVisitor.visit;
@@ -314,6 +346,10 @@ class DocVisitor : ASTVisitor
 	/// processed.
 	string location;
 
+	/// Path to the HTML file relative to the output directory.
+	string link;
+
+
 private:
 
 	void visitAggregateDeclaration(string formattingCode, string name, A)(const A ad)
@@ -321,7 +357,11 @@ private:
 		bool first;
 		if (ad.comment is null)
 			return;
-		File f = pushSymbol(ad.name.text, first);
+
+		auto fileWithLink = pushSymbol(ad.name.text, first);
+		File f = fileWithLink[0];
+		string link = fileWithLink[1];
+
 		if (first)
 			writeBreadcrumbs(f);
 		else
@@ -335,9 +375,9 @@ private:
 			mixin(formattingCode);
 			writer.put("\n</code></pre>");
 		}
-		string summary = readAndWriteComment(f, ad.comment, macros, prevComments,
+		string summary = readAndWriteComment(f, ad.comment, config, macros, prevComments,
 			null, getUnittestDocTuple(ad));
-		mixin(`memberStack[$ - 2].` ~ name ~ ` ~= Item(findSplitAfter(f.name, dirSeparator)[1], ad.name.text, summary);`);
+		mixin(`memberStack[$ - 2].` ~ name ~ ` ~= Item(link, ad.name.text, summary);`);
 		prevComments.length = prevComments.length + 1;
 		ad.accept(this);
 		prevComments = prevComments[0 .. $ - 1];
@@ -371,7 +411,7 @@ private:
 	/**
 	 *
 	 */
-	void writeFnDocumentation(Fn)(File f, Fn fn, const(Attribute)[] attrs, bool first)
+	void writeFnDocumentation(Fn)(File f, string fileRelative, Fn fn, const(Attribute)[] attrs, bool first)
 	{
 		auto writer = f.lockingTextWriter();
 		// Stuff above the function doc
@@ -420,7 +460,7 @@ private:
 		writer.put("\n</code></pre>");
 		// Function signature end//
 
-		string summary = readAndWriteComment(f, fn.comment, macros,
+		string summary = readAndWriteComment(f, fn.comment, config, macros,
 			prevComments, fn.functionBody, getUnittestDocTuple(fn));
 		string fdName;
 		static if (__traits(hasMember, typeof(fn), "name"))
@@ -560,20 +600,20 @@ private:
 	 *         called for this name.
 	 *     isFunction = True if the symbol being pushed is a function, false
 	 *         otherwise.
-	 * Returns: A file that the symbol's documentation should be written to.
+	 *
+	 * Returns: A file that the symbol's documentation should be written to and the
+	 *          filename of that file relative to config.outputDirectory.
 	 */
-	File pushSymbol(string name, ref bool first)
+	Tuple!(File, string) pushSymbol(string name, ref bool first)
 	{
 		import std.array : array, join;
 		import std.string : format;
 		stack ~= name;
 		memberStack.length = memberStack.length + 1;
+		// Path relative to output directory
 		string classDocFileName = moduleFileBase.buildPath(format("%s.html",
 			join(stack[baseLength .. $], ".").array));
-		string path = (classDocFileName.length > 2 && classDocFileName[0 .. 2] == "./")
-				? stripLeadingDirectory(classDocFileName[2 .. $])
-				: classDocFileName;
-		searchIndex.writefln(`{"%s" : "%s"},`, join(stack, ".").array, path);
+		searchIndex.writefln(`{"%s" : "%s"},`, join(stack, ".").array, classDocFileName);
 		immutable size_t i = memberStack.length - 2;
 		assert (i < memberStack.length, "%s %s".format(i, memberStack.length));
 		auto p = classDocFileName in memberStack[i].overloadFiles;
@@ -581,14 +621,14 @@ private:
 		if (first)
 		{
 			first = true;
-			auto f = File(classDocFileName, "w");
+			auto f = File(config.outputDirectory.buildPath(classDocFileName), "w");
 			memberStack[i].overloadFiles[classDocFileName] = f;
 			writeHeader(f, name, baseLength);
-			writeTOC(f, tocItems);
-			return f;
+			writeTOC(f, tocItems, tocAdditional);
+			return tuple(f, classDocFileName);
 		}
 		else
-			return *p;
+			return tuple(*p, classDocFileName);
 	}
 
 	void popSymbol(File f)
@@ -611,7 +651,6 @@ private:
 	const(Attribute)[][] attributes;
 	Comment[] prevComments;
 	size_t baseLength;
-	string outputDirectory;
 	string moduleFileBase;
 	string[] stack;
 	string[string] macros;
@@ -620,6 +659,8 @@ private:
 	TestRange[][size_t] unitTestMapping;
 	const(ubyte[]) fileBytes;
 	TocItem[] tocItems;
+	string tocAdditional;
+	const(Config)* config;
 }
 
 /**
@@ -703,14 +744,16 @@ void writeBreadcrumbs(File f, string heading)
  *     testdocs = Pairs of unittest bodies and unittest doc comments. May be null.
  * Returns: the summary from the given comment
  */
-string readAndWriteComment(File f, string comment, ref string[string] macros,
-	Comment[] prevComments = null, const FunctionBody functionBody = null,
+string readAndWriteComment(File f, string comment, const(Config)* config,
+	string[string] macros, Comment[] prevComments = null,
+	const FunctionBody functionBody = null,
 	Tuple!(string, string)[] testDocs = null)
 {
 	import std.d.lexer : unDecorateComment;
 	auto app = appender!string();
 	comment.unDecorateComment(app);
 //	writeln(comment, " undecorated to ", app.data);
+
 	Comment c = parseComment(app.data, macros);
 
 	// Run sections through markdown.
