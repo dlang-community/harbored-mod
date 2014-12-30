@@ -303,6 +303,7 @@ div.section.seealso, div.section.note {
 	/* background-color: #DA9F07; */
 	background-color: #DAAF07;
 	padding: 1em;
+	margin-bottom: 0.5em;
 }
 
 div.section.seealso h2, div.section.note h2 {
@@ -318,11 +319,15 @@ div.section.seealso div.seealso-content, div.section.note div.note-content {
 	margin-left: 6.5em;
 }
 
-div.section.seealso p:first-child, div.section.note p:first-child {
+div.section.seealso *:first-child, div.section.note *:first-child {
 	margin-top: 0em;
 }
 
-div.section.seealso p:last-child, div.section.note p:last-child {
+div.section.seealso ul, div.section.note ul {
+	padding-left: 1.5em;
+}
+
+div.section.seealso *:last-child, div.section.note *:last-child {
 	margin-bottom: 0em;
 }
 
