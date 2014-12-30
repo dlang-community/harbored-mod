@@ -103,7 +103,7 @@ class DocVisitor : ASTVisitor
 
 		File output = File(location, "w");
 		writeHeader(output, moduleName, baseLength - 1);
-		writeTOC(output, tocItems);
+		writeTOC(output, tocItems, tocAdditional);
 		writeBreadcrumbs(output);
 
 		prevComments.length = 1;
@@ -701,12 +701,19 @@ void writeHeader(File f, string title, size_t depth)
 /** Writes the table of contents to specified file.
  *
  * Params:
- *     f        = File to write to.
- *     tocItems = Items of the table of contents to write.
+ *     f             = File to write to.
+ *     tocItems      = Items of the table of contents to write.
+ *     tocAdditional = Optional additional content.
  */
-void writeTOC(File f, TocItem[] tocItems)
+void writeTOC(File f, TocItem[] tocItems, string tocAdditional)
 {
 	f.writeln(`<div class="toc">`);
+	if(tocAdditional !is null)
+	{
+		f.writeln(`<div class="toc-additional">`);
+		f.writeln(tocAdditional);
+		f.writeln(`</div>`);
+	}
 	f.writeln(`<ul>`);
 	foreach (t; tocItems)
 		t.write(f);
