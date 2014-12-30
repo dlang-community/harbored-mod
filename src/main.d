@@ -271,41 +271,6 @@ string[] getFilesToProcess(string[] paths)
 	return files.data;
 }
 
-enum helpString = `
-Generates documentation for D source code.
-
-Usage:
-    doctool [Options] file.d
-    doctool [Options] directory1/ directory2/ ...
-
-Options:
-    --macros | -m MACRO_FILE
-        Specifies a macro definition file
-
-    --output-directory | -o DIR
-        Writes the generated documentation to the given directory. If this
-        option is not specified, documentation will be written to a folder
-        called "doc" in the current directory.
-
-    --exclude | -e MODULE_NAME
-        Exclude the given module or package from the generated documentation.
-        By default no modules or packages will be excluded unless they do not
-        contain a module declaration.
-
-    --index | -i DDOC_FILE
-        Use DDOC_FILE as the content of the index.html page. By default this
-        page will be blank.
-
-    --css | -c CSS_FILE
-        Use CSS_FILE to style the documentation instead of using default CSS.
-
-    --generate-css | -C CSS_OUT_FILE
-        Generate default CSS file and write it to CSS_OUT_FILE. This file can
-        be modified and then passed using the --css option.
-
-    --help | -h
-        Prints this message.
-`;
 
 void doNothing(string, size_t, size_t, string, bool) {}
 
