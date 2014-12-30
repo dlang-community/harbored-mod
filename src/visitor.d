@@ -53,7 +53,12 @@ class DocVisitor : ASTVisitor
 
 	/**
 	 * Same as visit(const Module), but only determines the file (location) of the
-	 * documentation and module name, without actually writing the documentation.
+	 * documentation, link to that file and module name, without actually writing the
+	 * documentation.
+	 *
+	 * Returns: true if the module location was successfully determined, false if
+	 *          there is no module declaration or the module is excluded from
+	 *          generated documentation by the user.
 	 */
 	bool moduleInitLocation(const Module mod)
 	{
@@ -650,6 +655,10 @@ private:
 
 	const(Attribute)[][] attributes;
 	Comment[] prevComments;
+	/* Length, or nest level, of the module name.
+	 *
+	 * `mod` has baseLength, `pkg.mod` has baseLength 2, `pkg.child.mod` has 3, etc.
+	 */
 	size_t baseLength;
 	string moduleFileBase;
 	string[] stack;

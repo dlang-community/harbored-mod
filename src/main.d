@@ -256,10 +256,10 @@ void getDocumentationLink(ref const Config config, string modulePath,
 	link = visitor.link;
 }
 
-string[] getFilesToProcess(string[] args)
+string[] getFilesToProcess(string[] paths)
 {
 	auto files = appender!(string[])();
-	foreach (arg; args)
+	foreach (arg; paths)
 	{
 		if (isDir(arg)) foreach (string fileName; dirEntries(arg, "*.{d,di}", SpanMode.depth))
 			files.put(expandTilde(fileName));

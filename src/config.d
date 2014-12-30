@@ -35,6 +35,7 @@ struct Config
 	string tocAdditionalFileName = null;
 	string cssFileName = null;
 	string outputDirectory = "./doc";
+	/// Names of packages and modules to exclude from generated documentation.
 	string[] excludes = [];
 	string[] sourcePaths = [];
 
