@@ -258,12 +258,12 @@ string defaultConfigString = `
 # Source code files or directories to document. Specify more than once to document more
 # files/directories, e.g:
 #
-#   sources = ./sources
-#   sources = ./thirdparty
+#   source = ./source
+#   source = ./thirdparty
 #
 # This will document both the source code in the ./source/ and ./thirdparty/ directories.
 #
-# For DUB (http://code.dlang.org) projects, './sources' is usually a good setting here.
+# For DUB (http://code.dlang.org) projects, './source' is usually a good setting here.
 source = .
 
 

@@ -35,7 +35,7 @@ hardcoded to DMD. Eventually it will be moved to `dub <http://code.dlang.org>`_.
 
 .. note:: There are experimental binaries for some platforms on the
           `releases <https://github.com/kiith-sa/harbored-mod/releases>`_ page.
-          If you're using a binary, you can jump to step ``5``.
+          If you're using a binary, you can jump to step ``4``.
 
 1. Get harbored-mod and its dependencies::
 
@@ -49,11 +49,11 @@ hardcoded to DMD. Eventually it will be moved to `dub <http://code.dlang.org>`_.
 
       make
 
-4. This should generate a called ``hmod`` in the ``bin`` directory.
+   This should generate a called ``hmod`` in the ``bin`` directory.
 
-5. Modify your ``PATH`` to point to this directory or copy the binary into your project.
+4. Modify your ``PATH`` to point to this directory or copy the binary into your project.
 
-6. From your project directory, use ``hmod``. This assumes your source code is in the 
+5. From your project directory, use ``hmod``. This assumes your source code is in the 
    ``./source`` subdirectory (as is often the case with ``dub`` projects) and that the 
    ``hmod`` binary is in ``PATH``, prepend with ``./`` if it's in the project directory).::
 
