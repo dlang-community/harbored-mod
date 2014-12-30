@@ -3,6 +3,7 @@ module tocbuilder;
 import std.algorithm;
 import std.array: back, empty;
 import std.stdio;
+import std.array;
 
 struct TocItem
 {
@@ -15,16 +16,26 @@ struct TocItem
 		import std.string: split;
 		
 		bool hasChildren = items.length != 0;
+		output.writeln(`<li>`);
+		if (hasChildren)
+		{
+			output.writeln(`<span class="package">`);
+		}
 		if (url !is null)
 		{
 			auto parts = name.split(".");
-			output.writeln(`<li>`, 
-				`<small>`, parts[0 .. $ - 1].joiner("."), `.</small>`,
-				`<a href="`, url, `">`, parts.back, `</a></li>`);
+			output.writeln(
+				parts.length > 1 ?
+				`<small>` ~ parts[0 .. $ - 1].join(".") ~ `.</small>` : "",
+				`<a href="`, url, `">`, parts.back, `</a>`);
 		}
 		else
 		{
-			output.writeln(`<li><span class="package">`, name, `</span>`);
+			output.writeln(name);
+		}
+		if (hasChildren)
+		{
+			output.writeln(`</span>`);
 		}
 		if (hasChildren)
 		{
@@ -34,8 +45,9 @@ struct TocItem
 			item.write(output);
 		if (hasChildren)
 		{
-			output.writeln(`</ul></li>`);
+			output.writeln(`</ul>`);
 		}
+		output.writeln(`</li>`);
 	}
 }
 
@@ -43,6 +55,7 @@ TocItem[] buildTree(string[] strings, string[string] links, const size_t offset 
 {
 	TocItem[] items;
 	size_t i = 0;
+	strings.sort();
 	while (i < strings.length)
 	{
 		size_t j = i + 1;
@@ -66,9 +79,17 @@ TocItem[] buildTree(string[] strings, string[string] links, const size_t offset 
 		// short name (only module, no package):
 		// item.name = strings[i][offset .. offset + prefix.length];
 		item.name = strings[i][0 .. item.items.empty ? $ : offset + prefix.length];
-		items ~= item;
+
+		if(items.length > 0 && items.back.name == item.name)
+		{
+			items.back.items = item.items;
+		}
+		else
+		{
+			items ~= item;
+		}
+
 		i = j;
 	}
-	sort!((a, b) => a.name < b.name)(items);
 	return items;
 }
