@@ -18,6 +18,8 @@ import std.stdio;
  */
 class HarboredFormatter(Sink) : Formatter!Sink
 {
+    private uint level;
+
     /**
      * Params:
      *     sink = the output range that the formatted source code is placed in
@@ -53,20 +55,31 @@ class HarboredFormatter(Sink) : Formatter!Sink
             super.format(parameters);
             return;
         }
-
+        level++;
+        scope(exit) level--;
         put("(");
         foreach (count, param; parameters.parameters)
         {
             if (count) put(", ");
-            put("\n    ");
+            put("\n");
+            foreach(i; 0..level)
+                put("    ");
             format(param);
         }
         if (parameters.hasVarargs)
         {
             if (parameters.parameters.length)
                 put(", ");
-            put("\n    ");
+            put("\n");
+            foreach(i; 0..level)
+                put("    ");
             put("...");
+        }
+        if(level > 1)
+        {
+            put("\n");
+            foreach(i; 0..level)
+                put("    ");
         }
         put(")");
     }

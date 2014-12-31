@@ -153,10 +153,10 @@ class DocVisitor : ASTVisitor
 	{
 		enum formattingCode = q{
 		f.write("class ", ad.name.text);
-		if (ad.baseClassList !is null)
-			formatter.format(ad.baseClassList);
 		if (ad.templateParameters !is null)
 			formatter.format(ad.templateParameters);
+		if (ad.baseClassList !is null)
+			formatter.format(ad.baseClassList);
 		if (ad.constraint !is null)
 			formatter.format(ad.constraint);
 		};
@@ -591,7 +591,7 @@ private:
 		// The rest of the stack except the last element (parents of current page).
 		for(; i + 1 < stack.length; ++i)
 		{
-			heading  ~= `<a href=%s.html>%s</a>.`.format(link(), stack[i]);
+			heading  ~= `<a href=%s>%s</a>.`.format(link(), stack[i]);
 		}
 		// The last element (no need to link to the current page).
 		heading ~= stack[i];
