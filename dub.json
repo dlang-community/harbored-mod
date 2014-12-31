@@ -1,0 +1,16 @@
+{
+	"name": "harbored-mod",
+	"targetType": "executable",
+	"description": "A documentation generator for D with support for both DDoc and Markdown in documentation comments",
+	"copyright": "Copyright © 2014, Economic Modeling Specialists, Intl, Copyright © 2014-2015 Ferdinand Majerech",
+	"authors": ["Ferdinand Majerech", "Brian Schott"],
+	"license": "BSL-1.0",
+	"homepage": "https://github.com/kiith-sa/harbored-mod",
+	"dependencies": {
+		"dmarkdown": "~master",
+		"libdparse": "~master",
+		"libddoc": ">=0.0.0",
+	},
+	"targetName": "hmod",
+	"stringImportPaths": ["strings"]
+}
