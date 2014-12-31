@@ -190,10 +190,11 @@ class DocVisitor : ASTVisitor
 	override void visit(const InterfaceDeclaration id)
 	{
 		enum formattingCode = q{
-		if (ad.baseClassList !is null)
-			formatter.format(ad.baseClassList);
+		f.write("interface ", ad.name.text);
 		if (ad.templateParameters !is null)
 			formatter.format(ad.templateParameters);
+		if (ad.baseClassList !is null)
+			formatter.format(ad.baseClassList);
 		if (ad.constraint !is null)
 			formatter.format(ad.constraint);
 		};
