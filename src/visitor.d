@@ -153,10 +153,10 @@ class DocVisitor : ASTVisitor
 	{
 		enum formattingCode = q{
 		f.write("class ", ad.name.text);
-		if (ad.baseClassList !is null)
-			formatter.format(ad.baseClassList);
 		if (ad.templateParameters !is null)
 			formatter.format(ad.templateParameters);
+		if (ad.baseClassList !is null)
+			formatter.format(ad.baseClassList);
 		if (ad.constraint !is null)
 			formatter.format(ad.constraint);
 		};
