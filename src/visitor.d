@@ -772,6 +772,7 @@ string readAndWriteComment(File f, string comment, const(Config)* config,
 //	writeln(comment, " undecorated to ", app.data);
 
 	Comment c = parseComment(app.data, macros);
+	immutable ditto = c.isDitto;
 
 	// Run sections through markdown.
 	foreach(ref section; c.sections) {
@@ -798,10 +799,15 @@ string readAndWriteComment(File f, string comment, const(Config)* config,
 		}
 	}
 
-	if (c.isDitto)
-		c = prevComments[$ - 1];
-	else if (prevComments.length > 0)
-		prevComments[$ - 1] = c;
+	if (prevComments.length > 0)
+	{
+		if (ditto)
+			c = prevComments[$ - 1];
+		else
+			prevComments[$ - 1] = c;
+	}
+	
+	
 	if (f != File.init)
 		writeComment(f, c, functionBody);
 
