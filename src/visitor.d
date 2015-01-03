@@ -564,7 +564,12 @@ private:
 		import std.string: format;
 		
 		string heading;
-		scope(exit) { .writeBreadcrumbs(f, heading); }
+		scope(exit) 
+		{
+			auto writer = appender!string();
+			.writeBreadcrumbs(writer, heading);
+			f.write(writer.data);
+		}
 
 		assert(baseLength <= stack.length, "stack shallower than the current module?");
 		size_t i;
@@ -739,16 +744,23 @@ void writeTOC(R)(ref R dst, TocItem[] tocItems, string tocAdditional)
   *
   * Also starts the "content" <div>; must be called after writeTOC(), before writing
   * main content.
+  *
+  * Params:
+  *
+  * dst     = Range (appender) to write to.
+  * heading = Page heading (e.g. module name or "Main Page").
+  * 
   */
-void writeBreadcrumbs(File f, string heading)
+void writeBreadcrumbs(R)(R dst, string heading)
 {
-	f.writeln(`<div class="breadcrumbs">`);
-	f.writeln(`<table id="results"></table>`);
-	f.writeln(`<a class="home" href=index.html>⌂</a>`);
-	f.writeln(`<input type="search" id="search" placeholder="Search" onkeyup="searchSubmit(this.value, event)"/>`);
-	f.write(heading);
-	f.writeln(`</div>`);
-	f.writeln(`<div class="content">`);
+	void put(string str) { dst.put(str); dst.put("\n"); }
+	put(`<div class="breadcrumbs">`);
+	put(`<table id="results"></table>`);
+	put(`<a class="home" href=index.html>⌂</a>`);
+	put(`<input type="search" id="search" placeholder="Search" onkeyup="searchSubmit(this.value, event)"/>`);
+	put(heading);
+	put(`</div>`);
+	put(`<div class="content">`);
 }
 
 /**

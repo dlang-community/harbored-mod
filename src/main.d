@@ -166,9 +166,8 @@ void generateDocumentation(ref const(Config) config, string[string] macros)
 		auto writer = appender!string();
 		writer.writeHeader("Index", 0);
 		writer.writeTOC(tocItems, tocAdditional);
+		writer.writeBreadcrumbs("Main Page");
 		index.write(writer.data);
-
-		index.writeBreadcrumbs("Main Page");
 
 		if (config.indexFileName !is null)
 		{
