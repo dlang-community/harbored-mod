@@ -163,7 +163,11 @@ void generateDocumentation(ref const(Config) config, string[string] macros)
 		js.write(hljs);
 		File index = File(buildPath(config.outputDirectory, "index.html"), "w");
 		index.writeHeader("Index", 0);
-		index.writeTOC(tocItems, tocAdditional);
+
+		auto writer = appender!string();
+		writer.writeTOC(tocItems, tocAdditional);
+		index.write(writer.data);
+
 		index.writeBreadcrumbs("Main Page");
 
 		if (config.indexFileName !is null)

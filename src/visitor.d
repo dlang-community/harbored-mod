@@ -108,7 +108,10 @@ class DocVisitor : ASTVisitor
 
 		File output = File(location, "w");
 		writeHeader(output, moduleName, baseLength - 1);
-		writeTOC(output, tocItems, tocAdditional);
+
+		auto writer = appender!string();
+		writer.writeTOC(tocItems, tocAdditional);
+		output.write(writer.data);
 		writeBreadcrumbs(output);
 
 		prevComments.length = 1;
@@ -630,7 +633,11 @@ private:
 			auto f = File(config.outputDirectory.buildPath(classDocFileName), "w");
 			memberStack[i].overloadFiles[classDocFileName] = f;
 			writeHeader(f, name, baseLength);
-			writeTOC(f, tocItems, tocAdditional);
+
+			auto writer = appender!string();
+			writer.writeTOC(tocItems, tocAdditional);
+			f.write(writer.data);
+
 			return tuple(f, classDocFileName);
 		}
 		else
@@ -708,27 +715,28 @@ void writeHeader(File f, string title, size_t depth)
 `);
 }
 
-/** Writes the table of contents to specified file.
+/** Writes the table of contents to provided range.
  *
  * Params:
- *     f             = File to write to.
+ *     dst           = Range to write to.
  *     tocItems      = Items of the table of contents to write.
  *     tocAdditional = Optional additional content.
  */
-void writeTOC(File f, TocItem[] tocItems, string tocAdditional)
+void writeTOC(R)(ref R dst, TocItem[] tocItems, string tocAdditional)
 {
-	f.writeln(`<div class="toc">`);
+	void put(string str) { dst.put(str); dst.put("\n"); }
+	put(`<div class="toc">`);
 	if(tocAdditional !is null)
 	{
-		f.writeln(`<div class="toc-additional">`);
-		f.writeln(tocAdditional);
-		f.writeln(`</div>`);
+		put(`<div class="toc-additional">`);
+		put(tocAdditional);
+		put(`</div>`);
 	}
-	f.writeln(`<ul>`);
+	put(`<ul>`);
 	foreach (t; tocItems)
-		t.write(f);
-	f.writeln(`</ul>`);
-	f.writeln(`</div>`);
+		t.write(dst);
+	put(`</ul>`);
+	put(`</div>`);
 }
 
 /**

@@ -3,6 +3,7 @@ module tocbuilder;
 import std.algorithm;
 import std.array: back, empty;
 import std.stdio;
+import std.string: format;
 import std.array;
 
 struct TocItem
@@ -11,43 +12,39 @@ struct TocItem
 	string url;
 	TocItem[] items;
 
-	void write(File output)
+	void write(R)(ref R dst)
 	{
+		// Shortcut to write text followed by newline
+		void put(string str) { dst.put(str); dst.put("\n"); }
+
 		import std.string: split;
-		
-		bool hasChildren = items.length != 0;
-		output.writeln(`<li>`);
-		if (hasChildren)
+		bool isPackage = items.length != 0;
+		dst.put(`<li>`);
+		if (isPackage)
 		{
-			output.writeln(`<span class="package">`);
+			dst.put(`<span class="package">`);
 		}
 		if (url !is null)
 		{
 			auto parts = name.split(".");
-			output.writeln(
-				parts.length > 1 ?
-				`<small>` ~ parts[0 .. $ - 1].join(".") ~ `.</small>` : "",
-				`<a href="`, url, `">`, parts.back, `</a>`);
+			dst.put(parts.length > 1 ?
+				`<small>%s.</small>`.format(parts[0 .. $ - 1].joiner(".")) : "");
+			dst.put(`<a href="%s">%s</a>`.format(url, parts.back));
 		}
 		else
 		{
-			output.writeln(name);
+			dst.put(name);
 		}
-		if (hasChildren)
+		if (isPackage)
 		{
-			output.writeln(`</span>`);
+			put(`</span>`);
+			put(`<ul>`);
+			foreach (item; items)
+				item.write(dst);
+			// End a package's list of members
+			put(`</ul>`);
 		}
-		if (hasChildren)
-		{
-			output.writeln(`<ul>`);
-		}
-		foreach (item; items)
-			item.write(output);
-		if (hasChildren)
-		{
-			output.writeln(`</ul>`);
-		}
-		output.writeln(`</li>`);
+		put(`</li>`);
 	}
 }
 
