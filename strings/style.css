@@ -234,7 +234,6 @@ div.content td {
 
 div.content td:first-child {
 	text-align: center;
-	display: block-inline;
 }
 
 /* prevent function attribs from wrapping, make the cell wider instead */
