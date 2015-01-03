@@ -17,6 +17,7 @@ import std.d.lexer;
 import std.file;
 import std.path;
 import std.stdio;
+import std.string: format;
 import std.typecons;
 import tocbuilder: TocItem;
 import unittest_preprocessor;
@@ -107,11 +108,12 @@ class DocVisitor : ASTVisitor
 		}
 
 		File output = File(location, "w");
-		writeHeader(output, moduleName, baseLength - 1);
 
 		auto writer = appender!string();
+		writer.writeHeader(moduleName, baseLength - 1);
 		writer.writeTOC(tocItems, tocAdditional);
 		output.write(writer.data);
+
 		writeBreadcrumbs(output);
 
 		prevComments.length = 1;
@@ -632,9 +634,9 @@ private:
 			first = true;
 			auto f = File(config.outputDirectory.buildPath(classDocFileName), "w");
 			memberStack[i].overloadFiles[classDocFileName] = f;
-			writeHeader(f, name, baseLength);
 
 			auto writer = appender!string();
+			writer.writeHeader(name, baseLength);
 			writer.writeTOC(tocItems, tocAdditional);
 			f.write(writer.data);
 
@@ -688,31 +690,24 @@ private:
  *     depth = The directory depth of the file. This is used for ensuring that
  *         the "base" element is correct so that links resolve properly.
  */
-void writeHeader(File f, string title, size_t depth)
+void writeHeader(R)(ref R dst, string title, size_t depth)
 {
-	f.write(`<!DOCTYPE html>
+	import std.range: repeat;
+	const rootPath = "../".repeat(depth).joiner.array;
+	dst.put(
+`<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8"/>
-<link rel="stylesheet" type="text/css" href="`);
-	foreach (i; 0 .. depth)
-		f.write("../");
-	f.write(`style.css"/><script src="`);
-	foreach (i; 0 .. depth)
-		f.write("../");
-	f.write(`highlight.pack.js"></script>
-<title>`);
-	f.write(title);
-	f.writeln(`</title>`);
-	f.write(`<base href="`);
-	foreach (i; 0 .. depth)
-		f.write("../");
-	f.write(`"/>
+<link rel="stylesheet" type="text/css" href="%sstyle.css"/>
+<script src="%shighlight.pack.js"></script>
+<title>%s</title>
+<base href="%s"/>
 <script src="search.js"></script>
 </head>
 <body>
 <div class="main">
-`);
+`.format(rootPath, rootPath, title, rootPath));
 }
 
 /** Writes the table of contents to provided range.

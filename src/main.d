@@ -162,9 +162,9 @@ void generateDocumentation(ref const(Config) config, string[string] macros)
 		File js = File(buildPath(config.outputDirectory, "highlight.pack.js"), "w");
 		js.write(hljs);
 		File index = File(buildPath(config.outputDirectory, "index.html"), "w");
-		index.writeHeader("Index", 0);
 
 		auto writer = appender!string();
+		writer.writeHeader("Index", 0);
 		writer.writeTOC(tocItems, tocAdditional);
 		index.write(writer.data);
 
