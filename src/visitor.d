@@ -901,8 +901,13 @@ void writeComment(File f, Comment comment, const FunctionBody functionBody = nul
 		f.writeln(comment.sections[i].content);
 		f.writeln(`</div>`);
 	}
+
 	if (functionBody !is null)
-		writeContracts(f, functionBody.inStatement, functionBody.outStatement);
+	{
+		auto writer = appender!string();
+		writeContracts(writer, functionBody.inStatement, functionBody.outStatement);
+		f.write(writer.data);
+	}
 
 
 	const seealsoNames = ["See_also", "See_Also", "See also", "See Also"];
@@ -968,26 +973,25 @@ void writeComment(File f, Comment comment, const FunctionBody functionBody = nul
 			f.writeln(`</div>`);
 		}
 	}
-
 }
 
-void writeContracts(File f, const InStatement inStatement,
+void writeContracts(R)(ref R dst, const InStatement inStatement,
 	const OutStatement outStatement)
 {
 	if (inStatement is null && outStatement is null)
 		return;
-	f.write(`<div class="section"><h2>Contracts</h2><pre><code>`);
-	auto formatter = new HarboredFormatter!(File.LockingTextWriter)(f.lockingTextWriter());
-	scope(exit) formatter.sink = File.LockingTextWriter.init;
+	dst.put(`<div class="section"><h2>Contracts</h2><pre><code>`);
+	auto formatter = new HarboredFormatter!R(dst);
+	scope(exit) formatter.sink = R.init;
 	if (inStatement !is null)
 	{
 		formatter.format(inStatement);
 		if (outStatement !is null)
-			f.writeln();
+			dst.put("\n");
 	}
 	if (outStatement !is null)
 		formatter.format(outStatement);
-	f.writeln("</code></pre></div>");
+	dst.put("</code></pre></div>\n");
 }
 
 string prettySectionName(string sectionName)
