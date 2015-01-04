@@ -579,7 +579,7 @@ private:
 	/**
 	 * Writes navigation breadcrumbs in HTML format to the given file.
 	 */
-	void writeBreadcrumbs(R)(R dst)
+	void writeBreadcrumbs(R)(ref R dst)
 	{
 		import std.array : join;
 		import std.conv : to;
