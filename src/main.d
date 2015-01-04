@@ -155,6 +155,8 @@ void generateDocumentation(ref const(Config) config, string[string] macros)
 		css.write(getCSS(config.cssFileName));
 		File js = File(buildPath(config.outputDirectory, "highlight.pack.js"), "w");
 		js.write(hljs);
+		File showHideJs = File(buildPath(config.outputDirectory, "show_hide.js"), "w");
+		showHideJs.write(showhidejs);
 		File index = File(buildPath(config.outputDirectory, "index.html"), "w");
 
 		auto writer = index.lockingTextWriter;
@@ -273,3 +275,4 @@ void doNothing(string, size_t, size_t, string, bool) {}
 immutable string hljs = import("highlight.pack.js");
 immutable string stylecss = import("style.css");
 immutable string searchjs = import("search.js");
+immutable string showhidejs = import("show_hide.js");

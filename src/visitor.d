@@ -111,7 +111,7 @@ class DocVisitor : ASTVisitor
 
 		auto writer = output.lockingTextWriter;
 		writer.writeHeader(moduleName, baseLength - 1);
-		writer.writeTOC(tocItems, tocAdditional);
+		writer.writeTOC(tocItems, tocAdditional, moduleName);
 		writeBreadcrumbs(writer);
 
 		prevComments.length = 1;
@@ -656,8 +656,7 @@ private:
 
 			auto writer = f.lockingTextWriter;
 			writer.writeHeader(name, baseLength);
-			writer.writeTOC(tocItems, tocAdditional);
-
+			writer.writeTOC(tocItems, tocAdditional, moduleName);
 			return tuple(f, classDocFileName);
 		}
 		else
@@ -732,6 +731,7 @@ void writeHeader(R)(ref R dst, string title, size_t depth)
 <title>%s</title>
 <base href="%s"/>
 <script src="search.js"></script>
+<script src="show_hide.js"></script>
 </head>
 <body>
 <div class="main">
@@ -744,8 +744,10 @@ void writeHeader(R)(ref R dst, string title, size_t depth)
  *     dst           = Range to write to.
  *     tocItems      = Items of the table of contents to write.
  *     tocAdditional = Optional additional content.
+ *     moduleName    = Name of the module or package documentation page of which we're
+ *                     writing the TOC for.
  */
-void writeTOC(R)(ref R dst, TocItem[] tocItems, string tocAdditional)
+void writeTOC(R)(ref R dst, TocItem[] tocItems, string tocAdditional, string moduleName = "")
 {
 	void put(string str) { dst.put(str); dst.put("\n"); }
 	put(`<div class="toc">`);
@@ -757,7 +759,7 @@ void writeTOC(R)(ref R dst, TocItem[] tocItems, string tocAdditional)
 	}
 	put(`<ul>`);
 	foreach (t; tocItems)
-		t.write(dst);
+		t.write(dst, moduleName);
 	put(`</ul>`);
 	put(`</div>`);
 }

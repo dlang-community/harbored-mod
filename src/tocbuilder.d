@@ -12,35 +12,62 @@ struct TocItem
 	string url;
 	TocItem[] items;
 
-	void write(R)(ref R dst)
+	/** Write the TOC item.
+	 *
+	 * Params:
+	 *
+	 * dst        = Range to write to.
+	 * moduleName = Name of the module/package in the documentation page of which
+	 *              we're writing this TOC, if we're writing module/package documentation.
+	 */
+	void write(R)(ref R dst, string moduleName = "")
 	{
 		// Shortcut to write text followed by newline
 		void put(string str) { dst.put(str); dst.put("\n"); }
 
 		import std.string: split;
-		bool isPackage = items.length != 0;
+		auto nameParts   = name.split(".");
+		const moduleParts = moduleName.split(".");
+
+		const isPackage  = items.length != 0;
+		// Is this TOC item the module/package the current documentation page
+		// documents?
+		const isSelected = nameParts == moduleParts;
+
 		dst.put(`<li>`);
-		if (isPackage)
+		string[] cssClasses = (isPackage  ? ["package"]  : []) ~
+		                      (isSelected ? ["selected"] : []);
+		
+		if (!cssClasses.empty)
 		{
-			dst.put(`<span class="package">`);
+			const js = isPackage ? ` onclick="show_hide('%s');"`.format(name) : "";
+			dst.put(`<span class="%s"%s>`.format(cssClasses.join(" "), js));
 		}
+
 		if (url !is null)
 		{
-			auto parts = name.split(".");
-			dst.put(parts.length > 1 ?
-				`<small>%s.</small>`.format(parts[0 .. $ - 1].joiner(".")) : "");
-			dst.put(`<a href="%s">%s</a>`.format(url, parts.back));
+			dst.put(nameParts.length > 1 ?
+				`<small>%s.</small>`.format(nameParts[0 .. $ - 1].joiner(".")) : "");
+			dst.put(`<a href="%s">%s</a>`.format(url, nameParts.back));
 		}
 		else
 		{
 			dst.put(name);
 		}
-		if (isPackage)
+
+		if (!cssClasses.empty)
 		{
-			put(`</span>`);
-			put(`<ul>`);
+			put(`</span>`); 
+		}
+
+		if(isPackage)
+		{
+			const display = moduleParts.startsWith(nameParts) ?
+			                " style='display:block;'" : "";
+			
+			put(`<ul id="%s"%s>`.format(name, display));
 			foreach (item; items)
-				item.write(dst);
+				item.write(dst, moduleName);
 			// End a package's list of members
 			put(`</ul>`);
 		}
