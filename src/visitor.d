@@ -630,7 +630,7 @@ private:
 			auto f = File(config.outputDirectory.buildPath(classDocFileName), "w");
 			memberStack[i].overloadFiles[classDocFileName] = f;
 			writeHeader(f, name, baseLength);
-			writeTOC(f, tocItems, tocAdditional);
+			writeTOC(f, tocItems, tocAdditional, moduleName);
 			return tuple(f, classDocFileName);
 		}
 		else
