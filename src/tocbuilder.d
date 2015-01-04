@@ -16,24 +16,24 @@ struct TocItem
 		import std.string: split;
 		
 		bool hasChildren = items.length != 0;
-
-        auto parts = name.split(".");
-        auto moduleParts = moduleName.split(".");
-        
-        auto selected = false;
-        
-        if( moduleParts.length >= parts.length )
-            if( parts == moduleParts )
-                selected = true;
-
+		
+		auto parts = name.split(".");
+		auto moduleParts = moduleName.split(".");
+		
+		auto selected = false;
+		
+		if( moduleParts.length >= parts.length )
+		    if( parts == moduleParts )
+		        selected = true;
+		
 		output.writeln(`<li>`);
 		if (hasChildren || selected)
 		{
-            string[] selected_class;
-            if( hasChildren )
-                selected_class ~= "package";
-            if( selected )
-                selected_class ~= "selected";
+			string[] selected_class;
+			if( hasChildren )
+			    selected_class ~= "package";
+			if( selected )
+			    selected_class ~= "selected";
 			output.writefln(`<span class="%s" onclick="show_hide('%s');">`, selected_class.join(" "), name);
 		}
 		if (url !is null)
@@ -53,13 +53,13 @@ struct TocItem
 		}
 		if (hasChildren)
 		{
-            auto display = "";
-            
-            if( moduleParts.length >= parts.length )
-                if( moduleParts.startsWith( parts ) )
-                    display = " style='display:block;'";
-            
-            output.writefln( `<ul id=%s%s>`, name, display );
+			auto display = "";
+			
+			if( moduleParts.length >= parts.length )
+			    if( moduleParts.startsWith( parts ) )
+			        display = " style='display:block;'";
+			
+			output.writefln( `<ul id=%s%s>`, name, display );
 		}
 		foreach (item; items)
 			item.write(output, moduleName);
