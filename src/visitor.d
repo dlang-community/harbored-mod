@@ -109,7 +109,7 @@ class DocVisitor : ASTVisitor
 
 		File output = File(location, "w");
 
-		auto writer = appender!string();
+		auto writer = output.lockingTextWriter;
 		writer.writeHeader(moduleName, baseLength - 1);
 		writer.writeTOC(tocItems, tocAdditional);
 		writeBreadcrumbs(writer);
@@ -120,7 +120,6 @@ class DocVisitor : ASTVisitor
 			writer.readAndWriteComment(mod.moduleDeclaration.comment, config, macros,
 				prevComments, null, getUnittestDocTuple(mod.moduleDeclaration));
 
-		output.write(writer.data);
 		memberStack.length = 1;
 
 		mod.accept(this);
@@ -223,12 +222,11 @@ class DocVisitor : ASTVisitor
 
 				scope(exit) popSymbol(f);
 
-				auto writer = appender!string();
+				auto writer = f.lockingTextWriter;
 				writeBreadcrumbs(writer);
 
 				string type = writeAliasType(f, name.text, ad.type);
 				string summary = writer.readAndWriteComment(ad.comment, config, macros, prevComments);
-				f.write(writer.data);
 				memberStack[$ - 2].aliases ~= Item(link, name.text, summary, type);
 			}
 		}
@@ -240,12 +238,11 @@ class DocVisitor : ASTVisitor
 
 			scope(exit) popSymbol(f);
 
-			auto writer = appender!string();
+			auto writer = f.lockingTextWriter;
 			writeBreadcrumbs(writer);
 
 			string type = writeAliasType(f, initializer.name.text, initializer.type);
 			string summary = writer.readAndWriteComment(ad.comment, config, macros, prevComments);
-			f.write(writer.data);
 			memberStack[$ - 2].aliases ~= Item(link, initializer.name.text, summary, type);
 		}
 	}
@@ -263,13 +260,12 @@ class DocVisitor : ASTVisitor
 
 			scope(exit) popSymbol(f);
 
-			auto writer = appender!string();
+			auto writer = f.lockingTextWriter;
 			writeBreadcrumbs(writer);
 
 			string summary = writer.readAndWriteComment(
 				dec.comment is null ? vd.comment : dec.comment, config, macros,
 				prevComments);
-			f.write(writer.data);
 			memberStack[$ - 2].variables ~= Item(link, dec.name.text, summary, formatNode(vd.type));
 		}
 		if (vd.comment !is null && vd.autoDeclaration !is null) foreach (ident; vd.autoDeclaration.identifiers)
@@ -280,11 +276,10 @@ class DocVisitor : ASTVisitor
 
 			scope(exit) popSymbol(f);
 
-			auto writer = appender!string();
+			auto writer = f.lockingTextWriter;
 			writeBreadcrumbs(writer);
 
 			string summary = writer.readAndWriteComment(vd.comment, config, macros, prevComments);
-			f.write(writer.data);
 			// TODO this was hastily updated to get harbored-mod to compile
 			// after a libdparse update. Revisit and validate/fix any errors.
 			string[] storageClasses;
@@ -390,16 +385,14 @@ private:
 		File f = fileWithLink[0];
 		string link = fileWithLink[1];
 
+		auto writer = f.lockingTextWriter();
 		if (first)
 		{
-			auto writer = appender!string();
 			writeBreadcrumbs(writer);
-			f.write(writer.data);
 		}
 		else
 			f.writeln("<hr/>");
 		{
-			auto writer = f.lockingTextWriter();
 			writer.put(`<pre><code>`);
 			auto formatter = new HarboredFormatter!(File.LockingTextWriter)(writer);
 			scope(exit) formatter.sink = File.LockingTextWriter.init;
@@ -407,10 +400,8 @@ private:
 			mixin(formattingCode);
 			writer.put("\n</code></pre>");
 		}
-		auto writer = appender!string();
 		string summary = writer.readAndWriteComment(ad.comment, config, macros, prevComments,
 			null, getUnittestDocTuple(ad));
-		f.write(writer.data);
 		mixin(`memberStack[$ - 2].` ~ name ~ ` ~= Item(link, ad.name.text, summary);`);
 		prevComments.length = prevComments.length + 1;
 		ad.accept(this);
@@ -451,9 +442,7 @@ private:
 		// Stuff above the function doc
 		if (first)
 		{
-			auto strWriter = appender!string();
-			writeBreadcrumbs(strWriter);
-			f.write(strWriter.data);
+			writeBreadcrumbs(writer);
 		}
 		else
 			writer.put("<hr/>");
@@ -665,10 +654,9 @@ private:
 			auto f = File(config.outputDirectory.buildPath(classDocFileName), "w");
 			memberStack[i].overloadFiles[classDocFileName] = f;
 
-			auto writer = appender!string();
+			auto writer = f.lockingTextWriter;
 			writer.writeHeader(name, baseLength);
 			writer.writeTOC(tocItems, tocAdditional);
-			f.write(writer.data);
 
 			return tuple(f, classDocFileName);
 		}
