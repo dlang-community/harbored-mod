@@ -161,6 +161,8 @@ void generateDocumentation(ref const(Config) config, string[string] macros)
 		css.write(getCSS(config.cssFileName));
 		File js = File(buildPath(config.outputDirectory, "highlight.pack.js"), "w");
 		js.write(hljs);
+		File show_hide_js = File(buildPath(config.outputDirectory, "show_hide.js"), "w");
+		show_hide_js.write(show_hidejs);
 		File index = File(buildPath(config.outputDirectory, "index.html"), "w");
 		index.writeHeader("Index", 0);
 		index.writeTOC(tocItems, tocAdditional);
@@ -277,3 +279,4 @@ void doNothing(string, size_t, size_t, string, bool) {}
 immutable string hljs = import("highlight.pack.js");
 immutable string stylecss = import("style.css");
 immutable string searchjs = import("search.js");
+immutable string show_hidejs = import("show_hide.js");

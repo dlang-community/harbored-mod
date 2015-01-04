@@ -11,7 +11,7 @@ struct TocItem
 	string url;
 	TocItem[] items;
 
-	void write(File output)
+	void write(File output, string moduleName = "")
 	{
 		import std.string: split;
 		
@@ -19,7 +19,7 @@ struct TocItem
 		output.writeln(`<li>`);
 		if (hasChildren)
 		{
-			output.writeln(`<span class="package">`);
+			output.writefln(`<span class="package" onclick="show_hide('%s');">`, name);
 		}
 		if (url !is null)
 		{
@@ -39,10 +39,21 @@ struct TocItem
 		}
 		if (hasChildren)
 		{
-			output.writeln(`<ul>`);
+			auto parts = name.split(".");
+            auto module_parts = moduleName.split(".");
+
+            auto display = "";
+
+            if( module_parts.length >= parts.length )
+            {
+                if( parts == module_parts[ 0 .. parts.length ] )
+                    display = " style='display:block;'";
+            }
+
+			output.writefln( `<ul id=%s%s>`, name, display );
 		}
 		foreach (item; items)
-			item.write(output);
+			item.write(output, moduleName);
 		if (hasChildren)
 		{
 			output.writeln(`</ul>`);

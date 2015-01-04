@@ -108,7 +108,7 @@ class DocVisitor : ASTVisitor
 
 		File output = File(location, "w");
 		writeHeader(output, moduleName, baseLength - 1);
-		writeTOC(output, tocItems, tocAdditional);
+		writeTOC(output, tocItems, tocAdditional, moduleName);
 		writeBreadcrumbs(output);
 
 		prevComments.length = 1;
@@ -702,6 +702,7 @@ void writeHeader(File f, string title, size_t depth)
 		f.write("../");
 	f.write(`"/>
 <script src="search.js"></script>
+<script src="show_hide.js"></script>
 </head>
 <body>
 <div class="main">
@@ -715,7 +716,7 @@ void writeHeader(File f, string title, size_t depth)
  *     tocItems      = Items of the table of contents to write.
  *     tocAdditional = Optional additional content.
  */
-void writeTOC(File f, TocItem[] tocItems, string tocAdditional)
+void writeTOC(File f, TocItem[] tocItems, string tocAdditional, string moduleName = "")
 {
 	f.writeln(`<div class="toc">`);
 	if(tocAdditional !is null)
@@ -726,7 +727,7 @@ void writeTOC(File f, TocItem[] tocItems, string tocAdditional)
 	}
 	f.writeln(`<ul>`);
 	foreach (t; tocItems)
-		t.write(f);
+		t.write(f, moduleName);
 	f.writeln(`</ul>`);
 	f.writeln(`</div>`);
 }

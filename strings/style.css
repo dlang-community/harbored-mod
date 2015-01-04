@@ -148,6 +148,7 @@ div.toc ul {
 }
 
 div.toc ul ul {
+    display: none;
 	list-style-type: none;
 	padding-left: 0.5em;
 }
@@ -172,6 +173,7 @@ div.toc small {
 }
 
 div.toc span.package {
+    cursor: pointer;
 	line-height: 1.8em;
 	font-weight: bold;
 	border: 1px solid rgba(0, 0, 0, 0.12);
