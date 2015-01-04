@@ -19,9 +19,9 @@ struct TocItem
 
         auto parts = name.split(".");
         auto moduleParts = moduleName.split(".");
-
+        
         auto selected = false;
-
+        
         if( moduleParts.length >= parts.length )
             if( parts == moduleParts )
                 selected = true;
@@ -54,12 +54,12 @@ struct TocItem
 		if (hasChildren)
 		{
             auto display = "";
-
+            
             if( moduleParts.length >= parts.length )
                 if( moduleParts.startsWith( parts ) )
                     display = " style='display:block;'";
-
-			output.writefln( `<ul id=%s%s>`, name, display );
+            
+            output.writefln( `<ul id=%s%s>`, name, display );
 		}
 		foreach (item; items)
 			item.write(output, moduleName);
