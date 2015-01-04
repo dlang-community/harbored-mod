@@ -56,7 +56,7 @@ struct TocItem
             auto display = "";
 
             if( module_parts.length >= parts.length )
-                if( parts == module_parts[ 0 .. parts.length ] )
+                if( module_parts.startsWith( parts ) )
                     display = " style='display:block;'";
 
 			output.writefln( `<ul id=%s%s>`, name, display );
