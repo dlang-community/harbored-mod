@@ -697,8 +697,18 @@ private:
 	 */
 	size_t baseLength;
 	string moduleFileBase;
+	/** Namespace stack of the current symbol,
+	 *
+	 * E.g. ["package", "subpackage", "module", "Class", "member"]
+	 */
 	string[] stack;
 	string[string] macros;
+	/** Every item of this stack corresponds to a parent module/class/etc of the
+	 * current symbol, but not package.
+	 *
+	 * Each Members struct is used to accumulate all members of that module/class/etc
+	 * so the list of all members can be generated.
+	 */
 	Members[] memberStack;
 	File searchIndex;
 	TestRange[][size_t] unitTestMapping;
@@ -786,15 +796,17 @@ void writeBreadcrumbs(R)(R dst, string heading)
 
 /**
  * Writes a doc comment to the given file and returns the summary text.
+ *
  * Params:
- *     f = The file to write the comment to
- *     comment = The comment to write
- *     macros = Macro definitions used in processing the comment
+ *     f            = The file to write the comment to
+ *     comment      = The comment to write
+ *     config       = hmod configuration
+ *     macros       = Macro definitions used in processing the comment
  *     prevComments = Previously encountered comments. This is used for handling
- *         "ditto" comments. May be null.
- *     functionBody = A function body used for writing contract information. May
- *         be null.
- *     testdocs = Pairs of unittest bodies and unittest doc comments. May be null.
+ *                    "ditto" comments. May be null.
+ *     functionBody = A function body used for writing contract information. May be null.
+ *     testdocs     = Pairs of unittest bodies and unittest doc comments. May be null.
+ *
  * Returns: the summary from the given comment
  */
 string readAndWriteComment(File f, string comment, const(Config)* config,
@@ -811,15 +823,8 @@ string readAndWriteComment(File f, string comment, const(Config)* config,
 	immutable ditto = c.isDitto;
 
 	// Run sections through markdown.
-	foreach(ref section; c.sections) {
-		// Do not run code examples through markdown.
-		//
-		// We could also check for section.name == "Examples" but code blocks can
-		// be even outside examples. Alternatively, we could look for *multi-line*
-		// <pre>/<code> blocks, or, before parsing comments, for "---" pairs.
-		//
-		// Alternatively, dmarkdown could be changed to ignore <pre>/<code>
-		// blocks.
+	foreach(ref section; c.sections) 
+	{
 		import dmarkdown;
 		// Ensure param descriptions run through Markdown
 		if(section.name == "Params")
@@ -829,6 +834,14 @@ string readAndWriteComment(File f, string comment, const(Config)* config,
 				kv[1] = filterMarkdown(kv[1], MarkdownFlags.alternateSubheaders);
 			}
 		}
+		// Do not run code examples through markdown.
+		//
+		// We could also check for section.name == "Examples" but code blocks can
+		// be even outside examples. Alternatively, we could look for *multi-line*
+		// <pre>/<code> blocks, or, before parsing comments, for "---" pairs.
+		//
+		// Alternatively, dmarkdown could be changed to ignore <pre>/<code>
+		// blocks.
 		if(!section.content.canFind("<pre><code>")) {
 			section.content = filterMarkdown(section.content,
 			                                 MarkdownFlags.alternateSubheaders);
