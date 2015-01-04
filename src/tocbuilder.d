@@ -18,12 +18,12 @@ struct TocItem
 		bool hasChildren = items.length != 0;
 
         auto parts = name.split(".");
-        auto module_parts = moduleName.split(".");
+        auto moduleParts = moduleName.split(".");
 
         auto selected = false;
 
-        if( module_parts.length >= parts.length )
-            if( parts == module_parts )
+        if( moduleParts.length >= parts.length )
+            if( parts == moduleParts )
                 selected = true;
 
 		output.writeln(`<li>`);
@@ -55,8 +55,8 @@ struct TocItem
 		{
             auto display = "";
 
-            if( module_parts.length >= parts.length )
-                if( module_parts.startsWith( parts ) )
+            if( moduleParts.length >= parts.length )
+                if( moduleParts.startsWith( parts ) )
                     display = " style='display:block;'";
 
 			output.writefln( `<ul id=%s%s>`, name, display );
