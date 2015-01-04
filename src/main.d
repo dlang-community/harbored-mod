@@ -144,16 +144,9 @@ void generateDocumentation(ref const(Config) config, string[string] macros)
 	                     ? null : readText(config.tocAdditionalFileName);
 	if (config.tocAdditionalFileName !is null)
 	{
-		// Hack so we don't have to pass all readAndWriteComments params to
-		// writeTOC. TODO rewrite readAndWriteComments and other writing
-		// functions so they generate strings and refactor them.
-		const tempName = ".hmod-additional-toc-temp";
-		auto temp = File(tempName, "w");
-		auto writer = temp.lockingTextWriter;
-		readAndWriteComment(writer, tocAdditional, &config, macros);
-		temp.close();
-		tocAdditional = readText(tempName);
-		std.file.remove(temp.name);
+		auto writer = appender!string();
+		writer.readAndWriteComment(tocAdditional, &config, macros);
+		tocAdditional = writer.data;
 	}
 
 	// Write index.html and style.css
