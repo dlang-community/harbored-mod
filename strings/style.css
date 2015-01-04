@@ -153,7 +153,6 @@ div.toc ul {
 }
 
 div.toc ul ul {
-    display: none;
 	list-style-type: none;
 	padding-left: 0.5em;
 }
