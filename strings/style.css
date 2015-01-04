@@ -141,6 +141,11 @@ div.toc .toc-additional p, div.toc .toc-additional ul {
 	margin: 0.4em 0;
 }
 
+div.toc .selected {
+    border-radius: 3px;
+	background-color: #DAAF07 !important;
+}
+
 div.toc ul {
 	list-style-type: none;
 	padding-left: 0;

@@ -16,14 +16,28 @@ struct TocItem
 		import std.string: split;
 		
 		bool hasChildren = items.length != 0;
+
+        auto parts = name.split(".");
+        auto module_parts = moduleName.split(".");
+
+        auto selected = false;
+
+        if( module_parts.length >= parts.length )
+            if( parts == module_parts )
+                selected = true;
+
 		output.writeln(`<li>`);
-		if (hasChildren)
+		if (hasChildren || selected)
 		{
-			output.writefln(`<span class="package" onclick="show_hide('%s');">`, name);
+            string[] selected_class;
+            if( hasChildren )
+                selected_class ~= "package";
+            if( selected )
+                selected_class ~= "selected";
+			output.writefln(`<span class="%s" onclick="show_hide('%s');">`, selected_class.join(" "), name);
 		}
 		if (url !is null)
 		{
-			auto parts = name.split(".");
 			output.writeln(
 				parts.length > 1 ?
 				`<small>` ~ parts[0 .. $ - 1].join(".") ~ `.</small>` : "",
@@ -39,16 +53,11 @@ struct TocItem
 		}
 		if (hasChildren)
 		{
-			auto parts = name.split(".");
-            auto module_parts = moduleName.split(".");
-
             auto display = "";
 
             if( module_parts.length >= parts.length )
-            {
                 if( parts == module_parts[ 0 .. parts.length ] )
                     display = " style='display:block;'";
-            }
 
 			output.writefln( `<ul id=%s%s>`, name, display );
 		}
