@@ -113,14 +113,14 @@ class DocVisitor : ASTVisitor
 		writer.writeHeader(moduleName, baseLength - 1);
 		writer.writeTOC(tocItems, tocAdditional);
 		writeBreadcrumbs(writer);
-		output.write(writer.data);
 
 		prevComments.length = 1;
 
 		if (mod.moduleDeclaration.comment !is null)
-			readAndWriteComment(output, mod.moduleDeclaration.comment, config, macros,
+			writer.readAndWriteComment(mod.moduleDeclaration.comment, config, macros,
 				prevComments, null, getUnittestDocTuple(mod.moduleDeclaration));
 
+		output.write(writer.data);
 		memberStack.length = 1;
 
 		mod.accept(this);
@@ -148,7 +148,9 @@ class DocVisitor : ASTVisitor
 	{
 		if (member.comment is null)
 			return;
-		string summary = readAndWriteComment(File.init, member.comment, config, macros,
+		auto dummy = appender!string();
+		// No interest in detailed docs for an enum member.
+		string summary = readAndWriteComment(dummy, member.comment, config, macros,
 			prevComments, null, getUnittestDocTuple(member));
 		memberStack[$ - 1].values ~= Item("#", member.name.text, summary);
 	}
@@ -223,10 +225,10 @@ class DocVisitor : ASTVisitor
 
 				auto writer = appender!string();
 				writeBreadcrumbs(writer);
-				f.write(writer.data);
 
 				string type = writeAliasType(f, name.text, ad.type);
-				string summary = readAndWriteComment(f, ad.comment, config, macros, prevComments);
+				string summary = writer.readAndWriteComment(ad.comment, config, macros, prevComments);
+				f.write(writer.data);
 				memberStack[$ - 2].aliases ~= Item(link, name.text, summary, type);
 			}
 		}
@@ -240,10 +242,10 @@ class DocVisitor : ASTVisitor
 
 			auto writer = appender!string();
 			writeBreadcrumbs(writer);
-			f.write(writer.data);
 
 			string type = writeAliasType(f, initializer.name.text, initializer.type);
-			string summary = readAndWriteComment(f, ad.comment, config, macros, prevComments);
+			string summary = writer.readAndWriteComment(ad.comment, config, macros, prevComments);
+			f.write(writer.data);
 			memberStack[$ - 2].aliases ~= Item(link, initializer.name.text, summary, type);
 		}
 	}
@@ -263,11 +265,11 @@ class DocVisitor : ASTVisitor
 
 			auto writer = appender!string();
 			writeBreadcrumbs(writer);
-			f.write(writer.data);
 
-			string summary = readAndWriteComment(f,
+			string summary = writer.readAndWriteComment(
 				dec.comment is null ? vd.comment : dec.comment, config, macros,
 				prevComments);
+			f.write(writer.data);
 			memberStack[$ - 2].variables ~= Item(link, dec.name.text, summary, formatNode(vd.type));
 		}
 		if (vd.comment !is null && vd.autoDeclaration !is null) foreach (ident; vd.autoDeclaration.identifiers)
@@ -280,9 +282,9 @@ class DocVisitor : ASTVisitor
 
 			auto writer = appender!string();
 			writeBreadcrumbs(writer);
-			f.write(writer.data);
 
-			string summary = readAndWriteComment(f, vd.comment, config, macros, prevComments);
+			string summary = writer.readAndWriteComment(vd.comment, config, macros, prevComments);
+			f.write(writer.data);
 			// TODO this was hastily updated to get harbored-mod to compile
 			// after a libdparse update. Revisit and validate/fix any errors.
 			string[] storageClasses;
@@ -405,8 +407,10 @@ private:
 			mixin(formattingCode);
 			writer.put("\n</code></pre>");
 		}
-		string summary = readAndWriteComment(f, ad.comment, config, macros, prevComments,
+		auto writer = appender!string();
+		string summary = writer.readAndWriteComment(ad.comment, config, macros, prevComments,
 			null, getUnittestDocTuple(ad));
+		f.write(writer.data);
 		mixin(`memberStack[$ - 2].` ~ name ~ ` ~= Item(link, ad.name.text, summary);`);
 		prevComments.length = prevComments.length + 1;
 		ad.accept(this);
@@ -494,7 +498,7 @@ private:
 		writer.put("\n</code></pre>");
 		// Function signature end//
 
-		string summary = readAndWriteComment(f, fn.comment, config, macros,
+		string summary = writer.readAndWriteComment(fn.comment, config, macros,
 			prevComments, fn.functionBody, getUnittestDocTuple(fn));
 		string fdName;
 		static if (__traits(hasMember, typeof(fn), "name"))
@@ -798,7 +802,7 @@ void writeBreadcrumbs(R)(R dst, string heading)
  * Writes a doc comment to the given file and returns the summary text.
  *
  * Params:
- *     f            = The file to write the comment to
+ *     dst          = Range to write the comment to.
  *     comment      = The comment to write
  *     config       = hmod configuration
  *     macros       = Macro definitions used in processing the comment
@@ -809,7 +813,7 @@ void writeBreadcrumbs(R)(R dst, string heading)
  *
  * Returns: the summary from the given comment
  */
-string readAndWriteComment(File f, string comment, const(Config)* config,
+string readAndWriteComment(R)(ref R dst, string comment, const(Config)* config,
 	string[string] macros, Comment[] prevComments = null,
 	const FunctionBody functionBody = null,
 	Tuple!(string, string)[] testDocs = null)
@@ -857,13 +861,10 @@ string readAndWriteComment(File f, string comment, const(Config)* config,
 	}
 	
 	
-	if (f != File.init)
-	{
-		auto writer = appender!string();
-		writeComment(writer, c, functionBody);
-		f.write(writer.data);
-	}
+	writeComment(dst, c, functionBody);
 
+	// Shortcut to write text followed by newline
+	void put(string str) { dst.put(str); dst.put("\n"); }
 	// Find summary and return value info
 	string rVal = "";
 	if (c.sections.length && c.sections[0].name == "Summary")
@@ -876,19 +877,17 @@ string readAndWriteComment(File f, string comment, const(Config)* config,
 				rVal = "Returns: " ~ section.content;
 		}
 	}
-	if (f != File.init && testDocs !is null) foreach (doc; testDocs)
+	if (testDocs !is null) foreach (doc; testDocs)
 	{
 //		writeln("Writing a unittest doc comment");
 		import std.string : outdent;
-		f.writeln(`<div class="section"><h2>Example</h2>`);
+		put(`<div class="section"><h2>Example</h2>`);
 		auto docApp = appender!string();
 		doc[1].unDecorateComment(docApp);
 		Comment dc = parseComment(docApp.data, macros);
-		auto writer = appender!string();
-		writer.writeComment(dc);
-		f.write(writer.data);
-		f.writeln(`<pre><code>`, outdent(doc[0]), `</code></pre>`);
-		f.writeln(`</div>`);
+		dst.writeComment(dc);
+		put(`<pre><code>%s</code></pre>`.format(outdent(doc[0])));
+		put(`</div>`);
 	}
 	return rVal;
 }

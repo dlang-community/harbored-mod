@@ -149,7 +149,8 @@ void generateDocumentation(ref const(Config) config, string[string] macros)
 		// functions so they generate strings and refactor them.
 		const tempName = ".hmod-additional-toc-temp";
 		auto temp = File(tempName, "w");
-		readAndWriteComment(temp, tocAdditional, &config, macros);
+		auto writer = temp.lockingTextWriter;
+		readAndWriteComment(writer, tocAdditional, &config, macros);
 		temp.close();
 		tocAdditional = readText(tempName);
 		std.file.remove(temp.name);
@@ -163,18 +164,17 @@ void generateDocumentation(ref const(Config) config, string[string] macros)
 		js.write(hljs);
 		File index = File(buildPath(config.outputDirectory, "index.html"), "w");
 
-		auto writer = appender!string();
+		auto writer = index.lockingTextWriter;
 		writer.writeHeader("Index", 0);
 		writer.writeTOC(tocItems, tocAdditional);
 		writer.writeBreadcrumbs("Main Page");
-		index.write(writer.data);
 
 		if (config.indexFileName !is null)
 		{
 			File indexFile = File(config.indexFileName);
 			ubyte[] indexBytes = new ubyte[cast(uint) indexFile.size];
 			indexFile.rawRead(indexBytes);
-			readAndWriteComment(index, cast(string)indexBytes, &config, macros);
+			writer.readAndWriteComment(cast(string)indexBytes, &config, macros);
 		}
 		index.writeln(`
 </div>
