@@ -858,7 +858,11 @@ string readAndWriteComment(File f, string comment, const(Config)* config,
 	
 	
 	if (f != File.init)
-		writeComment(f, c, functionBody);
+	{
+		auto writer = appender!string();
+		writeComment(writer, c, functionBody);
+		f.write(writer.data);
+	}
 
 	// Find summary and return value info
 	string rVal = "";
@@ -880,7 +884,9 @@ string readAndWriteComment(File f, string comment, const(Config)* config,
 		auto docApp = appender!string();
 		doc[1].unDecorateComment(docApp);
 		Comment dc = parseComment(docApp.data, macros);
-		writeComment(f, dc);
+		auto writer = appender!string();
+		writer.writeComment(dc);
+		f.write(writer.data);
 		f.writeln(`<pre><code>`, outdent(doc[0]), `</code></pre>`);
 		f.writeln(`</div>`);
 	}
@@ -889,24 +895,24 @@ string readAndWriteComment(File f, string comment, const(Config)* config,
 
 private:
 
-void writeComment(File f, Comment comment, const FunctionBody functionBody = null)
+void writeComment(R)(ref R dst, Comment comment, const FunctionBody functionBody = null)
 {
 //		writeln("writeComment: ", comment.sections.length, " sections.");
+	// Shortcut to write text followed by newline
+	void put(string str) { dst.put(str); dst.put("\n"); }
 
 	size_t i;
 	for (i = 0; i < comment.sections.length && (comment.sections[i].name == "Summary"
 		|| comment.sections[i].name == "description"); i++)
 	{
-		f.writeln(`<div class="section">`);
-		f.writeln(comment.sections[i].content);
-		f.writeln(`</div>`);
+		put(`<div class="section">`);
+		put(comment.sections[i].content);
+		put(`</div>`);
 	}
 
 	if (functionBody !is null)
 	{
-		auto writer = appender!string();
-		writeContracts(writer, functionBody.inStatement, functionBody.outStatement);
-		f.write(writer.data);
+		writeContracts(dst, functionBody.inStatement, functionBody.outStatement);
 	}
 
 
@@ -923,35 +929,35 @@ void writeComment(File f, Comment comment, const FunctionBody functionBody = nul
 		if(isNote)
 			extraClasses ~= " note";
 
-		f.writeln(`<div class="section`, extraClasses, `">`);
+		put(`<div class="section%s">`.format(extraClasses));
 		if (section.name != "Summary" && section.name != "Description")
 		{
-			f.write("<h2>");
-			f.write(prettySectionName(section.name));
-			f.writeln("</h2>");
+			dst.put("<h2>");
+			dst.put(prettySectionName(section.name));
+			put("</h2>");
 		}
 		if(isNote)
-			f.writeln(`<div class="note-content">`);
+			put(`<div class="note-content">`);
 		if (section.name == "Params")
 		{
-			f.writeln(`<table class="params">`);
+			put(`<table class="params">`);
 			foreach (kv; section.mapping)
 			{
-				f.write(`<tr class="param"><td class="paramName">`);
-				f.write(kv[0]);
-				f.write(`</td><td class="paramDoc">`);
-				f.write(kv[1]);
-				f.writeln("</td></tr>");
+				dst.put(`<tr class="param"><td class="paramName">`);
+				dst.put(kv[0]);
+				dst.put(`</td><td class="paramDoc">`);
+				dst.put(kv[1]);
+				put("</td></tr>");
 			}
-			f.write("</table>");
+			dst.put("</table>");
 		}
 		else
 		{
-			f.writeln(section.content);
+			put(section.content);
 		}
 		if(isNote)
-			f.writeln(`</div>`);
-		f.writeln(`</div>`);
+			put(`</div>`);
+		put(`</div>`);
 	}
 
 	// Merge any see also sections into one, and draw it with different style than
@@ -960,17 +966,17 @@ void writeComment(File f, Comment comment, const FunctionBody functionBody = nul
 		auto seealsos = comment.sections.filter!(s => seealsoNames.canFind(s.name));
 		if(!seealsos.empty)
 		{
-			f.writeln(`<div class="section seealso">`);
-			f.write("<h2>");
-			f.write(prettySectionName(seealsos.front.name));
-			f.writeln("</h2>");
-			f.writeln(`<div class="seealso-content">`);
+			put(`<div class="section seealso">`);
+			dst.put("<h2>");
+			dst.put(prettySectionName(seealsos.front.name));
+			put("</h2>");
+			put(`<div class="seealso-content">`);
 			foreach(section; seealsos)
 			{
-				f.writeln(section.content);
+				put(section.content);
 			}
-			f.writeln(`</div>`);
-			f.writeln(`</div>`);
+			put(`</div>`);
+			put(`</div>`);
 		}
 	}
 }
