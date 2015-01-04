@@ -112,9 +112,8 @@ class DocVisitor : ASTVisitor
 		auto writer = appender!string();
 		writer.writeHeader(moduleName, baseLength - 1);
 		writer.writeTOC(tocItems, tocAdditional);
+		writeBreadcrumbs(writer);
 		output.write(writer.data);
-
-		writeBreadcrumbs(output);
 
 		prevComments.length = 1;
 
@@ -221,7 +220,11 @@ class DocVisitor : ASTVisitor
 				string link = fileWithLink[1];
 
 				scope(exit) popSymbol(f);
-				writeBreadcrumbs(f);
+
+				auto writer = appender!string();
+				writeBreadcrumbs(writer);
+				f.write(writer.data);
+
 				string type = writeAliasType(f, name.text, ad.type);
 				string summary = readAndWriteComment(f, ad.comment, config, macros, prevComments);
 				memberStack[$ - 2].aliases ~= Item(link, name.text, summary, type);
@@ -234,7 +237,11 @@ class DocVisitor : ASTVisitor
 			string link = fileWithLink[1];
 
 			scope(exit) popSymbol(f);
-			writeBreadcrumbs(f);
+
+			auto writer = appender!string();
+			writeBreadcrumbs(writer);
+			f.write(writer.data);
+
 			string type = writeAliasType(f, initializer.name.text, initializer.type);
 			string summary = readAndWriteComment(f, ad.comment, config, macros, prevComments);
 			memberStack[$ - 2].aliases ~= Item(link, initializer.name.text, summary, type);
@@ -253,7 +260,11 @@ class DocVisitor : ASTVisitor
 			string link = fileWithLink[1];
 
 			scope(exit) popSymbol(f);
-			writeBreadcrumbs(f);
+
+			auto writer = appender!string();
+			writeBreadcrumbs(writer);
+			f.write(writer.data);
+
 			string summary = readAndWriteComment(f,
 				dec.comment is null ? vd.comment : dec.comment, config, macros,
 				prevComments);
@@ -266,7 +277,11 @@ class DocVisitor : ASTVisitor
 			string link = fileWithLink[1];
 
 			scope(exit) popSymbol(f);
-			writeBreadcrumbs(f);
+
+			auto writer = appender!string();
+			writeBreadcrumbs(writer);
+			f.write(writer.data);
+
 			string summary = readAndWriteComment(f, vd.comment, config, macros, prevComments);
 			// TODO this was hastily updated to get harbored-mod to compile
 			// after a libdparse update. Revisit and validate/fix any errors.
@@ -374,7 +389,11 @@ private:
 		string link = fileWithLink[1];
 
 		if (first)
-			writeBreadcrumbs(f);
+		{
+			auto writer = appender!string();
+			writeBreadcrumbs(writer);
+			f.write(writer.data);
+		}
 		else
 			f.writeln("<hr/>");
 		{
@@ -427,7 +446,11 @@ private:
 		auto writer = f.lockingTextWriter();
 		// Stuff above the function doc
 		if (first)
-			writeBreadcrumbs(f);
+		{
+			auto strWriter = appender!string();
+			writeBreadcrumbs(strWriter);
+			f.write(strWriter.data);
+		}
 		else
 			writer.put("<hr/>");
 
@@ -556,7 +579,7 @@ private:
 	/**
 	 * Writes navigation breadcrumbs in HTML format to the given file.
 	 */
-	void writeBreadcrumbs(File f)
+	void writeBreadcrumbs(R)(R dst)
 	{
 		import std.array : join;
 		import std.conv : to;
@@ -566,9 +589,7 @@ private:
 		string heading;
 		scope(exit) 
 		{
-			auto writer = appender!string();
-			.writeBreadcrumbs(writer, heading);
-			f.write(writer.data);
+			.writeBreadcrumbs(dst, heading);
 		}
 
 		assert(baseLength <= stack.length, "stack shallower than the current module?");
@@ -586,7 +607,7 @@ private:
 			// Module link if the module is a parent of the current page.
 			if(i + 1 < stack.length)
 			{
-				heading  ~= `<a href=%s>%s</a>.`.format(link(), stack[i]);
+				heading ~= `<a href=%s>%s</a>.`.format(link(), stack[i]);
 				++i;
 			}
 			// Just the module name, not a link, if we're at the module page.
