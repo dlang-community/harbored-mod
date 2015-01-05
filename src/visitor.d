@@ -36,22 +36,17 @@ class DocVisitor(Writer) : ASTVisitor
 	 *     unitTestMapping = The mapping of declaration addresses to their
 	 *         documentation unittests
 	 *     fileBytes = The source code of the module as a byte array.
-	 *     tocItems = Items of the table of contents to write into each
-	 *                documentation file.
-	 *     tocAdditional = Additional content for the table of contents sidebar.
 	 *     writer = Handles writing generated files.
 	 */
 	this(ref const Config config, string[string] macros, File searchIndex,
 		TestRange[][size_t] unitTestMapping, const(ubyte[]) fileBytes,
-		TocItem[] tocItems, string tocAdditional, Writer writer)
+		Writer writer)
 	{
 		this.macros = macros;
 		this.config = &config;
 		this.searchIndex = searchIndex;
 		this.unitTestMapping = unitTestMapping;
 		this.fileBytes = fileBytes;
-		this.tocItems = tocItems;
-		this.tocAdditional = tocAdditional;
 		this.writer = writer;
 	}
 
@@ -707,8 +702,6 @@ private:
 	File searchIndex;
 	TestRange[][size_t] unitTestMapping;
 	const(ubyte[]) fileBytes;
-	TocItem[] tocItems;
-	string tocAdditional;
 	const(Config)* config;
 	Writer writer;
 }

@@ -232,7 +232,7 @@ void writeDocumentation(ref const Config config, string path, File search, TocIt
 	
 	auto htmlWriter  = new HTMLWriter(config, macros, search, tocItems, tocAdditional);
 	auto visitor = new DocVisitor!HTMLWriter(config, macros, search,
-		unitTestMapping, fileBytes, tocItems, tocAdditional, htmlWriter);
+		unitTestMapping, fileBytes, htmlWriter);
 	visitor.visit(m);
 }
 
@@ -252,7 +252,7 @@ void getDocumentationLink(ref const Config config, string modulePath,
 	Module m = parseModule(tokens, modulePath, null, &doNothing);
 	
 	auto visitor = new DocVisitor!HTMLWriter(config, null, File.init, null,
-		fileBytes, null, null, null);
+		fileBytes, null);
 	visitor.moduleInitLocation(m);
 	moduleName = visitor.moduleName;
 	link = visitor.link;
