@@ -44,6 +44,30 @@ class HTMLWriter
 		this.tocAdditional = tocAdditional;
 	}
 
+	/** Writes the table of contents to provided range.
+	 *
+	 * Params:
+	 *
+	 * dst        = Range to write to.
+	 * moduleName = Name of the module or package documentation page of which we're
+	 *              writing the TOC for.
+	 */
+	void writeTOC(R)(ref R dst, string moduleName = "")
+	{
+		void put(string str) { dst.put(str); dst.put("\n"); }
+		put(`<div class="toc">`);
+		if(tocAdditional !is null)
+		{
+			put(`<div class="toc-additional">`);
+			put(tocAdditional);
+			put(`</div>`);
+		}
+		put(`<ul>`);
+		foreach (t; tocItems)
+			t.write(dst, moduleName);
+		put(`</ul>`);
+		put(`</div>`);
+	}
 private:
 	const(Config)* config;
 	string[string] macros;

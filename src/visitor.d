@@ -112,15 +112,15 @@ class DocVisitor(Writer) : ASTVisitor
 
 		File output = File(location, "w");
 
-		auto writer = output.lockingTextWriter;
-		writer.writeHeader(moduleName, baseLength - 1);
-		writer.writeTOC(tocItems, tocAdditional, moduleName);
-		writeBreadcrumbs(writer);
+		auto fileWriter = output.lockingTextWriter;
+		fileWriter.writeHeader(moduleName, baseLength - 1);
+		writer.writeTOC(fileWriter, moduleName);
+		writeBreadcrumbs(fileWriter);
 
 		prevComments.length = 1;
 
 		if (mod.moduleDeclaration.comment !is null)
-			writer.readAndWriteComment(mod.moduleDeclaration.comment, config, macros,
+			fileWriter.readAndWriteComment(mod.moduleDeclaration.comment, config, macros,
 				prevComments, null, getUnittestDocTuple(mod.moduleDeclaration));
 
 		memberStack.length = 1;
@@ -657,9 +657,9 @@ private:
 			auto f = File(config.outputDirectory.buildPath(classDocFileName), "w");
 			memberStack[i].overloadFiles[classDocFileName] = f;
 
-			auto writer = f.lockingTextWriter;
-			writer.writeHeader(name, baseLength);
-			writer.writeTOC(tocItems, tocAdditional, moduleName);
+			auto fileWriter = f.lockingTextWriter;
+			fileWriter.writeHeader(name, baseLength);
+			writer.writeTOC(fileWriter, moduleName);
 			return tuple(f, classDocFileName);
 		}
 		else
