@@ -36,7 +36,7 @@ class DocVisitor(Writer) : ASTVisitor
 	 *     unitTestMapping = The mapping of declaration addresses to their
 	 *         documentation unittests
 	 *     fileBytes = The source code of the module as a byte array.
-	 *     writer = Handles writing generated files.
+	 *     writer = Handles writing into generated files.
 	 */
 	this(ref const Config config, string[string] macros, File searchIndex,
 		TestRange[][size_t] unitTestMapping, const(ubyte[]) fileBytes,
@@ -114,9 +114,12 @@ class DocVisitor(Writer) : ASTVisitor
 
 		prevComments.length = 1;
 
-		if (mod.moduleDeclaration.comment !is null)
-			fileWriter.readAndWriteComment(mod.moduleDeclaration.comment, config, macros,
-				prevComments, null, getUnittestDocTuple(mod.moduleDeclaration));
+		const comment = mod.moduleDeclaration.comment;
+		if (comment !is null)
+		{
+			writer.readAndWriteComment(fileWriter, comment, prevComments,
+				null, getUnittestDocTuple(mod.moduleDeclaration));
+		}
 
 		memberStack.length = 1;
 
@@ -147,7 +150,7 @@ class DocVisitor(Writer) : ASTVisitor
 			return;
 		auto dummy = appender!string();
 		// No interest in detailed docs for an enum member.
-		string summary = readAndWriteComment(dummy, member.comment, config, macros,
+		string summary = writer.readAndWriteComment(dummy, member.comment,
 			prevComments, null, getUnittestDocTuple(member));
 		memberStack[$ - 1].values ~= Item("#", member.name.text, summary);
 	}
@@ -220,11 +223,11 @@ class DocVisitor(Writer) : ASTVisitor
 
 				scope(exit) popSymbol(f);
 
-				auto writer = f.lockingTextWriter;
-				writeBreadcrumbs(writer);
+				auto fileWriter = f.lockingTextWriter;
+				writeBreadcrumbs(fileWriter);
 
 				string type = writeAliasType(f, name.text, ad.type);
-				string summary = writer.readAndWriteComment(ad.comment, config, macros, prevComments);
+				string summary = writer.readAndWriteComment(fileWriter, ad.comment, prevComments);
 				memberStack[$ - 2].aliases ~= Item(link, name.text, summary, type);
 			}
 		}
@@ -236,11 +239,11 @@ class DocVisitor(Writer) : ASTVisitor
 
 			scope(exit) popSymbol(f);
 
-			auto writer = f.lockingTextWriter;
-			writeBreadcrumbs(writer);
+			auto fileWriter = f.lockingTextWriter;
+			writeBreadcrumbs(fileWriter);
 
 			string type = writeAliasType(f, initializer.name.text, initializer.type);
-			string summary = writer.readAndWriteComment(ad.comment, config, macros, prevComments);
+			string summary = writer.readAndWriteComment(fileWriter, ad.comment, prevComments);
 			memberStack[$ - 2].aliases ~= Item(link, initializer.name.text, summary, type);
 		}
 	}
@@ -258,11 +261,11 @@ class DocVisitor(Writer) : ASTVisitor
 
 			scope(exit) popSymbol(f);
 
-			auto writer = f.lockingTextWriter;
-			writeBreadcrumbs(writer);
+			auto fileWriter = f.lockingTextWriter;
+			writeBreadcrumbs(fileWriter);
 
-			string summary = writer.readAndWriteComment(
-				dec.comment is null ? vd.comment : dec.comment, config, macros,
+			string summary = writer.readAndWriteComment(fileWriter,
+				dec.comment is null ? vd.comment : dec.comment,
 				prevComments);
 			memberStack[$ - 2].variables ~= Item(link, dec.name.text, summary, formatNode(vd.type));
 		}
@@ -274,10 +277,10 @@ class DocVisitor(Writer) : ASTVisitor
 
 			scope(exit) popSymbol(f);
 
-			auto writer = f.lockingTextWriter;
-			writeBreadcrumbs(writer);
+			auto fileWriter = f.lockingTextWriter;
+			writeBreadcrumbs(fileWriter);
 
-			string summary = writer.readAndWriteComment(vd.comment, config, macros, prevComments);
+			string summary = writer.readAndWriteComment(fileWriter, vd.comment, prevComments);
 			// TODO this was hastily updated to get harbored-mod to compile
 			// after a libdparse update. Revisit and validate/fix any errors.
 			string[] storageClasses;
@@ -383,22 +386,22 @@ private:
 		File f = fileWithLink[0];
 		string link = fileWithLink[1];
 
-		auto writer = f.lockingTextWriter();
+		auto fileWriter = f.lockingTextWriter();
 		if (first)
 		{
-			writeBreadcrumbs(writer);
+			writeBreadcrumbs(fileWriter);
 		}
 		else
 			f.writeln("<hr/>");
 		{
-			writer.put(`<pre><code>`);
-			auto formatter = new HarboredFormatter!(File.LockingTextWriter)(writer);
+			fileWriter.put(`<pre><code>`);
+			auto formatter = new HarboredFormatter!(File.LockingTextWriter)(fileWriter);
 			scope(exit) formatter.sink = File.LockingTextWriter.init;
-			writeAttributes(formatter, writer, attributes[$ - 1]);
+			writeAttributes(formatter, fileWriter, attributes[$ - 1]);
 			mixin(formattingCode);
-			writer.put("\n</code></pre>");
+			fileWriter.put("\n</code></pre>");
 		}
-		string summary = writer.readAndWriteComment(ad.comment, config, macros, prevComments,
+		string summary = writer.readAndWriteComment(fileWriter, ad.comment, prevComments,
 			null, getUnittestDocTuple(ad));
 		mixin(`memberStack[$ - 2].` ~ name ~ ` ~= Item(link, ad.name.text, summary);`);
 		prevComments.length = prevComments.length + 1;
@@ -436,34 +439,34 @@ private:
 	 */
 	void writeFnDocumentation(Fn)(File f, string fileRelative, Fn fn, const(Attribute)[] attrs, bool first)
 	{
-		auto writer = f.lockingTextWriter();
+		auto fileWriter = f.lockingTextWriter();
 		// Stuff above the function doc
 		if (first)
 		{
-			writeBreadcrumbs(writer);
+			writeBreadcrumbs(fileWriter);
 		}
 		else
-			writer.put("<hr/>");
+			fileWriter.put("<hr/>");
 
-		auto formatter = new HarboredFormatter!(File.LockingTextWriter)(writer);
+		auto formatter = new HarboredFormatter!(File.LockingTextWriter)(fileWriter);
 		scope(exit) formatter.sink = File.LockingTextWriter.init;
 
 		// Function signature start //
-		writer.put(`<pre><code>`);
+		fileWriter.put(`<pre><code>`);
 		// Attributes like public, etc.
-		writeAttributes(formatter, writer, attrs);
+		writeAttributes(formatter, fileWriter, attrs);
 		// Return type and function name, with special case fo constructor
 		static if (__traits(hasMember, typeof(fn), "returnType"))
 		{
 			if (fn.returnType)
 			{
 				formatter.format(fn.returnType);
-				writer.put(" ");
+				fileWriter.put(" ");
 			}
 			formatter.format(fn.name);
 		}
 		else
-			writer.put("this");
+			fileWriter.put("this");
 		// Template params
 		if (fn.templateParameters !is null)
 			formatter.format(fn.templateParameters);
@@ -473,19 +476,19 @@ private:
 		// Attributes like const, nothrow, etc.
 		foreach (a; fn.memberFunctionAttributes)
 		{
-			writer.put(" ");
+			fileWriter.put(" ");
 			formatter.format(a);
 		}
 		// Template constraint
 		if (fn.constraint)
 		{
-			writer.put(" ");
+			fileWriter.put(" ");
 			formatter.format(fn.constraint);
 		}
-		writer.put("\n</code></pre>");
+		fileWriter.put("\n</code></pre>");
 		// Function signature end//
 
-		string summary = writer.readAndWriteComment(fn.comment, config, macros,
+		string summary = writer.readAndWriteComment(fileWriter, fn.comment,
 			prevComments, fn.functionBody, getUnittestDocTuple(fn));
 		string fdName;
 		static if (__traits(hasMember, typeof(fn), "name"))
@@ -706,219 +709,6 @@ private:
 	Writer writer;
 }
 
-
-
-/**
- * Writes a doc comment to the given range and returns the summary text.
- *
- * Params:
- *     dst          = Range to write the comment to.
- *     comment      = The comment to write
- *     config       = hmod configuration
- *     macros       = Macro definitions used in processing the comment
- *     prevComments = Previously encountered comments. This is used for handling
- *                    "ditto" comments. May be null.
- *     functionBody = A function body used for writing contract information. May be null.
- *     testdocs     = Pairs of unittest bodies and unittest doc comments. May be null.
- *
- * Returns: the summary from the given comment
- */
-string readAndWriteComment(R)(ref R dst, string comment, const(Config)* config,
-	string[string] macros, Comment[] prevComments = null,
-	const FunctionBody functionBody = null,
-	Tuple!(string, string)[] testDocs = null)
-{
-	import std.d.lexer : unDecorateComment;
-	auto app = appender!string();
-	comment.unDecorateComment(app);
-//	writeln(comment, " undecorated to ", app.data);
-
-	Comment c = parseComment(app.data, macros);
-	immutable ditto = c.isDitto;
-
-	// Run sections through markdown.
-	foreach(ref section; c.sections) 
-	{
-		import dmarkdown;
-		// Ensure param descriptions run through Markdown
-		if(section.name == "Params")
-		{
-			foreach(ref kv; section.mapping)
-			{
-				kv[1] = filterMarkdown(kv[1], MarkdownFlags.alternateSubheaders);
-			}
-		}
-		// Do not run code examples through markdown.
-		//
-		// We could also check for section.name == "Examples" but code blocks can
-		// be even outside examples. Alternatively, we could look for *multi-line*
-		// <pre>/<code> blocks, or, before parsing comments, for "---" pairs.
-		//
-		// Alternatively, dmarkdown could be changed to ignore <pre>/<code>
-		// blocks.
-		if(!section.content.canFind("<pre><code>")) {
-			section.content = filterMarkdown(section.content,
-			                                 MarkdownFlags.alternateSubheaders);
-		}
-	}
-
-	if (prevComments.length > 0)
-	{
-		if (ditto)
-			c = prevComments[$ - 1];
-		else
-			prevComments[$ - 1] = c;
-	}
-	
-	
-	writeComment(dst, c, functionBody);
-
-	// Shortcut to write text followed by newline
-	void put(string str) { dst.put(str); dst.put("\n"); }
-	// Find summary and return value info
-	string rVal = "";
-	if (c.sections.length && c.sections[0].name == "Summary")
-		rVal = c.sections[0].content;
-	else
-	{
-		foreach (section; c.sections)
-		{
-			if (section.name == "Returns")
-				rVal = "Returns: " ~ section.content;
-		}
-	}
-	if (testDocs !is null) foreach (doc; testDocs)
-	{
-//		writeln("Writing a unittest doc comment");
-		import std.string : outdent;
-		put(`<div class="section"><h2>Example</h2>`);
-		auto docApp = appender!string();
-		doc[1].unDecorateComment(docApp);
-		Comment dc = parseComment(docApp.data, macros);
-		dst.writeComment(dc);
-		put(`<pre><code>%s</code></pre>`.format(outdent(doc[0])));
-		put(`</div>`);
-	}
-	return rVal;
-}
-
-private:
-
-void writeComment(R)(ref R dst, Comment comment, const FunctionBody functionBody = null)
-{
-//		writeln("writeComment: ", comment.sections.length, " sections.");
-	// Shortcut to write text followed by newline
-	void put(string str) { dst.put(str); dst.put("\n"); }
-
-	size_t i;
-	for (i = 0; i < comment.sections.length && (comment.sections[i].name == "Summary"
-		|| comment.sections[i].name == "description"); i++)
-	{
-		put(`<div class="section">`);
-		put(comment.sections[i].content);
-		put(`</div>`);
-	}
-
-	if (functionBody !is null)
-	{
-		writeContracts(dst, functionBody.inStatement, functionBody.outStatement);
-	}
-
-
-	const seealsoNames = ["See_also", "See_Also", "See also", "See Also"];
-	foreach (section; comment.sections[i .. $])
-	{
-		if (seealsoNames.canFind(section.name) || section.name == "Macros")
-			continue;
-
-		// Note sections a use different style
-		const isNote = section.name == "Note";
-		string extraClasses;
-
-		if(isNote)
-			extraClasses ~= " note";
-
-		put(`<div class="section%s">`.format(extraClasses));
-		if (section.name != "Summary" && section.name != "Description")
-		{
-			dst.put("<h2>");
-			dst.put(prettySectionName(section.name));
-			put("</h2>");
-		}
-		if(isNote)
-			put(`<div class="note-content">`);
-		if (section.name == "Params")
-		{
-			put(`<table class="params">`);
-			foreach (kv; section.mapping)
-			{
-				dst.put(`<tr class="param"><td class="paramName">`);
-				dst.put(kv[0]);
-				dst.put(`</td><td class="paramDoc">`);
-				dst.put(kv[1]);
-				put("</td></tr>");
-			}
-			dst.put("</table>");
-		}
-		else
-		{
-			put(section.content);
-		}
-		if(isNote)
-			put(`</div>`);
-		put(`</div>`);
-	}
-
-	// Merge any see also sections into one, and draw it with different style than
-	// other sections.
-	{
-		auto seealsos = comment.sections.filter!(s => seealsoNames.canFind(s.name));
-		if(!seealsos.empty)
-		{
-			put(`<div class="section seealso">`);
-			dst.put("<h2>");
-			dst.put(prettySectionName(seealsos.front.name));
-			put("</h2>");
-			put(`<div class="seealso-content">`);
-			foreach(section; seealsos)
-			{
-				put(section.content);
-			}
-			put(`</div>`);
-			put(`</div>`);
-		}
-	}
-}
-
-void writeContracts(R)(ref R dst, const InStatement inStatement,
-	const OutStatement outStatement)
-{
-	if (inStatement is null && outStatement is null)
-		return;
-	dst.put(`<div class="section"><h2>Contracts</h2><pre><code>`);
-	auto formatter = new HarboredFormatter!R(dst);
-	scope(exit) formatter.sink = R.init;
-	if (inStatement !is null)
-	{
-		formatter.format(inStatement);
-		if (outStatement !is null)
-			dst.put("\n");
-	}
-	if (outStatement !is null)
-		formatter.format(outStatement);
-	dst.put("</code></pre></div>\n");
-}
-
-string prettySectionName(string sectionName)
-{
-	switch (sectionName)
-	{
-	case "See_also", "See_Also", "See also", "See Also": return "See Also:";
-	case "Note": return "Note:";
-	case "Params": return "Parameters";
-	default: return sectionName;
-	}
-}
 
 enum HTML_END = `
 <script>hljs.initHighlightingOnLoad();</script>
