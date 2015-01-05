@@ -316,6 +316,16 @@ class HTMLWriter
 		dst.put("\n");
 	}
 
+	/** Formats an AST node to a string.
+	 */
+	static string formatNode(T)(const T t)
+	{
+		auto writer = appender!string();
+		auto formatter = new HarboredFormatter!(typeof(writer))(writer);
+		formatter.format(t);
+		return writer.data;
+	}
+
 private:
 
 	void writeComment(R)(ref R dst, Comment comment, const FunctionBody functionBody = null)

@@ -264,7 +264,7 @@ class DocVisitor(Writer) : ASTVisitor
 			string summary = writer.readAndWriteComment(fileWriter,
 				dec.comment is null ? vd.comment : dec.comment,
 				prevComments);
-			memberStack[$ - 2].variables ~= Item(link, dec.name.text, summary, formatNode(vd.type));
+			memberStack[$ - 2].variables ~= Item(link, dec.name.text, summary, writer.formatNode(vd.type));
 		}
 		if (vd.comment !is null && vd.autoDeclaration !is null) foreach (ident; vd.autoDeclaration.identifiers)
 		{
@@ -506,17 +506,6 @@ private:
 		prevComments.popBack();
 		stack.popBack();
 		memberStack.popBack();
-	}
-
-	/**
-	 * Formats an AST node to a string
-	 */
-	static string formatNode(T)(const T t)
-	{
-		auto writer = appender!string();
-		auto formatter = new HarboredFormatter!(typeof(writer))(writer);
-		formatter.format(t);
-		return writer.data;
 	}
 
 	/**
