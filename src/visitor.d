@@ -108,7 +108,7 @@ class DocVisitor(Writer) : ASTVisitor
 		File output = File(location, "w");
 
 		auto fileWriter = output.lockingTextWriter;
-		fileWriter.writeHeader(moduleName, baseLength - 1);
+		writer.writeHeader(fileWriter, moduleName, baseLength - 1);
 		writer.writeTOC(fileWriter, moduleName);
 		writeBreadcrumbs(fileWriter);
 
@@ -653,7 +653,7 @@ private:
 			memberStack[i].overloadFiles[classDocFileName] = f;
 
 			auto fileWriter = f.lockingTextWriter;
-			fileWriter.writeHeader(name, baseLength);
+			writer.writeHeader(fileWriter, name, baseLength);
 			writer.writeTOC(fileWriter, moduleName);
 			return tuple(f, classDocFileName);
 		}
@@ -706,34 +706,6 @@ private:
 	Writer writer;
 }
 
-/**
- * Writes HTML header information to the given file.
- * Params:
- *     f = The file to write to
- *     title = The content of the HTML "title" element
- *     depth = The directory depth of the file. This is used for ensuring that
- *         the "base" element is correct so that links resolve properly.
- */
-void writeHeader(R)(ref R dst, string title, size_t depth)
-{
-	import std.range: repeat;
-	const rootPath = "../".repeat(depth).joiner.array;
-	dst.put(
-`<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8"/>
-<link rel="stylesheet" type="text/css" href="%sstyle.css"/>
-<script src="%shighlight.pack.js"></script>
-<title>%s</title>
-<base href="%s"/>
-<script src="search.js"></script>
-<script src="show_hide.js"></script>
-</head>
-<body>
-<div class="main">
-`.format(rootPath, rootPath, title, rootPath));
-}
 
 
 /**
