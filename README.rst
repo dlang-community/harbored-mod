@@ -91,6 +91,8 @@ Features
 * Custimizable main page, table of contents and style (CSS)
 * Generated HTML enriched by classes to be more tweakable with CSS
 * Can exclude modules/packages from documentation by name (not file name)
+* Generated docs are usable without JavaScript (e.g. NoScript), but JS is used for 
+  functionality not possible without it.
 * **Only** generates HTML, and is unlikely to support any other formats
 * **No** automatic cross-referencing at the moment
 
