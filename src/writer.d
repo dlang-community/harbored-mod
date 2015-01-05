@@ -13,15 +13,11 @@ import formatter;
 import std.algorithm;
 import std.array: appender, empty, array;
 import std.d.ast;
-import std.d.formatter;
-import std.d.lexer;
-import std.file;
-import std.path;
 import std.stdio;
 import std.string: format;
 import std.typecons;
 import tocbuilder: TocItem;
-import unittest_preprocessor;
+
 
 class HTMLWriter
 {
