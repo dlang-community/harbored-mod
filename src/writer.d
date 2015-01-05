@@ -96,7 +96,7 @@ class HTMLWriter
 		put(`</div>`);
 	}
 
-	/** Writes navigation breadcrumbs in HTML format to the given range.
+	/** Writes navigation breadcrumbs to the given range.
 	 *
 	 * Also starts the "content" <div>; must be called after writeTOC(), before writing
 	 * main content.
@@ -117,6 +117,65 @@ class HTMLWriter
 		put(`</div>`);
 		put(`<div class="content">`);
 	}
+
+	/** Writes navigation breadcrumbs for a symbol's documentation file.
+	 *
+	 * Params:
+	 *
+	 * dst              = Range to write to.
+	 * moduleNameLength = Name length of the module this symbol is in (e.g. 2 for std.stdio)
+	 * symbolStack      = Name stack of the current symbol, including module name parts.
+	 */
+	void writeBreadcrumbs(R)(ref R dst, size_t moduleNameLength, const string[] symbolStack)
+	{
+		import std.array : join;
+		import std.conv : to;
+		import std.range : chain, only;
+		import std.string: format;
+		
+		string heading;
+		scope(exit) { writeBreadcrumbs(dst, heading); }
+
+		assert(moduleNameLength <= symbolStack.length, "stack shallower than the current module?");
+		size_t i;
+		import std.path: buildPath;
+		
+		string link() { return symbolStack[0 .. i + 1].buildPath() ~ ".html"; }
+
+		// Module
+		{
+			heading ~= "<small>";
+			scope(exit) { heading ~= "</small>"; }
+			for(; i + 1 < moduleNameLength; ++i)
+			{
+				heading ~= symbolStack[i] ~ ".";
+			}
+			// Module link if the module is a parent of the current page.
+			if(i + 1 < symbolStack.length)
+			{
+				heading ~= `<a href=%s>%s</a>.`.format(link(), symbolStack[i]);
+				++i;
+			}
+			// Just the module name, not a link, if we're at the module page.
+			else
+			{
+				heading ~= symbolStack[i];
+				return;
+			}
+		}
+
+		// Class/Function/etc. in the module
+		heading ~= `<span class="highlight">`;
+		// The rest of the stack except the last element (parents of current page).
+		for(; i + 1 < symbolStack.length; ++i)
+		{
+			heading  ~= `<a href=%s>%s</a>.`.format(link(), symbolStack[i]);
+		}
+		// The last element (no need to link to the current page).
+		heading ~= symbolStack[i];
+		heading ~= `</span>`;
+	}
+
 
 	/** Writes a doc comment to the given range and returns the summary text.
 	 *
