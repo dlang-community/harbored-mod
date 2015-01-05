@@ -38,11 +38,10 @@ class DocVisitor(Writer) : ASTVisitor
 	 *     fileBytes = The source code of the module as a byte array.
 	 *     writer = Handles writing into generated files.
 	 */
-	this(ref const Config config, string[string] macros, File searchIndex,
+	this(ref const Config config, File searchIndex,
 		TestRange[][size_t] unitTestMapping, const(ubyte[]) fileBytes,
 		Writer writer)
 	{
-		this.macros = macros;
 		this.config = &config;
 		this.searchIndex = searchIndex;
 		this.unitTestMapping = unitTestMapping;
@@ -694,7 +693,6 @@ private:
 	 * E.g. ["package", "subpackage", "module", "Class", "member"]
 	 */
 	string[] stack;
-	string[string] macros;
 	/** Every item of this stack corresponds to a parent module/class/etc of the
 	 * current symbol, but not package.
 	 *
