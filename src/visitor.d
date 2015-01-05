@@ -30,18 +30,15 @@ class DocVisitor(Writer) : ASTVisitor
 	/**
 	 * Params:
 	 *     config = Configuration data, including macros and the output directory.
-	 *     searchIndex = A file where the search information will be written
 	 *     unitTestMapping = The mapping of declaration addresses to their
 	 *         documentation unittests
 	 *     fileBytes = The source code of the module as a byte array.
 	 *     writer = Handles writing into generated files.
 	 */
-	this(ref const Config config, File searchIndex,
-		TestRange[][size_t] unitTestMapping, const(ubyte[]) fileBytes,
-		Writer writer)
+	this(ref const Config config, TestRange[][size_t] unitTestMapping,
+		const(ubyte[]) fileBytes, Writer writer)
 	{
 		this.config = &config;
-		this.searchIndex = searchIndex;
 		this.unitTestMapping = unitTestMapping;
 		this.fileBytes = fileBytes;
 		this.writer = writer;
@@ -550,7 +547,8 @@ private:
 		// Path relative to output directory
 		string classDocFileName = moduleFileBase.buildPath(format("%s.html",
 			join(stack[baseLength .. $], ".").array));
-		searchIndex.writefln(`{"%s" : "%s"},`, join(stack, ".").array, classDocFileName);
+
+		writer.addSearchEntry(moduleFileBase, baseLength, stack);
 		immutable size_t i = memberStack.length - 2;
 		assert (i < memberStack.length, "%s %s".format(i, memberStack.length));
 		auto p = classDocFileName in memberStack[i].overloadFiles;
@@ -607,7 +605,6 @@ private:
 	 * so the list of all members can be generated.
 	 */
 	Members[] memberStack;
-	File searchIndex;
 	TestRange[][size_t] unitTestMapping;
 	const(ubyte[]) fileBytes;
 	const(Config)* config;

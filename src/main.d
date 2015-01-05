@@ -233,8 +233,7 @@ void writeDocumentation(ref const Config config, string path, File search, TocIt
 	TestRange[][size_t] unitTestMapping = getUnittestMap(m);
 	
 	auto htmlWriter  = new HTMLWriter(config, macros, search, tocItems, tocAdditional);
-	auto visitor = new DocVisitor!HTMLWriter(config, search,
-		unitTestMapping, fileBytes, htmlWriter);
+	auto visitor = new DocVisitor!HTMLWriter(config, unitTestMapping, fileBytes, htmlWriter);
 	visitor.visit(m);
 }
 
@@ -253,7 +252,7 @@ void getDocumentationLink(ref const Config config, string modulePath,
 	auto tokens = getTokensForParser(fileBytes, lexConfig, &cache).array;
 	Module m = parseModule(tokens, modulePath, null, &doNothing);
 	
-	auto visitor = new DocVisitor!HTMLWriter(config, File.init, null, fileBytes, null);
+	auto visitor = new DocVisitor!HTMLWriter(config, null, fileBytes, null);
 	visitor.moduleInitLocation(m);
 	moduleName = visitor.moduleName;
 	link = visitor.link;

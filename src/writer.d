@@ -269,6 +269,7 @@ class HTMLWriter
 		return rVal;
 	}
 
+
 	/** Writes attributes to the range dst using formatter to format code.
 	 *
 	 * Params:
@@ -327,8 +328,18 @@ class HTMLWriter
 		return writer.data;
 	}
 
-private:
+	void addSearchEntry(string moduleFileBase, size_t moduleNameLength, string[] symbolStack)
+	{
+		import std.path: buildPath;
+		import std.conv: to;
+		
+		const symbol = symbolStack.joiner(".").array;
+		const symbolInModule = symbolStack[moduleNameLength .. $].joiner(".").array;
+		const fileName = moduleFileBase.buildPath(symbolInModule.to!string) ~ ".html";
+		searchIndex.writefln(`{"%s" : "%s"},`, symbol, fileName);
+	}
 
+private:
 	void writeComment(R)(ref R dst, Comment comment, const FunctionBody functionBody = null)
 	{
 	//		writeln("writeComment: ", comment.sections.length, " sections.");
