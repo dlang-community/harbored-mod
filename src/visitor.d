@@ -389,17 +389,20 @@ private:
 			writer.writeBreadcrumbs(fileWriter, baseLength, stack);
 		}
 		else
-			f.writeln("<hr/>");
 		{
-			fileWriter.put(`<pre><code>`);
+			fileWriter.put("<hr/>");
+		}
+
+		writer.writeCodeBlock(fileWriter, 
+		{
 			auto formatter = new HarboredFormatter!(File.LockingTextWriter)(fileWriter);
 			scope(exit) formatter.sink = File.LockingTextWriter.init;
 			assert(attributes.length > 0,
 				"Attributes stack must not be empty when writing aggregate attributes");
 			writer.writeAttributes(fileWriter, formatter, attributes.back);
 			mixin(formattingCode);
-			fileWriter.put("\n</code></pre>");
-		}
+		});
+
 		string summary = writer.readAndWriteComment(fileWriter, ad.comment, prevComments,
 			null, getUnittestDocTuple(ad));
 		mixin(`memberStack[$ - 2].` ~ name ~ ` ~= Item(link, ad.name.text, summary);`);
@@ -450,45 +453,44 @@ private:
 		auto formatter = new HarboredFormatter!(File.LockingTextWriter)(fileWriter);
 		scope(exit) formatter.sink = File.LockingTextWriter.init;
 
-		// Function signature start //
-		fileWriter.put(`<pre><code>`);
-
-		assert(attributes.length > 0,
-			"Attributes stack must not be empty when writing function attributes");
-		// Attributes like public, etc.
-		writer.writeAttributes(fileWriter, formatter, attrs);
-		// Return type and function name, with special case fo constructor
-		static if (__traits(hasMember, typeof(fn), "returnType"))
+		// Write the function signature.
+		writer.writeCodeBlock(fileWriter, 
 		{
-			if (fn.returnType)
+			assert(attributes.length > 0,
+				"Attributes stack must not be empty when writing function attributes");
+			// Attributes like public, etc.
+			writer.writeAttributes(fileWriter, formatter, attrs);
+			// Return type and function name, with special case fo constructor
+			static if (__traits(hasMember, typeof(fn), "returnType"))
 			{
-				formatter.format(fn.returnType);
-				fileWriter.put(" ");
+				if (fn.returnType)
+				{
+					formatter.format(fn.returnType);
+					fileWriter.put(" ");
+				}
+				formatter.format(fn.name);
 			}
-			formatter.format(fn.name);
-		}
-		else
-			fileWriter.put("this");
-		// Template params
-		if (fn.templateParameters !is null)
-			formatter.format(fn.templateParameters);
-		// Function params
-		if (fn.parameters !is null)
-			formatter.format(fn.parameters);
-		// Attributes like const, nothrow, etc.
-		foreach (a; fn.memberFunctionAttributes)
-		{
-			fileWriter.put(" ");
-			formatter.format(a);
-		}
-		// Template constraint
-		if (fn.constraint)
-		{
-			fileWriter.put(" ");
-			formatter.format(fn.constraint);
-		}
-		fileWriter.put("\n</code></pre>");
-		// Function signature end//
+			else
+				fileWriter.put("this");
+			// Template params
+			if (fn.templateParameters !is null)
+				formatter.format(fn.templateParameters);
+			// Function params
+			if (fn.parameters !is null)
+				formatter.format(fn.parameters);
+			// Attributes like const, nothrow, etc.
+			foreach (a; fn.memberFunctionAttributes)
+			{
+				fileWriter.put(" ");
+				formatter.format(a);
+			}
+			// Template constraint
+			if (fn.constraint)
+			{
+				fileWriter.put(" ");
+				formatter.format(fn.constraint);
+			}
+		});
 
 		string summary = writer.readAndWriteComment(fileWriter, fn.comment,
 			prevComments, fn.functionBody, getUnittestDocTuple(fn));
@@ -525,15 +527,17 @@ private:
 	 *     t = the aliased type
 	 * Returns: A string reperesentation of the given type.
 	 */
-	static string writeAliasType(File f, string name, const Type t)
+	string writeAliasType(File f, string name, const Type t)
 	{
 		if (t is null)
 			return null;
-		f.write(`<pre><code>`);
-		f.write("alias ", name, " = ");
-		string formatted = formatNode(t);
-		f.write(formatted);
-		f.writeln(`</code></pre>`);
+		auto fileWriter = f.lockingTextWriter;
+		string formatted = writer.formatNode(t);
+		writer.writeCodeBlock(fileWriter,
+		{
+			fileWriter.put("alias %s = ".format(name));
+			fileWriter.put(formatted);
+		});
 		return formatted;
 	}
 

@@ -11,7 +11,7 @@ import config;
 import ddoc.comments;
 import formatter;
 import std.algorithm;
-import std.array: appender, empty, array;
+import std.array: appender, empty, array, back;
 import std.d.ast;
 import std.stdio;
 import std.string: format;
@@ -262,7 +262,7 @@ class HTMLWriter
 			doc[1].unDecorateComment(docApp);
 			Comment dc = parseComment(docApp.data, macros);
 			writeComment(dst, dc);
-			put(`<pre><code>%s</code></pre>`.format(outdent(doc[0])));
+			writeCodeBlock(dst, { dst.put(outdent(doc[0])); } );
 			put(`</div>`);
 		}
 		return rVal;
@@ -296,6 +296,24 @@ class HTMLWriter
 			formatter.format(a);
 			dst.put(" ");
 		}
+	}
+
+	/** Writes a code block to range dst, using blockCode to write code block
+	 * contents.
+	 *
+	 * Params:
+	 *
+	 * dst       = Range to write to.
+	 * blockCode = Function that will write the code block contents (presumably also
+	 *             into dst).
+	 */
+	void writeCodeBlock(R)(ref R dst, void delegate() blockCode)
+	{
+		dst.put(`<pre><code>`);
+		blockCode();
+		dst.put("\n");
+		dst.put(`</code></pre>`);
+		dst.put("\n");
 	}
 
 private:
@@ -391,18 +409,20 @@ private:
 	{
 		if (inStatement is null && outStatement is null)
 			return;
-		dst.put(`<div class="section"><h2>Contracts</h2><pre><code>`);
-		auto formatter = new HarboredFormatter!R(dst);
-		scope(exit) formatter.sink = R.init;
-		if (inStatement !is null)
-		{
-			formatter.format(inStatement);
+		dst.put(`<div class="section"><h2>Contracts</h2>`);
+		writeCodeBlock(dst, {
+			auto formatter = new HarboredFormatter!R(dst);
+			scope(exit) formatter.sink = R.init;
+			if (inStatement !is null)
+			{
+				formatter.format(inStatement);
+				if (outStatement !is null)
+					dst.put("\n");
+			}
 			if (outStatement !is null)
-				dst.put("\n");
-		}
-		if (outStatement !is null)
-			formatter.format(outStatement);
-		dst.put("</code></pre></div>\n");
+				formatter.format(outStatement);
+		});
+		dst.put("</div>\n");
 	}
 
 
