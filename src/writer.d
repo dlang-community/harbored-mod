@@ -26,6 +26,7 @@ class HTMLWriter
 	 * Params:
 	 *
 	 * config        = Configuration data, including macros and the output directory.
+	 * macros        = DDoc macro definitions indexed by macro name.
 	 * searchIndex   = A file where the search information will be written
 	 * tocItems      = Items of the table of contents to write into each documentation file.
 	 * tocAdditional = Additional content for the table of contents sidebar.
@@ -102,7 +103,7 @@ class HTMLWriter
 	 *
 	 * Params:
 	 *
-	 * dst     = Range (appender) to write to.
+	 * dst     = Range (e.g. appender) to write to.
 	 * heading = Page heading (e.g. module name or "Main Page").
 	 */
 	void writeBreadcrumbs(R)(R dst, string heading)
