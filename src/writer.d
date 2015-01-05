@@ -280,10 +280,9 @@ class HTMLWriter
 	{
 		import std.d.lexer: IdType, isProtection, tok;
 		IdType protection;
-		foreach (a; attrs)
+		foreach (a; attrs.filter!(a => a.attribute.type.isProtection))
 		{
-			if (isProtection(a.attribute.type))
-				protection = a.attribute.type;
+			protection = a.attribute.type;
 		}
 		switch (protection)
 		{
@@ -292,13 +291,10 @@ class HTMLWriter
 			case tok!"protected": dst.put("protected "); break;
 			default:              dst.put("public ");    break;
 		}
-		foreach (a; attrs)
+		foreach (a; attrs.filter!(a => !a.attribute.type.isProtection))
 		{
-			if (!isProtection(a.attribute.type))
-			{
-				formatter.format(a);
-				dst.put(" ");
-			}
+			formatter.format(a);
+			dst.put(" ");
 		}
 	}
 
