@@ -146,7 +146,8 @@ void generateDocumentation(ref const(Config) config, string[string] macros)
 	if (config.tocAdditionalFileName !is null)
 	{
 		auto writer = appender!string();
-		writer.readAndWriteComment(tocAdditional, &config, macros);
+		auto html = new HTMLWriter(config, macros, search, tocItems, tocAdditional);
+		html.readAndWriteComment(writer, tocAdditional);
 		tocAdditional = writer.data;
 	}
 
@@ -160,17 +161,18 @@ void generateDocumentation(ref const(Config) config, string[string] macros)
 		showHideJs.write(showhidejs);
 		File index = File(buildPath(config.outputDirectory, "index.html"), "w");
 
-		auto writer = index.lockingTextWriter;
-		writer.writeHeader("Index", 0);
-		writer.writeTOC(tocItems, tocAdditional);
-		writer.writeBreadcrumbs("Main Page");
+		auto fileWriter = index.lockingTextWriter;
+		auto html = new HTMLWriter(config, macros, search, tocItems, tocAdditional);
+		html.writeHeader(fileWriter, "Index", 0);
+		html.writeTOC(fileWriter);
+		html.writeBreadcrumbs(fileWriter, "Main Page");
 
 		if (config.indexFileName !is null)
 		{
 			File indexFile = File(config.indexFileName);
 			ubyte[] indexBytes = new ubyte[cast(uint) indexFile.size];
 			indexFile.rawRead(indexBytes);
-			writer.readAndWriteComment(cast(string)indexBytes, &config, macros);
+			html.readAndWriteComment(fileWriter, cast(string)indexBytes);
 		}
 		index.writeln(`
 </div>
