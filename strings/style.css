@@ -141,12 +141,6 @@ div.toc .toc-additional p, div.toc .toc-additional ul {
 	margin: 0.4em 0;
 }
 
-/* Highlight the current module/package */
-div.toc .selected {
-	border-radius: 3px;
-	background-color: #DAAF07 !important;
-}
-
 div.toc ul {
 	list-style-type: none;
 	padding-left: 0;
@@ -182,9 +176,22 @@ div.toc span.package {
 	line-height: 1.8em;
 	font-weight: bold;
 	border: 1px solid rgba(0, 0, 0, 0.12);
-	border-radius: 3px;
+	border-radius: 2px;
 	background-color: #F0F0F0;
+	padding: 0 0.2em;
+	/* counteracts the text movement caused by the padding */
+	margin-left: -0.2em;
 }
+
+/* Highlight the current module/package */
+div.toc .selected {
+	border-radius: 2px;
+	background-color: #DAAF07 !important;
+	padding: 0 0.2em;
+	/* counteracts the text movement caused by the padding */
+	margin-left: -0.2em;
+}
+
 
 
 /**** MAIN CONTENT ****/
