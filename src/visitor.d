@@ -568,7 +568,7 @@ private:
 	}
 
 	/**
-	 * Writes navigation breadcrumbs in HTML format to the given file.
+	 * Writes navigation breadcrumbs in HTML format to the given range.
 	 */
 	void writeBreadcrumbs(R)(ref R dst)
 	{
@@ -580,7 +580,7 @@ private:
 		string heading;
 		scope(exit) 
 		{
-			.writeBreadcrumbs(dst, heading);
+			writer.writeBreadcrumbs(dst, heading);
 		}
 
 		assert(baseLength <= stack.length, "stack shallower than the current module?");
@@ -737,31 +737,7 @@ void writeHeader(R)(ref R dst, string title, size_t depth)
 
 
 /**
-  * Writes navigation breadcrumbs in HTML format to the given file.
-  *
-  * Also starts the "content" <div>; must be called after writeTOC(), before writing
-  * main content.
-  *
-  * Params:
-  *
-  * dst     = Range (appender) to write to.
-  * heading = Page heading (e.g. module name or "Main Page").
-  * 
-  */
-void writeBreadcrumbs(R)(R dst, string heading)
-{
-	void put(string str) { dst.put(str); dst.put("\n"); }
-	put(`<div class="breadcrumbs">`);
-	put(`<table id="results"></table>`);
-	put(`<a class="home" href=index.html>⌂</a>`);
-	put(`<input type="search" id="search" placeholder="Search" onkeyup="searchSubmit(this.value, event)"/>`);
-	put(heading);
-	put(`</div>`);
-	put(`<div class="content">`);
-}
-
-/**
- * Writes a doc comment to the given file and returns the summary text.
+ * Writes a doc comment to the given range and returns the summary text.
  *
  * Params:
  *     dst          = Range to write the comment to.
