@@ -222,9 +222,10 @@ class HTMLWriter
 			//
 			// Alternatively, dmarkdown could be changed to ignore <pre>/<code>
 			// blocks.
-			if(!section.content.canFind("<pre><code>")) {
+			if(!section.content.canFind("<pre><code>")) 
+			{
 				section.content = filterMarkdown(section.content,
-								MarkdownFlags.alternateSubheaders);
+					MarkdownFlags.alternateSubheaders);
 			}
 		}
 
@@ -449,9 +450,9 @@ string prettySectionName(string sectionName)
 {
 	switch (sectionName)
 	{
-	case "See_also", "See_Also", "See also", "See Also": return "See Also:";
-	case "Note": return "Note:";
-	case "Params": return "Parameters";
-	default: return sectionName;
+		case "See_also", "See_Also", "See also", "See Also": return "See Also:";
+		case "Note":   return "Note:";
+		case "Params": return "Parameters";
+		default:       return sectionName;
 	}
 }
