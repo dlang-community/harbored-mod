@@ -21,12 +21,13 @@ import std.string: format;
 import std.typecons;
 import tocbuilder: TocItem;
 import unittest_preprocessor;
+import writer;
 
 
 /**
- * Generates documentation for a module.
+ * Generates documentation for a (single) module.
  */
-class DocVisitor : ASTVisitor
+class DocVisitor(Writer) : ASTVisitor
 {
 	/**
 	 * Params:
@@ -38,10 +39,11 @@ class DocVisitor : ASTVisitor
 	 *     tocItems = Items of the table of contents to write into each
 	 *                documentation file.
 	 *     tocAdditional = Additional content for the table of contents sidebar.
+	 *     writer = Handles writing generated files.
 	 */
 	this(ref const Config config, string[string] macros, File searchIndex,
 		TestRange[][size_t] unitTestMapping, const(ubyte[]) fileBytes,
-		TocItem[] tocItems, string tocAdditional)
+		TocItem[] tocItems, string tocAdditional, Writer writer)
 	{
 		this.macros = macros;
 		this.config = &config;
@@ -50,6 +52,7 @@ class DocVisitor : ASTVisitor
 		this.fileBytes = fileBytes;
 		this.tocItems = tocItems;
 		this.tocAdditional = tocAdditional;
+		this.writer = writer;
 	}
 
 	/**
@@ -707,6 +710,7 @@ private:
 	TocItem[] tocItems;
 	string tocAdditional;
 	const(Config)* config;
+	Writer writer;
 }
 
 /**

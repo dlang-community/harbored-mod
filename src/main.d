@@ -22,6 +22,7 @@ import macros;
 import tocbuilder;
 import unittest_preprocessor;
 import visitor;
+import writer;
 
 
 int main(string[] args)
@@ -228,8 +229,10 @@ void writeDocumentation(ref const Config config, string path, File search, TocIt
 	auto tokens = getTokensForParser(fileBytes, lexConfig, &cache).array;
 	Module m = parseModule(tokens, path, null, &doNothing);
 	TestRange[][size_t] unitTestMapping = getUnittestMap(m);
-	auto visitor = new DocVisitor(config, macros, search,
-		unitTestMapping, fileBytes, tocItems, tocAdditional);
+	
+	auto htmlWriter  = new HTMLWriter(config, macros, search, tocItems, tocAdditional);
+	auto visitor = new DocVisitor!HTMLWriter(config, macros, search,
+		unitTestMapping, fileBytes, tocItems, tocAdditional, htmlWriter);
 	visitor.visit(m);
 }
 
@@ -247,8 +250,9 @@ void getDocumentationLink(ref const Config config, string modulePath,
 	StringCache cache = StringCache(1024 * 4);
 	auto tokens = getTokensForParser(fileBytes, lexConfig, &cache).array;
 	Module m = parseModule(tokens, modulePath, null, &doNothing);
-	auto visitor = new DocVisitor(config, null, File.init, null,
-		fileBytes, null, null);
+	
+	auto visitor = new DocVisitor!HTMLWriter(config, null, File.init, null,
+		fileBytes, null, null, null);
 	visitor.moduleInitLocation(m);
 	moduleName = visitor.moduleName;
 	link = visitor.link;
