@@ -267,6 +267,41 @@ class HTMLWriter
 		}
 		return rVal;
 	}
+
+	/** Writes attributes to the range dst using formatter to format code.
+	 *
+	 * Params:
+	 *
+	 * dst       = Range to write to.
+	 * formatter = Formatter to format the attributes with.
+	 * attrs     = Attributes to write.
+	 */
+	void writeAttributes(R, F)(ref R dst, F formatter, const(Attribute)[] attrs)
+	{
+		import std.d.lexer: IdType, isProtection, tok;
+		IdType protection;
+		foreach (a; attrs)
+		{
+			if (isProtection(a.attribute.type))
+				protection = a.attribute.type;
+		}
+		switch (protection)
+		{
+			case tok!"private":   dst.put("private ");   break;
+			case tok!"package":   dst.put("package ");   break;
+			case tok!"protected": dst.put("protected "); break;
+			default:              dst.put("public ");    break;
+		}
+		foreach (a; attrs)
+		{
+			if (!isProtection(a.attribute.type))
+			{
+				formatter.format(a);
+				dst.put(" ");
+			}
+		}
+	}
+
 private:
 
 	void writeComment(R)(ref R dst, Comment comment, const FunctionBody functionBody = null)

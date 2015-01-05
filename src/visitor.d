@@ -10,7 +10,7 @@ import config;
 import ddoc.comments;
 import formatter;
 import std.algorithm;
-import std.array: appender, empty, array;
+import std.array: appender, empty, array, popBack, back;
 import std.d.ast;
 import std.d.lexer;
 import std.file;
@@ -343,7 +343,7 @@ class DocVisitor(Writer) : ASTVisitor
 		string link = fileWithLink[1];
 
 
-		writeFnDocumentation(f, link, cons, attributes[$ - 1], first);
+		writeFnDocumentation(f, link, cons, attributes.back, first);
 	}
 
 	override void visit(const FunctionDeclaration fd)
@@ -355,7 +355,7 @@ class DocVisitor(Writer) : ASTVisitor
 		File f = fileWithLink[0];
 		string link = fileWithLink[1];
 
-		writeFnDocumentation(f, link, fd, attributes[$ - 1], first);
+		writeFnDocumentation(f, link, fd, attributes.back, first);
 	}
 
 	alias visit = ASTVisitor.visit;
@@ -394,7 +394,9 @@ private:
 			fileWriter.put(`<pre><code>`);
 			auto formatter = new HarboredFormatter!(File.LockingTextWriter)(fileWriter);
 			scope(exit) formatter.sink = File.LockingTextWriter.init;
-			writeAttributes(formatter, fileWriter, attributes[$ - 1]);
+			assert(attributes.length > 0,
+				"Attributes stack must not be empty when writing aggregate attributes");
+			writer.writeAttributes(fileWriter, formatter, attributes.back);
 			mixin(formattingCode);
 			fileWriter.put("\n</code></pre>");
 		}
@@ -403,11 +405,11 @@ private:
 		mixin(`memberStack[$ - 2].` ~ name ~ ` ~= Item(link, ad.name.text, summary);`);
 		prevComments.length = prevComments.length + 1;
 		ad.accept(this);
-		prevComments = prevComments[0 .. $ - 1];
+		prevComments.popBack();
 		memberStack[$ - 1].write(f);
 
-		stack = stack[0 .. $ - 1];
-		memberStack = memberStack[0 .. $ - 1];
+		stack.popBack();
+		memberStack.popBack();
 	}
 
 	/**
@@ -450,8 +452,11 @@ private:
 
 		// Function signature start //
 		fileWriter.put(`<pre><code>`);
+
+		assert(attributes.length > 0,
+			"Attributes stack must not be empty when writing function attributes");
 		// Attributes like public, etc.
-		writeAttributes(formatter, fileWriter, attrs);
+		writer.writeAttributes(fileWriter, formatter, attrs);
 		// Return type and function name, with special case fo constructor
 		static if (__traits(hasMember, typeof(fn), "returnType"))
 		{
@@ -496,44 +501,9 @@ private:
 		memberStack[$ - 2].functions ~= fnItem;
 		prevComments.length = prevComments.length + 1;
 		fn.accept(this);
-		prevComments = prevComments[0 .. $ - 1];
-		stack = stack[0 .. $ - 1];
-		memberStack = memberStack[0 .. $ - 1];
-	}
-
-	/**
-	 * Writes attributes to the given writer using the given formatter.
-	 * Params:
-	 *     F = The formatter type
-	 *     W = The writer type
-	 *     formatter = The formatter instance to use
-	 *     writer = The writer that will be output to.
-	 *     attrs = The attributes to write.
-	 */
-	void writeAttributes(F, W)(F formatter, W writer, const(Attribute)[] attrs)
-	{
-		IdType protection;
-		if (attrs is null)
-			attrs = attributes[$ - 1];
-		if (attributes.length > 0) foreach (a; attrs)
-		{
-			if (isProtection(a.attribute.type))
-				protection = a.attribute.type;
-		}
-		switch (protection)
-		{
-		case tok!"private": writer.put("private "); break;
-		case tok!"package": writer.put("package "); break;
-		default: writer.put("public "); break;
-		}
-		if (attributes.length > 0) foreach (a; attrs)
-		{
-			if (!isProtection(a.attribute.type))
-			{
-				formatter.format(a);
-				writer.put(" ");
-			}
-		}
+		prevComments.popBack();
+		stack.popBack();
+		memberStack.popBack();
 	}
 
 	/**
@@ -610,8 +580,8 @@ private:
 	void popSymbol(File f)
 	{
 		f.writeln(HTML_END);
-		stack = stack[0 .. $ - 1];
-		memberStack = memberStack[0 .. $ - 1];
+		stack.popBack();
+		memberStack.popBack();
 	}
 
 	void pushAttributes()
@@ -621,7 +591,7 @@ private:
 
 	void popAttributes()
 	{
-		attributes = attributes[0 .. $ - 1];
+		attributes.popBack();
 	}
 
 	const(Attribute)[][] attributes;
