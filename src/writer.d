@@ -432,7 +432,8 @@ private:
 		if (inStatement is null && outStatement is null)
 			return;
 		dst.put(`<div class="section"><h2>Contracts</h2>`);
-		writeCodeBlock(dst, {
+		writeCodeBlock(dst, 
+		{
 			auto formatter = new HarboredFormatter!R(dst);
 			scope(exit) formatter.sink = R.init;
 			if (inStatement !is null)
