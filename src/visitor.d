@@ -119,7 +119,7 @@ class DocVisitor(Writer) : ASTVisitor
 
 		mod.accept(this);
 
-		memberStack[$ - 1].write(output);
+		memberStack[$ - 1].write(fileWriter);
 
 		output.writeln(HTML_END);
 		output.close();
@@ -406,7 +406,7 @@ private:
 		prevComments.length = prevComments.length + 1;
 		ad.accept(this);
 		prevComments.popBack();
-		memberStack[$ - 1].write(f);
+		memberStack[$ - 1].write(fileWriter);
 
 		stack.popBack();
 		memberStack.popBack();
@@ -629,47 +629,43 @@ struct Item
 	/// AST node of the item. Only used for functions at the moment.
 	const ASTNode node;
 
-	void write(ref File f)
+	void write(R)(ref R dst)
 	{
-		f.write(`<tr><td>`);
+		dst.put(`<tr><td>`);
 		void writeName()
 		{
-			if (url == "#")
-				f.write(name);
-			else
-				f.write(`<a href="`, url, `">`, name, `</a>`);
+			dst.put(url == "#" ? name : `<a href="%s">%s</a>`.format(url, name));
 		}
 
 		// TODO print attributes for everything, and move it to separate function/s
 		if(cast(FunctionDeclaration) node) with(cast(FunctionDeclaration) node)
 		{
-			import std.string: join;
-
-			auto writer = appender!(char[])();
 			// extremely inefficient, rewrite if too much slowdown
-			string format(T)(T attr)
+			string formatAttrib(T)(T attr)
 			{
+				auto writer = appender!(char[])();
 				auto formatter = new HarboredFormatter!(typeof(writer))(writer);
 				formatter.format(attr);
 				auto str = writer.data.idup;
 				writer.clear();
 				import std.ascii: isAlpha;
 				import std.conv: to;
+				// Sanitize CSS class name for the attribute,
 				auto strSane = str.filter!isAlpha.array.to!string;
 				return `<span class="attr-` ~ strSane ~ `">` ~ str ~ `</span>`;
 			}
 
 			void writeSpan(C)(string class_, C content)
 			{
-				f.write(`<span class="`, class_, `">`, content, `</span>`);
+				dst.put(`<span class="%s">%s</span>`.format(class_, content));
 			}
 
 			// Above the function name
 			if(!attributes.empty)
 			{
-				f.write(`<span class="extrainfo">`);
-				writeSpan("attribs", attributes.map!(a => format(a)).joiner(", "));
-				f.write(`</span>`);
+				dst.put(`<span class="extrainfo">`);
+				writeSpan("attribs", attributes.map!(a => formatAttrib(a)).joiner(", "));
+				dst.put(`</span>`);
 			}
 
 
@@ -678,30 +674,29 @@ struct Item
 
 
 			// Below the function name
-			f.write(`<span class="extrainfo">`);
+			dst.put(`<span class="extrainfo">`);
 			if(!memberFunctionAttributes.empty)
 			{
 				writeSpan("method-attribs",
-					memberFunctionAttributes.map!(a => format(a)).joiner(", "));
+					memberFunctionAttributes.map!(a => formatAttrib(a)).joiner(", "));
 			}
 			// TODO storage classes don't seem to work. libdparse issue?
 			if(!storageClasses.empty)
 			{
-				writeSpan("stor-classes", storageClasses.map!(a => format(a)).joiner(", "));
+				writeSpan("stor-classes", storageClasses.map!(a => formatAttrib(a)).joiner(", "));
 			}
-			f.write(`</span>`);
+			dst.put(`</span>`);
 		}
 		else
 		{
 			writeName();
 		}
+		dst.put(`</td>`);
 
-		f.write(`</td>`);
-
-		f.write(`<td>`);
+		dst.put(`<td>`);
 		if (type !is null)
-			f.write(`<pre><code>`, type, `</code></pre>`);
-		f.write(`</td><td>`, summary ,`</td></tr>`);
+			dst.put(`<pre><code>%s</code></pre>`.format(type));
+		dst.put(`</td><td>%s</td></tr>`.format(summary));
 	}
 }
 
@@ -718,7 +713,8 @@ struct Members
 	Item[] values;
 	Item[] variables;
 
-	void write(File f)
+	/// Write the table of members for a class/struct/module/etc.
+	void write(R)(ref R dst)
 	{
 		if (aliases.length == 0 && classes.length == 0 && enums.length == 0
 			&& functions.length == 0 && interfaces.length == 0
@@ -727,26 +723,26 @@ struct Members
 		{
 			return;
 		}
-		f.writeln(`<div class="section">`);
+		dst.put(`<div class="section">`);
 		if (enums.length > 0)
-			write(f, enums, "Enums");
+			write(dst, enums, "Enums");
 		if (aliases.length > 0)
-			write(f, aliases, "Aliases");
+			write(dst, aliases, "Aliases");
 		if (variables.length > 0)
-			write(f, variables, "Variables");
+			write(dst, variables, "Variables");
 		if (functions.length > 0)
-			write(f, functions, "Functions");
+			write(dst, functions, "Functions");
 		if (structs.length > 0)
-			write(f, structs, "Structs");
+			write(dst, structs, "Structs");
 		if (interfaces.length > 0)
-			write(f, interfaces, "Interfaces");
+			write(dst, interfaces, "Interfaces");
 		if (classes.length > 0)
-			write(f, classes, "Classes");
+			write(dst, classes, "Classes");
 		if (templates.length > 0)
-			write(f, templates, "Templates");
+			write(dst, templates, "Templates");
 		if (values.length > 0)
-			write(f, values, "Values");
-		f.writeln(`</div>`);
+			write(dst, values, "Values");
+		dst.put(`</div>`);
 		foreach (f; overloadFiles)
 		{
 			f.writeln(HTML_END);
@@ -755,14 +751,21 @@ struct Members
 	}
 
 private:
-
-	void write(File f, Item[] items, string name)
+	/** Write a table of items in category specified 
+	 *
+	 * Params:
+	 *
+	 * dst   = Range to write to.
+	 * items = Items the table will contain.
+	 * name  = Name of the table, used in heading, i.e. category of the items. E.g.
+	 *         "Functions" or "Variables" or "Structs".
+	 */
+	void write(R)(ref R dst, Item[] items, string name)
 	{
-		f.writeln(`<h2>`, name, `</h2>`);
-		f.writeln(`<table>`);
-//		f.writeln(`<thead><tr><th>Name</th><th>Summary</th></tr></thead>`);
-		foreach (i; items)
-			i.write(f);
-		f.writeln(`</table>`);
+		dst.put("<h2>%s</h2>".format(name));
+		dst.put(`<table>`);
+		foreach (ref i; items)
+			i.write(dst);
+		dst.put(`</table>`);
 	}
 }
