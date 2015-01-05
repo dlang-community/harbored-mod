@@ -742,31 +742,6 @@ void writeHeader(R)(ref R dst, string title, size_t depth)
 `.format(rootPath, rootPath, title, rootPath));
 }
 
-/** Writes the table of contents to provided range.
- *
- * Params:
- *     dst           = Range to write to.
- *     tocItems      = Items of the table of contents to write.
- *     tocAdditional = Optional additional content.
- *     moduleName    = Name of the module or package documentation page of which we're
- *                     writing the TOC for.
- */
-void writeTOC(R)(ref R dst, TocItem[] tocItems, string tocAdditional, string moduleName = "")
-{
-	void put(string str) { dst.put(str); dst.put("\n"); }
-	put(`<div class="toc">`);
-	if(tocAdditional !is null)
-	{
-		put(`<div class="toc-additional">`);
-		put(tocAdditional);
-		put(`</div>`);
-	}
-	put(`<ul>`);
-	foreach (t; tocItems)
-		t.write(dst, moduleName);
-	put(`</ul>`);
-	put(`</div>`);
-}
 
 /**
   * Writes navigation breadcrumbs in HTML format to the given file.
