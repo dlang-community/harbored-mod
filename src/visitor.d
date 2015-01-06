@@ -100,6 +100,7 @@ class DocVisitor(Writer) : ASTVisitor
 		}
 
 		File output = File(location, "w");
+		scope(exit) output.close();
 
 		auto fileWriter = output.lockingTextWriter;
 		writer.writeHeader(fileWriter, moduleName, baseLength - 1);
@@ -121,17 +122,17 @@ class DocVisitor(Writer) : ASTVisitor
 
 		memberStack[$ - 1].write(fileWriter);
 
-		output.writeln(HTML_END);
-		output.close();
+		fileWriter.put(HTML_END);
+		fileWriter.put("\n");
 	}
 
 	override void visit(const EnumDeclaration ed)
 	{
 		enum formattingCode = q{
-		f.write("enum ", ad.name.text);
+		fileWriter.put("enum " ~ ad.name.text);
 		if (ad.type !is null)
 		{
-			f.write(" : ");
+			fileWriter.put(" : ");
 			formatter.format(ad.type);
 		}
 		};
@@ -152,7 +153,7 @@ class DocVisitor(Writer) : ASTVisitor
 	override void visit(const ClassDeclaration cd)
 	{
 		enum formattingCode = q{
-		f.write("class ", ad.name.text);
+		fileWriter.put("class " ~ ad.name.text);
 		if (ad.templateParameters !is null)
 			formatter.format(ad.templateParameters);
 		if (ad.baseClassList !is null)
@@ -166,7 +167,7 @@ class DocVisitor(Writer) : ASTVisitor
 	override void visit(const TemplateDeclaration td)
 	{
 		enum formattingCode = q{
-		f.write("template ", ad.name.text);
+		fileWriter.put("template " ~ ad.name.text);
 		if (ad.templateParameters !is null)
 			formatter.format(ad.templateParameters);
 		if (ad.constraint)
@@ -178,7 +179,7 @@ class DocVisitor(Writer) : ASTVisitor
 	override void visit(const StructDeclaration sd)
 	{
 		enum formattingCode = q{
-		f.write("struct ", ad.name.text);
+		fileWriter.put("struct " ~ ad.name.text);
 		if (ad.templateParameters)
 			formatter.format(ad.templateParameters);
 		if (ad.constraint)
@@ -190,7 +191,7 @@ class DocVisitor(Writer) : ASTVisitor
 	override void visit(const InterfaceDeclaration id)
 	{
 		enum formattingCode = q{
-		f.write("interface ", ad.name.text);
+		fileWriter.put("interface " ~ ad.name.text);
 		if (ad.templateParameters !is null)
 			formatter.format(ad.templateParameters);
 		if (ad.baseClassList !is null)
@@ -214,13 +215,12 @@ class DocVisitor(Writer) : ASTVisitor
 				auto fileWithLink = pushSymbol(name.text, first);
 				File f = fileWithLink[0];
 				string link = fileWithLink[1];
-
-				scope(exit) popSymbol(f);
-
 				auto fileWriter = f.lockingTextWriter;
+				scope(exit) popSymbol(fileWriter);
+
 				writer.writeBreadcrumbs(fileWriter, baseLength, stack);
 
-				string type = writeAliasType(f, name.text, ad.type);
+				string type = writeAliasType(fileWriter, name.text, ad.type);
 				string summary = writer.readAndWriteComment(fileWriter, ad.comment, prevComments);
 				memberStack[$ - 2].aliases ~= Item(link, name.text, summary, type);
 			}
@@ -230,13 +230,12 @@ class DocVisitor(Writer) : ASTVisitor
 			auto fileWithLink = pushSymbol(initializer.name.text, first);
 			File f = fileWithLink[0];
 			string link = fileWithLink[1];
-
-			scope(exit) popSymbol(f);
-
 			auto fileWriter = f.lockingTextWriter;
+			scope(exit) popSymbol(fileWriter);
+
 			writer.writeBreadcrumbs(fileWriter, baseLength, stack);
 
-			string type = writeAliasType(f, initializer.name.text, initializer.type);
+			string type = writeAliasType(fileWriter, initializer.name.text, initializer.type);
 			string summary = writer.readAndWriteComment(fileWriter, ad.comment, prevComments);
 			memberStack[$ - 2].aliases ~= Item(link, initializer.name.text, summary, type);
 		}
@@ -252,10 +251,9 @@ class DocVisitor(Writer) : ASTVisitor
 			auto fileWithLink = pushSymbol(dec.name.text, first);
 			File f = fileWithLink[0];
 			string link = fileWithLink[1];
-
-			scope(exit) popSymbol(f);
-
 			auto fileWriter = f.lockingTextWriter;
+			scope(exit) popSymbol(fileWriter);
+
 			writer.writeBreadcrumbs(fileWriter, baseLength, stack);
 
 			string summary = writer.readAndWriteComment(fileWriter,
@@ -268,10 +266,9 @@ class DocVisitor(Writer) : ASTVisitor
 			auto fileWithLink = pushSymbol(ident.text, first);
 			File f = fileWithLink[0];
 			string link = fileWithLink[1];
-
-			scope(exit) popSymbol(f);
-
 			auto fileWriter = f.lockingTextWriter;
+			scope(exit) popSymbol(fileWriter);
+
 			writer.writeBreadcrumbs(fileWriter, baseLength, stack);
 
 			string summary = writer.readAndWriteComment(fileWriter, vd.comment, prevComments);
@@ -338,9 +335,9 @@ class DocVisitor(Writer) : ASTVisitor
 		auto fileWithLink = pushSymbol("this", first);
 		File f = fileWithLink[0];
 		string link = fileWithLink[1];
+		auto fileWriter = f.lockingTextWriter;
 
-
-		writeFnDocumentation(f, link, cons, attributes.back, first);
+		writeFnDocumentation(fileWriter, link, cons, attributes.back, first);
 	}
 
 	override void visit(const FunctionDeclaration fd)
@@ -351,8 +348,9 @@ class DocVisitor(Writer) : ASTVisitor
 		auto fileWithLink = pushSymbol(fd.name.text, first);
 		File f = fileWithLink[0];
 		string link = fileWithLink[1];
+		auto fileWriter = f.lockingTextWriter;
 
-		writeFnDocumentation(f, link, fd, attributes.back, first);
+		writeFnDocumentation(fileWriter, link, fd, attributes.back, first);
 	}
 
 	alias visit = ASTVisitor.visit;
@@ -436,39 +434,42 @@ private:
 	/**
 	 *
 	 */
-	void writeFnDocumentation(Fn)(File f, string fileRelative, Fn fn, const(Attribute)[] attrs, bool first)
+	void writeFnDocumentation(R, Fn)(ref R dst, string fileRelative, Fn fn, const(Attribute)[] attrs, bool first)
 	{
-		auto fileWriter = f.lockingTextWriter();
 		// Stuff above the function doc
 		if (first)
 		{
-			writer.writeBreadcrumbs(fileWriter, baseLength, stack);
+			writer.writeBreadcrumbs(dst, baseLength, stack);
 		}
 		else
-			fileWriter.put("<hr/>");
+		{
+			dst.put("<hr/>");
+		}
 
-		auto formatter = new HarboredFormatter!(File.LockingTextWriter)(fileWriter);
+		auto formatter = new HarboredFormatter!R(dst);
 		scope(exit) formatter.sink = File.LockingTextWriter.init;
 
 		// Write the function signature.
-		writer.writeCodeBlock(fileWriter, 
+		writer.writeCodeBlock(dst, 
 		{
 			assert(attributes.length > 0,
 				"Attributes stack must not be empty when writing function attributes");
 			// Attributes like public, etc.
-			writer.writeAttributes(fileWriter, formatter, attrs);
+			writer.writeAttributes(dst, formatter, attrs);
 			// Return type and function name, with special case fo constructor
 			static if (__traits(hasMember, typeof(fn), "returnType"))
 			{
 				if (fn.returnType)
 				{
 					formatter.format(fn.returnType);
-					fileWriter.put(" ");
+					dst.put(" ");
 				}
 				formatter.format(fn.name);
 			}
 			else
-				fileWriter.put("this");
+			{
+				dst.put("this");
+			}
 			// Template params
 			if (fn.templateParameters !is null)
 				formatter.format(fn.templateParameters);
@@ -478,18 +479,18 @@ private:
 			// Attributes like const, nothrow, etc.
 			foreach (a; fn.memberFunctionAttributes)
 			{
-				fileWriter.put(" ");
+				dst.put(" ");
 				formatter.format(a);
 			}
 			// Template constraint
 			if (fn.constraint)
 			{
-				fileWriter.put(" ");
+				dst.put(" ");
 				formatter.format(fn.constraint);
 			}
 		});
 
-		string summary = writer.readAndWriteComment(fileWriter, fn.comment,
+		string summary = writer.readAndWriteComment(dst, fn.comment,
 			prevComments, fn.functionBody, getUnittestDocTuple(fn));
 		string fdName;
 		static if (__traits(hasMember, typeof(fn), "name"))
@@ -513,16 +514,15 @@ private:
 	 *     t = the aliased type
 	 * Returns: A string reperesentation of the given type.
 	 */
-	string writeAliasType(File f, string name, const Type t)
+	string writeAliasType(R)(ref R dst, string name, const Type t)
 	{
 		if (t is null)
 			return null;
-		auto fileWriter = f.lockingTextWriter;
 		string formatted = writer.formatNode(t);
-		writer.writeCodeBlock(fileWriter,
+		writer.writeCodeBlock(dst,
 		{
-			fileWriter.put("alias %s = ".format(name));
-			fileWriter.put(formatted);
+			dst.put("alias %s = ".format(name));
+			dst.put(formatted);
 		});
 		return formatted;
 	}
@@ -568,9 +568,10 @@ private:
 			return tuple(*p, classDocFileName);
 	}
 
-	void popSymbol(File f)
+	void popSymbol(R)(ref R dst)
 	{
-		f.writeln(HTML_END);
+		dst.put(HTML_END);
+		dst.put("\n");
 		stack.popBack();
 		memberStack.popBack();
 	}
