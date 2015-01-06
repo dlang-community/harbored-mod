@@ -48,26 +48,17 @@ struct Members
 		{
 			return;
 		}
-
-		dst.put(`<div class="section">`);
-		if (enums.length > 0)
-			writer.writeItems(dst, enums, "Enums");
-		if (aliases.length > 0)
-			writer.writeItems(dst, aliases, "Aliases");
-		if (variables.length > 0)
-			writer.writeItems(dst, variables, "Variables");
-		if (functions.length > 0)
-			writer.writeItems(dst, functions, "Functions");
-		if (structs.length > 0)
-			writer.writeItems(dst, structs, "Structs");
-		if (interfaces.length > 0)
-			writer.writeItems(dst, interfaces, "Interfaces");
-		if (classes.length > 0)
-			writer.writeItems(dst, classes, "Classes");
-		if (templates.length > 0)
-			writer.writeItems(dst, templates, "Templates");
-		if (values.length > 0)
-			writer.writeItems(dst, values, "Values");
-		dst.put(`</div>`);
+		writer.writeSection(dst,
+		{
+			if(!enums.empty)      writer.writeItems(dst, enums, "Enums");
+			if(!aliases.empty)    writer.writeItems(dst, aliases, "Aliases");
+			if(!variables.empty)  writer.writeItems(dst, variables, "Variables");
+			if(!functions.empty)  writer.writeItems(dst, functions, "Functions");
+			if(!structs.empty)    writer.writeItems(dst, structs, "Structs");
+			if(!interfaces.empty) writer.writeItems(dst, interfaces, "Interfaces");
+			if(!classes.empty)    writer.writeItems(dst, classes, "Classes");
+			if(!templates.empty)  writer.writeItems(dst, templates, "Templates");
+			if(!values.empty)     writer.writeItems(dst, values, "Values");
+		});
 	}
 }

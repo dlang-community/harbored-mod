@@ -307,13 +307,15 @@ class HTMLWriter
 		{
 	//		writeln("Writing a unittest doc comment");
 			import std.string : outdent;
-			put(`<div class="section"><h2>Example</h2>`);
-			auto docApp = appender!string();
-			doc[1].unDecorateComment(docApp);
-			Comment dc = parseComment(docApp.data, macros);
-			writeComment(dst, dc);
-			writeCodeBlock(dst, { dst.put(outdent(doc[0])); } );
-			put(`</div>`);
+			writeSection(dst,
+			{
+				put(`<h2>Example</h2>`);
+				auto docApp = appender!string();
+				doc[1].unDecorateComment(docApp);
+				Comment dc = parseComment(docApp.data, macros);
+				writeComment(dst, dc);
+				writeCodeBlock(dst, { dst.put(outdent(doc[0])); } );
+			});
 		}
 		return rVal;
 	}
@@ -349,8 +351,7 @@ class HTMLWriter
 		}
 	}
 
-	/** Writes a code block to range dst, using blockCode to write code block
-	 * contents.
+	/** Writes a code block to range dst, using blockCode to write code block contents.
 	 *
 	 * Params:
 	 *
@@ -367,6 +368,22 @@ class HTMLWriter
 		dst.put("\n");
 	}
 
+	/** Writes a section to range dst, using sectionCode to write section contents.
+	 *
+	 * Params:
+	 *
+	 * dst         = Range to write to.
+	 * blockCode   = Function that will write the section contents (presumably also
+	 *               into dst).
+	 * extraStyles = Extra style classes to use in the section, separated by spaces.
+	 *               May be ignored by non-HTML writers.
+	 */
+	void writeSection(R)(ref R dst, void delegate() sectionCode, string extraStyles = "")
+	{
+		dst.put(`<div class="section%s">`.format(extraStyles));
+		sectionCode();
+		dst.put("\n</div>\n");
+	}
 
 	/** Write a separator (e.g. between two overloads of a function)
 	 *
@@ -480,9 +497,7 @@ private:
 		for (i = 0; i < comment.sections.length && (comment.sections[i].name == "Summary"
 			|| comment.sections[i].name == "description"); i++)
 		{
-			put(`<div class="section">`);
-			put(comment.sections[i].content);
-			put(`</div>`);
+			writeSection(dst, { put(comment.sections[i].content); });
 		}
 
 		if (functionBody !is null)
@@ -501,38 +516,37 @@ private:
 			const isNote = section.name == "Note";
 			string extraClasses;
 
-			if(isNote)
-				extraClasses ~= " note";
+			if(isNote) { extraClasses ~= " note"; }
 
-			put(`<div class="section%s">`.format(extraClasses));
-			if (section.name != "Summary" && section.name != "Description")
+			writeSection(dst, 
 			{
-				dst.put("<h2>");
-				dst.put(prettySectionName(section.name));
-				put("</h2>");
-			}
-			if(isNote)
-				put(`<div class="note-content">`);
-			if (section.name == "Params")
-			{
-				put(`<table class="params">`);
-				foreach (kv; section.mapping)
+				if (section.name != "Summary" && section.name != "Description")
 				{
-					dst.put(`<tr class="param"><td class="paramName">`);
-					dst.put(kv[0]);
-					dst.put(`</td><td class="paramDoc">`);
-					dst.put(kv[1]);
-					put("</td></tr>");
+					dst.put("<h2>");
+					dst.put(prettySectionName(section.name));
+					put("</h2>");
 				}
-				dst.put("</table>");
-			}
-			else
-			{
-				put(section.content);
-			}
-			if(isNote)
-				put(`</div>`);
-			put(`</div>`);
+				if(isNote) { put(`<div class="note-content">`); }
+				scope(exit) if(isNote) { put(`</div>`); }
+
+				if (section.name == "Params")
+				{
+					put(`<table class="params">`);
+					foreach (kv; section.mapping)
+					{
+						dst.put(`<tr class="param"><td class="paramName">`);
+						dst.put(kv[0]);
+						dst.put(`</td><td class="paramDoc">`);
+						dst.put(kv[1]);
+						put("</td></tr>");
+					}
+					dst.put("</table>");
+				}
+				else
+				{
+					put(section.content);
+				}
+			}, extraClasses);
 		}
 
 		// Merge any see also sections into one, and draw it with different style than
@@ -561,21 +575,23 @@ private:
 	{
 		if (inStatement is null && outStatement is null)
 			return;
-		dst.put(`<div class="section"><h2>Contracts</h2>`);
-		writeCodeBlock(dst, 
+		writeSection(dst, 
 		{
-			auto formatter = new HarboredFormatter!R(dst);
-			scope(exit) formatter.sink = R.init;
-			if (inStatement !is null)
+			dst.put(`<h2>Contracts</h2>`);
+			writeCodeBlock(dst, 
 			{
-				formatter.format(inStatement);
+				auto formatter = new HarboredFormatter!R(dst);
+				scope(exit) formatter.sink = R.init;
+				if (inStatement !is null)
+				{
+					formatter.format(inStatement);
+					if (outStatement !is null)
+						dst.put("\n");
+				}
 				if (outStatement !is null)
-					dst.put("\n");
-			}
-			if (outStatement !is null)
-				formatter.format(outStatement);
+					formatter.format(outStatement);
+			});
 		});
-		dst.put("</div>\n");
 	}
 
 	void writeItemEntry(R)(ref R dst, ref Item item)
