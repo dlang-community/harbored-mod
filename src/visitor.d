@@ -213,8 +213,7 @@ class DocVisitor(Writer) : ASTVisitor
 			foreach (name; ad.identifierList.identifiers)
 			{
 				string link;
-				File f = pushSymbol(name.text, first, link);
-				auto fileWriter = f.lockingTextWriter;
+				auto fileWriter = pushSymbol(name.text, first, link);
 				scope(exit) popSymbol(fileWriter);
 
 				writer.writeBreadcrumbs(fileWriter, baseLength, stack);
@@ -227,8 +226,7 @@ class DocVisitor(Writer) : ASTVisitor
 		else foreach (initializer; ad.initializers)
 		{
 			string link;
-			File f = pushSymbol(initializer.name.text, first, link);
-			auto fileWriter = f.lockingTextWriter;
+			auto fileWriter = pushSymbol(initializer.name.text, first, link);
 			scope(exit) popSymbol(fileWriter);
 
 			writer.writeBreadcrumbs(fileWriter, baseLength, stack);
@@ -247,8 +245,7 @@ class DocVisitor(Writer) : ASTVisitor
 			if (vd.comment is null && dec.comment is null)
 				continue;
 			string link;
-			File f = pushSymbol(dec.name.text, first, link);
-			auto fileWriter = f.lockingTextWriter;
+			auto fileWriter = pushSymbol(dec.name.text, first, link);
 			scope(exit) popSymbol(fileWriter);
 
 			writer.writeBreadcrumbs(fileWriter, baseLength, stack);
@@ -261,8 +258,7 @@ class DocVisitor(Writer) : ASTVisitor
 		if (vd.comment !is null && vd.autoDeclaration !is null) foreach (ident; vd.autoDeclaration.identifiers)
 		{
 			string link;
-			File f = pushSymbol(ident.text, first, link);
-			auto fileWriter = f.lockingTextWriter;
+			auto fileWriter = pushSymbol(ident.text, first, link);
 			scope(exit) popSymbol(fileWriter);
 
 			writer.writeBreadcrumbs(fileWriter, baseLength, stack);
@@ -329,8 +325,7 @@ class DocVisitor(Writer) : ASTVisitor
 			return;
 		bool first;
 		string link;
-		File f = pushSymbol("this", first, link);
-		auto fileWriter = f.lockingTextWriter;
+		auto fileWriter = pushSymbol("this", first, link);
 
 		writeFnDocumentation(fileWriter, link, cons, attributes.back, first);
 	}
@@ -341,8 +336,7 @@ class DocVisitor(Writer) : ASTVisitor
 			return;
 		bool first;
 		string link;
-		File f = pushSymbol(fd.name.text, first, link);
-		auto fileWriter = f.lockingTextWriter;
+		auto fileWriter = pushSymbol(fd.name.text, first, link);
 
 		writeFnDocumentation(fileWriter, link, fd, attributes.back, first);
 	}
@@ -368,9 +362,8 @@ private:
 			return;
 
 		string link;
-		File f = pushSymbol(ad.name.text, first, link);
+		auto fileWriter = pushSymbol(ad.name.text, first, link);
 
-		auto fileWriter = f.lockingTextWriter();
 		if (first)
 		{
 			writer.writeBreadcrumbs(fileWriter, baseLength, stack);
@@ -526,9 +519,9 @@ private:
 	 * first = True if this is the first time that pushSymbol has been called for this name.
 	 * link  = Link to the file where this symbol is documented in config.outputDirectory.
 	 *
-	 * Returns: A file that the symbol's documentation should be written to.
+	 * Returns: A range to write the symbol's documentation to.
 	 */
-	File pushSymbol(string name, ref bool first, ref string link)
+	auto pushSymbol(string name, ref bool first, ref string link)
 	{
 		import std.array : array, join;
 		import std.string : format;
@@ -553,10 +546,10 @@ private:
 			auto fileWriter = f.lockingTextWriter;
 			writer.writeHeader(fileWriter, name, baseLength);
 			writer.writeTOC(fileWriter, moduleName);
-			return f;
+			return f.lockingTextWriter;
 		}
 		else
-			return *p;
+			return p.lockingTextWriter;
 	}
 
 	void popSymbol(R)(ref R dst)
