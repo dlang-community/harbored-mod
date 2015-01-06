@@ -212,9 +212,8 @@ class DocVisitor(Writer) : ASTVisitor
 		{
 			foreach (name; ad.identifierList.identifiers)
 			{
-				auto fileWithLink = pushSymbol(name.text, first);
-				File f = fileWithLink[0];
-				string link = fileWithLink[1];
+				string link;
+				File f = pushSymbol(name.text, first, link);
 				auto fileWriter = f.lockingTextWriter;
 				scope(exit) popSymbol(fileWriter);
 
@@ -227,9 +226,8 @@ class DocVisitor(Writer) : ASTVisitor
 		}
 		else foreach (initializer; ad.initializers)
 		{
-			auto fileWithLink = pushSymbol(initializer.name.text, first);
-			File f = fileWithLink[0];
-			string link = fileWithLink[1];
+			string link;
+			File f = pushSymbol(initializer.name.text, first, link);
 			auto fileWriter = f.lockingTextWriter;
 			scope(exit) popSymbol(fileWriter);
 
@@ -248,9 +246,8 @@ class DocVisitor(Writer) : ASTVisitor
 		{
 			if (vd.comment is null && dec.comment is null)
 				continue;
-			auto fileWithLink = pushSymbol(dec.name.text, first);
-			File f = fileWithLink[0];
-			string link = fileWithLink[1];
+			string link;
+			File f = pushSymbol(dec.name.text, first, link);
 			auto fileWriter = f.lockingTextWriter;
 			scope(exit) popSymbol(fileWriter);
 
@@ -263,9 +260,8 @@ class DocVisitor(Writer) : ASTVisitor
 		}
 		if (vd.comment !is null && vd.autoDeclaration !is null) foreach (ident; vd.autoDeclaration.identifiers)
 		{
-			auto fileWithLink = pushSymbol(ident.text, first);
-			File f = fileWithLink[0];
-			string link = fileWithLink[1];
+			string link;
+			File f = pushSymbol(ident.text, first, link);
 			auto fileWriter = f.lockingTextWriter;
 			scope(exit) popSymbol(fileWriter);
 
@@ -332,9 +328,8 @@ class DocVisitor(Writer) : ASTVisitor
 		if (cons.comment is null)
 			return;
 		bool first;
-		auto fileWithLink = pushSymbol("this", first);
-		File f = fileWithLink[0];
-		string link = fileWithLink[1];
+		string link;
+		File f = pushSymbol("this", first, link);
 		auto fileWriter = f.lockingTextWriter;
 
 		writeFnDocumentation(fileWriter, link, cons, attributes.back, first);
@@ -345,9 +340,8 @@ class DocVisitor(Writer) : ASTVisitor
 		if (fd.comment is null)
 			return;
 		bool first;
-		auto fileWithLink = pushSymbol(fd.name.text, first);
-		File f = fileWithLink[0];
-		string link = fileWithLink[1];
+		string link;
+		File f = pushSymbol(fd.name.text, first, link);
 		auto fileWriter = f.lockingTextWriter;
 
 		writeFnDocumentation(fileWriter, link, fd, attributes.back, first);
@@ -367,16 +361,14 @@ class DocVisitor(Writer) : ASTVisitor
 
 
 private:
-
 	void visitAggregateDeclaration(string formattingCode, string name, A)(const A ad)
 	{
 		bool first;
 		if (ad.comment is null)
 			return;
 
-		auto fileWithLink = pushSymbol(ad.name.text, first);
-		File f = fileWithLink[0];
-		string link = fileWithLink[1];
+		string link;
+		File f = pushSymbol(ad.name.text, first, link);
 
 		auto fileWriter = f.lockingTextWriter();
 		if (first)
@@ -529,16 +521,14 @@ private:
 
 	/**
 	 * Params:
-	 *     name = The symbol's name
-	 *     first = True if this is the first time that pushSymbol has been
-	 *         called for this name.
-	 *     isFunction = True if the symbol being pushed is a function, false
-	 *         otherwise.
 	 *
-	 * Returns: A file that the symbol's documentation should be written to and the
-	 *          filename of that file relative to config.outputDirectory.
+	 * name  = The symbol's name
+	 * first = True if this is the first time that pushSymbol has been called for this name.
+	 * link  = Link to the file where this symbol is documented in config.outputDirectory.
+	 *
+	 * Returns: A file that the symbol's documentation should be written to.
 	 */
-	Tuple!(File, string) pushSymbol(string name, ref bool first)
+	File pushSymbol(string name, ref bool first, ref string link)
 	{
 		import std.array : array, join;
 		import std.string : format;
@@ -553,6 +543,7 @@ private:
 		assert (i < memberStack.length, "%s %s".format(i, memberStack.length));
 		auto p = classDocFileName in memberStack[i].overloadFiles;
 		first = p is null;
+		link = classDocFileName;
 		if (first)
 		{
 			first = true;
@@ -562,10 +553,10 @@ private:
 			auto fileWriter = f.lockingTextWriter;
 			writer.writeHeader(fileWriter, name, baseLength);
 			writer.writeTOC(fileWriter, moduleName);
-			return tuple(f, classDocFileName);
+			return f;
 		}
 		else
-			return tuple(*p, classDocFileName);
+			return *p;
 	}
 
 	void popSymbol(R)(ref R dst)
