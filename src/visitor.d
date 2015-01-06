@@ -323,22 +323,14 @@ class DocVisitor(Writer) : ASTVisitor
 	{
 		if (cons.comment is null)
 			return;
-		bool first;
-		string link;
-		auto fileWriter = pushSymbol("this", first, link);
-
-		writeFnDocumentation(fileWriter, link, cons, attributes.back, first);
+		writeFnDocumentation("this", cons, attributes.back);
 	}
 
 	override void visit(const FunctionDeclaration fd)
 	{
 		if (fd.comment is null)
 			return;
-		bool first;
-		string link;
-		auto fileWriter = pushSymbol(fd.name.text, first, link);
-
-		writeFnDocumentation(fileWriter, link, fd, attributes.back, first);
+		writeFnDocumentation(fd.name.text, fd, attributes.back);
 	}
 
 	alias visit = ASTVisitor.visit;
@@ -363,6 +355,7 @@ private:
 
 		string link;
 		auto fileWriter = pushSymbol(ad.name.text, first, link);
+		scope(exit) popSymbol(fileWriter, Yes.overloadable);
 
 		if (first)
 		{
@@ -390,9 +383,6 @@ private:
 		ad.accept(this);
 		prevComments.popBack();
 		memberStack[$ - 1].write(fileWriter);
-
-		stack.popBack();
-		memberStack.popBack();
 	}
 
 	/**
@@ -419,41 +409,46 @@ private:
 	/**
 	 *
 	 */
-	void writeFnDocumentation(R, Fn)(ref R dst, string fileRelative, Fn fn, const(Attribute)[] attrs, bool first)
+	void writeFnDocumentation(Fn)(string name, Fn fn, const(Attribute)[] attrs)
 	{
+		bool first;
+		string fileRelative;
+		auto fileWriter = pushSymbol(name, first, fileRelative);
+		scope(exit) popSymbol(fileWriter, Yes.overloadable);
+
 		// Stuff above the function doc
 		if (first)
 		{
-			writer.writeBreadcrumbs(dst, baseLength, stack);
+			writer.writeBreadcrumbs(fileWriter, baseLength, stack);
 		}
 		else
 		{
-			dst.put("<hr/>");
+			fileWriter.put("<hr/>");
 		}
 
-		auto formatter = new HarboredFormatter!R(dst);
+		auto formatter = new HarboredFormatter!(typeof(fileWriter))(fileWriter);
 		scope(exit) formatter.sink = File.LockingTextWriter.init;
 
 		// Write the function signature.
-		writer.writeCodeBlock(dst, 
+		writer.writeCodeBlock(fileWriter, 
 		{
 			assert(attributes.length > 0,
 				"Attributes stack must not be empty when writing function attributes");
 			// Attributes like public, etc.
-			writer.writeAttributes(dst, formatter, attrs);
+			writer.writeAttributes(fileWriter, formatter, attrs);
 			// Return type and function name, with special case fo constructor
 			static if (__traits(hasMember, typeof(fn), "returnType"))
 			{
 				if (fn.returnType)
 				{
 					formatter.format(fn.returnType);
-					dst.put(" ");
+					fileWriter.put(" ");
 				}
 				formatter.format(fn.name);
 			}
 			else
 			{
-				dst.put("this");
+				fileWriter.put("this");
 			}
 			// Template params
 			if (fn.templateParameters !is null)
@@ -464,18 +459,18 @@ private:
 			// Attributes like const, nothrow, etc.
 			foreach (a; fn.memberFunctionAttributes)
 			{
-				dst.put(" ");
+				fileWriter.put(" ");
 				formatter.format(a);
 			}
 			// Template constraint
 			if (fn.constraint)
 			{
-				dst.put(" ");
+				fileWriter.put(" ");
 				formatter.format(fn.constraint);
 			}
 		});
 
-		string summary = writer.readAndWriteComment(dst, fn.comment,
+		string summary = writer.readAndWriteComment(fileWriter, fn.comment,
 			prevComments, fn.functionBody, getUnittestDocTuple(fn));
 		string fdName;
 		static if (__traits(hasMember, typeof(fn), "name"))
@@ -487,8 +482,6 @@ private:
 		prevComments.length = prevComments.length + 1;
 		fn.accept(this);
 		prevComments.popBack();
-		stack.popBack();
-		memberStack.popBack();
 	}
 
 	/**
@@ -552,10 +545,15 @@ private:
 			return p.lockingTextWriter;
 	}
 
-	void popSymbol(R)(ref R dst)
+	void popSymbol(R)(ref R dst, Flag!"overloadable" overloadable = No.overloadable)
 	{
-		dst.put(HTML_END);
-		dst.put("\n");
+		// If a symbol overloadable, it may still have some more overloads to
+		// write in the current file so don't end it yet
+		if(!overloadable)
+		{
+			dst.put(HTML_END);
+			dst.put("\n");
+		}
 		stack.popBack();
 		memberStack.popBack();
 	}
