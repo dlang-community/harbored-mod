@@ -45,7 +45,7 @@ class HTMLWriter
 
 	string moduleLink() { return moduleLink_; }
 
-	size_t baseLength() { return moduleNameLength; }
+	size_t moduleNameLength() { return moduleNameLength_; }
 
 	/** Prepare for writing documentation for symbols in specified module.
 	 *
@@ -59,7 +59,7 @@ class HTMLWriter
 	{
 		moduleFileBase_  = moduleNameParts.buildPath;
 		moduleLink_      = moduleFileBase_ ~ ".html";
-		moduleNameLength = moduleNameParts.length;
+		moduleNameLength_ = moduleNameParts.length;
 		
 		// Not really absolute, just relative to working, not output, directory
 		const moduleFileBaseAbs = config.outputDirectory.buildPath(moduleFileBase_);
@@ -81,8 +81,8 @@ class HTMLWriter
 	{
 		moduleFileBase_  = null;
 		moduleLink_      = null;
-		moduleNameLength = 0;
-		popMemberFiles();
+		moduleNameLength_ = 0;
+		popSymbol();
 	}
 
 	/** Writes HTML header information to the given range.
@@ -179,15 +179,15 @@ class HTMLWriter
 		string heading;
 		scope(exit) { writeBreadcrumbs(dst, heading); }
 
-		assert(moduleNameLength <= symbolStack.length, "stack shallower than the current module?");
+		assert(moduleNameLength_ <= symbolStack.length, "stack shallower than the current module?");
 		size_t i;
 		
 		string link()
 		{
-			assert(moduleNameLength <= i + 1, "unexpected value of i");
-			if(moduleNameLength == i + 1) { return moduleFileBase_ ~ ".html"; }
+			assert(moduleNameLength_ <= i + 1, "unexpected value of i");
+			if(moduleNameLength_ == i + 1) { return moduleFileBase_ ~ ".html"; }
 
-			const symbolName = symbolStack[moduleNameLength .. i + 1].joiner(".").array;
+			const symbolName = symbolStack[moduleNameLength_ .. i + 1].joiner(".").array;
 			return moduleFileBase_.buildPath(symbolName.to!string ~ ".html");
 		}
 
@@ -195,7 +195,7 @@ class HTMLWriter
 		{
 			heading ~= "<small>";
 			scope(exit) { heading ~= "</small>"; }
-			for(; i + 1 < moduleNameLength; ++i)
+			for(; i + 1 < moduleNameLength_; ++i)
 			{
 				heading ~= symbolStack[i] ~ ".";
 			}
@@ -377,15 +377,15 @@ class HTMLWriter
 		return writer.data;
 	}
 
-	auto pushMemberFiles(string[] symbolStack, ref bool first, ref string itemURL)
+	auto pushSymbol(string[] symbolStack, ref bool first, ref string itemURL)
 	{
 		import std.conv: to;
 		memberFileStack.length = memberFileStack.length + 1;
 
-		assert(symbolStack.length >= moduleNameLength,
+		assert(symbolStack.length >= moduleNameLength_,
 		       "symbol stack shorter than module name");
 
-		auto tail = symbolStack[moduleNameLength .. $];
+		auto tail = symbolStack[moduleNameLength_ .. $];
 		// Path relative to output directory
 		const docFileName = tail.empty
 			? moduleFileBase_ ~ ".html"
@@ -412,7 +412,7 @@ class HTMLWriter
 			return p.lockingTextWriter;
 	}
 
-	void popMemberFiles()
+	void popSymbol()
 	{
 		auto files = memberFileStack.back; 
 		foreach (f; files)
@@ -432,7 +432,7 @@ private:
 		import std.conv: to;
 		
 		const symbol = symbolStack.joiner(".").array;
-		const symbolInModule = symbolStack[moduleNameLength .. $].joiner(".").array;
+		const symbolInModule = symbolStack[moduleNameLength_ .. $].joiner(".").array;
 		const fileName = moduleFileBase_.buildPath(symbolInModule.to!string) ~ ".html";
 		searchIndex.writefln(`{"%s" : "%s"},`, symbol, fileName);
 	}
@@ -559,7 +559,7 @@ private:
 	/// Path to the HTML file relative to the output directory.
 	string moduleLink_;
 	// Name length of the module (e.g. 2 for std.stdio)
-	size_t moduleNameLength;
+	size_t moduleNameLength_;
 }
 
 

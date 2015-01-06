@@ -94,8 +94,8 @@ class DocVisitor(Writer) : ASTVisitor
 		// The module is the first and only top-level "symbol".
 		bool dummyFirst;
 		string dummyURL;
-		auto fileWriter = writer.pushMemberFiles(stack, dummyFirst, dummyURL);
-		scope(exit) { writer.popMemberFiles(); }
+		auto fileWriter = writer.pushSymbol(stack, dummyFirst, dummyURL);
+		scope(exit) { writer.popSymbol(); }
 
 		writer.writeHeader(fileWriter, moduleName, stack.length - 1);
 		writer.writeTOC(fileWriter, moduleName);
@@ -296,29 +296,29 @@ class DocVisitor(Writer) : ASTVisitor
 
 	override void visit(const Declaration dec)
 	{
-		attributes.back ~= dec.attributes;
+		attributeStack.back ~= dec.attributes;
 		dec.accept(this);
 		if (dec.attributeDeclaration is null)
-			attributes.back = attributes.back[0 .. $ - dec.attributes.length];
+			attributeStack.back = attributeStack.back[0 .. $ - dec.attributes.length];
 	}
 
 	override void visit(const AttributeDeclaration dec)
 	{
-		attributes.back ~= dec.attribute;
+		attributeStack.back ~= dec.attribute;
 	}
 
 	override void visit(const Constructor cons)
 	{
 		if (cons.comment is null)
 			return;
-		writeFnDocumentation("this", cons, attributes.back);
+		writeFnDocumentation("this", cons, attributeStack.back);
 	}
 
 	override void visit(const FunctionDeclaration fd)
 	{
 		if (fd.comment is null)
 			return;
-		writeFnDocumentation(fd.name.text, fd, attributes.back);
+		writeFnDocumentation(fd.name.text, fd, attributeStack.back);
 	}
 
 	alias visit = ASTVisitor.visit;
@@ -347,9 +347,9 @@ private:
 		{
 			auto formatter = new HarboredFormatter!(typeof(fileWriter))(fileWriter);
 			scope(exit) destroy(formatter.sink);
-			assert(attributes.length > 0,
+			assert(attributeStack.length > 0,
 				"Attributes stack must not be empty when writing aggregate attributes");
-			writer.writeAttributes(fileWriter, formatter, attributes.back);
+			writer.writeAttributes(fileWriter, formatter, attributeStack.back);
 			mixin(formattingCode);
 		});
 
@@ -411,7 +411,7 @@ private:
 		writer.writeCodeBlock(fileWriter,
 
 		{
-			assert(attributes.length > 0,
+			assert(attributeStack.length > 0,
 				"Attributes stack must not be empty when writing function attributes");
 			// Attributes like public, etc.
 			writer.writeAttributes(fileWriter, formatter, attrs);
@@ -505,9 +505,9 @@ private:
 		stack ~= name;
 		memberStack.length = memberStack.length + 1;
 
-		auto result = writer.pushMemberFiles(stack, first, itemURL);
+		auto result = writer.pushSymbol(stack, first, itemURL);
 
-		writer.writeHeader(result, name, writer.baseLength);
+		writer.writeHeader(result, name, writer.moduleNameLength);
 		writer.writeTOC(result, moduleName);
 		return result;
 	}
@@ -516,23 +516,24 @@ private:
 	{
 		stack.popBack();
 		memberStack.popBack();
-		writer.popMemberFiles();
+		writer.popSymbol();
 	}
 
 	void pushAttributes()
 	{
-		attributes.length = attributes.length + 1;
+		attributeStack.length = attributeStack.length + 1;
 	}
 
 	void popAttributes()
 	{
-		attributes.popBack();
+		attributeStack.popBack();
 	}
 
 
 	/// The module name in "package.package.module" format.
 	string moduleName;
-	const(Attribute)[][] attributes;
+
+	const(Attribute)[][] attributeStack;
 	Comment[] prevComments;
 	/** Namespace stack of the current symbol,
 	 *
