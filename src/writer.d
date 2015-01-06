@@ -471,6 +471,10 @@ class HTMLWriter
 	}
 
 private:
+	/** Add an entry for JavaScript search for the symbol with specified name stack.
+	 * 
+	 * symbolStack = Name stack of the current symbol, including module name parts.
+	 */
 	void addSearchEntry(string[] symbolStack)
 	{
 		import std.path: buildPath;
@@ -669,6 +673,17 @@ private:
 	TocItem[] tocItems;
 	string tocAdditional;
 
+	/** Stack of associative arrays.
+	 *
+	 * Each level of the stack contains files of documentation pages of members of
+	 * the symbol at that level; e.g. memberFileStack[0] contains the module
+	 * documentation file, memberFileStack[1] doc pages of the module's child classes,
+	 * etc; memberFileStack.back contains the doc page currently being written.
+	 *
+	 * When popSymbol() is called, all doc page files of that symbol's members are 
+	 * closed (they must be kept open until then to ensure overloads are put into the
+	 * same file).
+	 */
 	File[string][] memberFileStack;
 
 	string moduleFileBase_;
