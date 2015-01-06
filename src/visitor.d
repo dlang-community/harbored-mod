@@ -21,7 +21,6 @@ import std.typecons;
 import unittest_preprocessor;
 import writer;
 
-
 /**
  * Generates documentation for a (single) module.
  */
@@ -90,11 +89,14 @@ class DocVisitor(Writer) : ASTVisitor
 		{
 			return;
 		}
+		scope(exit) { writer.finishModule(); }
 
-		File output = File(config.outputDirectory.buildPath(writer.moduleFileBase) ~ ".html", "w");
-		scope(exit) output.close();
+		// The module is the first and only top-level "symbol".
+		bool dummyFirst;
+		string dummyURL;
+		auto fileWriter = writer.pushMemberFiles(stack, dummyFirst, dummyURL);
+		scope(exit) { writer.popMemberFiles(); }
 
-		auto fileWriter = output.lockingTextWriter;
 		writer.writeHeader(fileWriter, moduleName, stack.length - 1);
 		writer.writeTOC(fileWriter, moduleName);
 		writer.writeBreadcrumbs(fileWriter, stack);
@@ -109,14 +111,10 @@ class DocVisitor(Writer) : ASTVisitor
 		}
 
 		memberStack.length = 1;
-		pushMemberFiles();
 
 		mod.accept(this);
 
 		memberStack.back.write(fileWriter);
-		fileWriter.put(HTML_END);
-		fileWriter.put("\n");
-		popMemberFiles();
 	}
 
 	override void visit(const EnumDeclaration ed)
@@ -506,54 +504,19 @@ private:
 		import std.string : format;
 		stack ~= name;
 		memberStack.length = memberStack.length + 1;
-		pushMemberFiles();
-		// Path relative to output directory
-		string classDocFileName = writer.moduleFileBase.buildPath(
-			"%s.html".format(stack[writer.baseLength .. $].join(".").array));
 
-		writer.addSearchEntry(stack);
-		immutable size_t i = memberStack.length - 2;
-		assert (i < memberStack.length, "%s %s".format(i, memberStack.length));
-		auto p = classDocFileName in memberFileStack[i];
-		first = p is null;
-		itemURL = classDocFileName;
-		if (first)
-		{
-			first = true;
-			auto f = File(config.outputDirectory.buildPath(classDocFileName), "w");
-			memberFileStack[i][classDocFileName] = f;
+		auto result = writer.pushMemberFiles(stack, first, itemURL);
 
-			auto fileWriter = f.lockingTextWriter;
-			writer.writeHeader(fileWriter, name, writer.baseLength);
-			writer.writeTOC(fileWriter, moduleName);
-			return f.lockingTextWriter;
-		}
-		else
-			return p.lockingTextWriter;
+		writer.writeHeader(result, name, writer.baseLength);
+		writer.writeTOC(result, moduleName);
+		return result;
 	}
 
 	void popSymbol(R)(ref R dst)
 	{
 		stack.popBack();
 		memberStack.popBack();
-		popMemberFiles();
-	}
-
-	void pushMemberFiles()
-	{
-		memberFileStack.length = memberFileStack.length + 1;
-	}
-
-	void popMemberFiles()
-	{
-		auto files = memberFileStack.back; 
-		foreach (f; files)
-		{
-			f.writeln(HTML_END);
-			f.close();
-		}
-		destroy(files);
-		memberFileStack.popBack();
+		writer.popMemberFiles();
 	}
 
 	void pushAttributes()
@@ -583,20 +546,11 @@ private:
 	 * so the list of all members can be generated.
 	 */
 	Members[] memberStack;
-	File[string][] memberFileStack;
 	TestRange[][size_t] unitTestMapping;
 	const(ubyte[]) fileBytes;
 	const(Config)* config;
 	Writer writer;
 }
-
-
-enum HTML_END = `
-<script>hljs.initHighlightingOnLoad();</script>
-</div>
-</div>
-</body>
-</html>`;
 
 struct Item
 {

@@ -11,7 +11,7 @@ import config;
 import ddoc.comments;
 import formatter;
 import std.algorithm;
-import std.array: appender, empty, array, back;
+import std.array: appender, empty, array, back, popBack;
 import std.d.ast;
 import std.file: exists, mkdirRecurse;
 import std.path: buildPath;
@@ -45,7 +45,6 @@ class HTMLWriter
 
 	string moduleLink() { return moduleLink_; }
 
-	string moduleFileBase() { return moduleFileBase_; }
 	size_t baseLength() { return moduleNameLength; }
 
 	/** Prepare for writing documentation for symbols in specified module.
@@ -68,7 +67,24 @@ class HTMLWriter
 		{
 			moduleFileBaseAbs.mkdirRecurse();
 		}
+		assert(memberFileStack.empty,
+			"prepareModule called before finishing previous module?");
+		// Need a "parent" in the stack that will contain the module File
+		memberFileStack.length = 1;
 	}
+
+	/** Finish writing documentation for current module.
+	 *
+	 * Must be called to ensure any open files are closed.
+	 */
+	void finishModule()
+	{
+		moduleFileBase_  = null;
+		moduleLink_      = null;
+		moduleNameLength = 0;
+		popMemberFiles();
+	}
+
 	/** Writes HTML header information to the given range.
 	 *
 	 * Params:
@@ -153,7 +169,7 @@ class HTMLWriter
 	 * dst              = Range to write to.
 	 * symbolStack      = Name stack of the current symbol, including module name parts.
 	 */
-	void writeBreadcrumbs(R)(ref R dst, const string[] symbolStack)
+	void writeBreadcrumbs(R)(ref R dst, string[] symbolStack)
 	{
 		import std.array : join;
 		import std.conv : to;
@@ -166,7 +182,14 @@ class HTMLWriter
 		assert(moduleNameLength <= symbolStack.length, "stack shallower than the current module?");
 		size_t i;
 		
-		string link() { return symbolStack[0 .. i + 1].buildPath() ~ ".html"; }
+		string link()
+		{
+			assert(moduleNameLength <= i + 1, "unexpected value of i");
+			if(moduleNameLength == i + 1) { return moduleFileBase_ ~ ".html"; }
+
+			const symbolName = symbolStack[moduleNameLength .. i + 1].joiner(".").array;
+			return moduleFileBase_.buildPath(symbolName.to!string ~ ".html");
+		}
 
 		// Module
 		{
@@ -354,6 +377,55 @@ class HTMLWriter
 		return writer.data;
 	}
 
+	auto pushMemberFiles(string[] symbolStack, ref bool first, ref string itemURL)
+	{
+		import std.conv: to;
+		memberFileStack.length = memberFileStack.length + 1;
+
+		assert(symbolStack.length >= moduleNameLength,
+		       "symbol stack shorter than module name");
+
+		auto tail = symbolStack[moduleNameLength .. $];
+		// Path relative to output directory
+		const docFileName = tail.empty
+			? moduleFileBase_ ~ ".html"
+			: moduleFileBase_.buildPath(tail.joiner(".").array.to!string) ~ ".html";
+
+		addSearchEntry(symbolStack);
+
+		// The second last element of memberFileStack
+		immutable size_t i = memberFileStack.length - 2;
+		assert (i < memberFileStack.length, "%s %s".format(i, memberFileStack.length));
+		auto p = docFileName in memberFileStack[i];
+		first = p is null;
+		itemURL = docFileName;
+		if (first)
+		{
+			first = true;
+			auto f = File(config.outputDirectory.buildPath(docFileName), "w");
+			memberFileStack[i][docFileName] = f;
+
+			auto fileWriter = f.lockingTextWriter;
+			return f.lockingTextWriter;
+		}
+		else
+			return p.lockingTextWriter;
+	}
+
+	void popMemberFiles()
+	{
+		auto files = memberFileStack.back; 
+		foreach (f; files)
+		{
+			f.writeln(HTML_END);
+			f.close();
+		}
+		destroy(files);
+		memberFileStack.popBack();
+	}
+
+
+private:
 	void addSearchEntry(string[] symbolStack)
 	{
 		import std.path: buildPath;
@@ -365,7 +437,6 @@ class HTMLWriter
 		searchIndex.writefln(`{"%s" : "%s"},`, symbol, fileName);
 	}
 
-private:
 	void writeComment(R)(ref R dst, Comment comment, const FunctionBody functionBody = null)
 	{
 	//		writeln("writeComment: ", comment.sections.length, " sections.");
@@ -482,6 +553,8 @@ private:
 	TocItem[] tocItems;
 	string tocAdditional;
 
+	File[string][] memberFileStack;
+
 	string moduleFileBase_;
 	/// Path to the HTML file relative to the output directory.
 	string moduleLink_;
@@ -489,6 +562,15 @@ private:
 	size_t moduleNameLength;
 }
 
+
+private:
+
+enum HTML_END = `
+<script>hljs.initHighlightingOnLoad();</script>
+</div>
+</div>
+</body>
+</html>`;
 
 string prettySectionName(string sectionName)
 {
