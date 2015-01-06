@@ -367,6 +367,24 @@ class HTMLWriter
 		dst.put("\n");
 	}
 
+	import item;
+	/** Write a table of items of specified category.
+	 *
+	 * Params:
+	 *
+	 * dst      = Range to write to.
+	 * items    = Items the table will contain.
+	 * category = Category of the items, used in heading, E.g. "Functions" or
+	 *            "Variables" or "Structs".
+	 */
+	void writeItems(R)(ref R dst, Item[] items, string category)
+	{
+		dst.put("<h2>%s</h2>".format(category));
+		dst.put(`<table>`);
+		foreach (ref i; items) { writeItemEntry(dst, i); }
+		dst.put(`</table>`);
+	}
+
 	/** Formats an AST node to a string.
 	 */
 	static string formatNode(T)(const T t)
@@ -423,7 +441,6 @@ class HTMLWriter
 		destroy(files);
 		memberFileStack.popBack();
 	}
-
 
 private:
 	void addSearchEntry(string[] symbolStack)
@@ -545,6 +562,76 @@ private:
 		dst.put("</div>\n");
 	}
 
+	void writeItemEntry(R)(ref R dst, ref Item item)
+	{
+		dst.put(`<tr><td>`);
+		void writeName()
+		{
+			dst.put(item.url == "#" 
+				? item.name : `<a href="%s">%s</a>`.format(item.url, item.name));
+		}
+
+		// TODO print attributes for everything, and move it to separate function/s
+		if(cast(FunctionDeclaration) item.node) with(cast(FunctionDeclaration) item.node)
+		{
+			// extremely inefficient, rewrite if too much slowdown
+			string formatAttrib(T)(T attr)
+			{
+				auto writer = appender!(char[])();
+				auto formatter = new HarboredFormatter!(typeof(writer))(writer);
+				formatter.format(attr);
+				auto str = writer.data.idup;
+				writer.clear();
+				import std.ascii: isAlpha;
+				import std.conv: to;
+				// Sanitize CSS class name for the attribute,
+				auto strSane = str.filter!isAlpha.array.to!string;
+				return `<span class="attr-` ~ strSane ~ `">` ~ str ~ `</span>`;
+			}
+
+			void writeSpan(C)(string class_, C content)
+			{
+				dst.put(`<span class="%s">%s</span>`.format(class_, content));
+			}
+
+			// Above the function name
+			if(!attributes.empty)
+			{
+				dst.put(`<span class="extrainfo">`);
+				writeSpan("attribs", attributes.map!(a => formatAttrib(a)).joiner(", "));
+				dst.put(`</span>`);
+			}
+
+
+			// The actual function name
+			writeName();
+
+
+			// Below the function name
+			dst.put(`<span class="extrainfo">`);
+			if(!memberFunctionAttributes.empty)
+			{
+				writeSpan("method-attribs",
+					memberFunctionAttributes.map!(a => formatAttrib(a)).joiner(", "));
+			}
+			// TODO storage classes don't seem to work. libdparse issue?
+			if(!storageClasses.empty)
+			{
+				writeSpan("stor-classes", storageClasses.map!(a => formatAttrib(a)).joiner(", "));
+			}
+			dst.put(`</span>`);
+		}
+		else
+		{
+			writeName();
+		}
+		dst.put(`</td>`);
+
+		dst.put(`<td>`);
+		if (item.type !is null)
+			dst.put(`<pre><code>%s</code></pre>`.format(item.type));
+		dst.put(`</td><td>%s</td></tr>`.format(item.summary));
+	}
 
 private:
 	const(Config)* config;

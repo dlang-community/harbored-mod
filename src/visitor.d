@@ -115,7 +115,7 @@ class DocVisitor(Writer) : ASTVisitor
 
 		mod.accept(this);
 
-		memberStack.back.write(fileWriter);
+		memberStack.back.write(fileWriter, writer);
 	}
 
 	override void visit(const EnumDeclaration ed)
@@ -361,7 +361,7 @@ private:
 		ad.accept(this);
 		prevComments.popBack();
 
-		memberStack.back.write(fileWriter);
+		memberStack.back.write(fileWriter, writer);
 	}
 
 	/**
@@ -465,7 +465,7 @@ private:
 		// The function may have nested functions/classes/etc, so at the very
 		// least we need to close their files, and once public/private works even
 		// document them.
-		memberStack.back.write(fileWriter);
+		memberStack.back.write(fileWriter, writer);
 		prevComments.popBack();
 	}
 
