@@ -13,6 +13,8 @@ import formatter;
 import std.algorithm;
 import std.array: appender, empty, array, back;
 import std.d.ast;
+import std.file: exists, mkdirRecurse;
+import std.path: buildPath;
 import std.stdio;
 import std.string: format;
 import std.typecons;
@@ -41,6 +43,32 @@ class HTMLWriter
 		this.tocAdditional = tocAdditional;
 	}
 
+	string moduleLink() { return moduleLink_; }
+
+	string moduleFileBase() { return moduleFileBase_; }
+	size_t baseLength() { return moduleNameLength; }
+
+	/** Prepare for writing documentation for symbols in specified module.
+	 *
+	 * Initializes module-related file paths.
+	 *
+	 * Params:
+	 *
+	 * moduleNameParts = Parts of the module name, without the dots.
+	 */
+	void prepareModule(string[] moduleNameParts)
+	{
+		moduleFileBase_  = moduleNameParts.buildPath;
+		moduleLink_      = moduleFileBase_ ~ ".html";
+		moduleNameLength = moduleNameParts.length;
+		
+		// Not really absolute, just relative to working, not output, directory
+		const moduleFileBaseAbs = config.outputDirectory.buildPath(moduleFileBase_);
+		if (!moduleFileBaseAbs.exists)
+		{
+			moduleFileBaseAbs.mkdirRecurse();
+		}
+	}
 	/** Writes HTML header information to the given range.
 	 *
 	 * Params:
@@ -123,10 +151,9 @@ class HTMLWriter
 	 * Params:
 	 *
 	 * dst              = Range to write to.
-	 * moduleNameLength = Name length of the module this symbol is in (e.g. 2 for std.stdio)
 	 * symbolStack      = Name stack of the current symbol, including module name parts.
 	 */
-	void writeBreadcrumbs(R)(ref R dst, size_t moduleNameLength, const string[] symbolStack)
+	void writeBreadcrumbs(R)(ref R dst, const string[] symbolStack)
 	{
 		import std.array : join;
 		import std.conv : to;
@@ -138,7 +165,6 @@ class HTMLWriter
 
 		assert(moduleNameLength <= symbolStack.length, "stack shallower than the current module?");
 		size_t i;
-		import std.path: buildPath;
 		
 		string link() { return symbolStack[0 .. i + 1].buildPath() ~ ".html"; }
 
@@ -328,14 +354,14 @@ class HTMLWriter
 		return writer.data;
 	}
 
-	void addSearchEntry(string moduleFileBase, size_t moduleNameLength, string[] symbolStack)
+	void addSearchEntry(string[] symbolStack)
 	{
 		import std.path: buildPath;
 		import std.conv: to;
 		
 		const symbol = symbolStack.joiner(".").array;
 		const symbolInModule = symbolStack[moduleNameLength .. $].joiner(".").array;
-		const fileName = moduleFileBase.buildPath(symbolInModule.to!string) ~ ".html";
+		const fileName = moduleFileBase_.buildPath(symbolInModule.to!string) ~ ".html";
 		searchIndex.writefln(`{"%s" : "%s"},`, symbol, fileName);
 	}
 
@@ -455,6 +481,12 @@ private:
 	File searchIndex;
 	TocItem[] tocItems;
 	string tocAdditional;
+
+	string moduleFileBase_;
+	/// Path to the HTML file relative to the output directory.
+	string moduleLink_;
+	// Name length of the module (e.g. 2 for std.stdio)
+	size_t moduleNameLength;
 }
 
 

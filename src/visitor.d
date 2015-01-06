@@ -75,17 +75,9 @@ class DocVisitor(Writer) : ASTVisitor
 			}
 		}
 
-		baseLength = stack.length;
+		writer.prepareModule(stack);
 
-
-			moduleFileBase = stack.buildPath;
-			link = outLink = moduleFileBase ~ ".html";
-
-
-			const moduleFileBaseAbs = config.outputDirectory.buildPath(moduleFileBase);
-			if (!exists(moduleFileBaseAbs))
-				moduleFileBaseAbs.mkdirRecurse();
-
+		outLink = writer.moduleLink;
 		moduleName = outModuleName = stack.join(".").to!string;
 
 		return true;
@@ -99,13 +91,13 @@ class DocVisitor(Writer) : ASTVisitor
 			return;
 		}
 
-		File output = File(config.outputDirectory.buildPath(moduleFileBase) ~ ".html", "w");
+		File output = File(config.outputDirectory.buildPath(writer.moduleFileBase) ~ ".html", "w");
 		scope(exit) output.close();
 
 		auto fileWriter = output.lockingTextWriter;
-		writer.writeHeader(fileWriter, moduleName, baseLength - 1);
+		writer.writeHeader(fileWriter, moduleName, stack.length - 1);
 		writer.writeTOC(fileWriter, moduleName);
-		writer.writeBreadcrumbs(fileWriter, baseLength, stack);
+		writer.writeBreadcrumbs(fileWriter, stack);
 
 		prevComments.length = 1;
 
@@ -215,7 +207,7 @@ class DocVisitor(Writer) : ASTVisitor
 			auto fileWriter = pushSymbol(name.text, first, itemURL);
 			scope(exit) popSymbol(fileWriter);
 
-			writer.writeBreadcrumbs(fileWriter, baseLength, stack);
+			writer.writeBreadcrumbs(fileWriter, stack);
 
 			string type = writeAliasType(fileWriter, name.text, ad.type);
 			string summary = writer.readAndWriteComment(fileWriter, ad.comment, prevComments);
@@ -227,7 +219,7 @@ class DocVisitor(Writer) : ASTVisitor
 			auto fileWriter = pushSymbol(initializer.name.text, first, itemURL);
 			scope(exit) popSymbol(fileWriter);
 
-			writer.writeBreadcrumbs(fileWriter, baseLength, stack);
+			writer.writeBreadcrumbs(fileWriter, stack);
 
 			string type = writeAliasType(fileWriter, initializer.name.text, initializer.type);
 			string summary = writer.readAndWriteComment(fileWriter, ad.comment, prevComments);
@@ -246,7 +238,7 @@ class DocVisitor(Writer) : ASTVisitor
 			auto fileWriter = pushSymbol(dec.name.text, first, itemURL);
 			scope(exit) popSymbol(fileWriter);
 
-			writer.writeBreadcrumbs(fileWriter, baseLength, stack);
+			writer.writeBreadcrumbs(fileWriter, stack);
 
 			string summary = writer.readAndWriteComment(fileWriter,
 				dec.comment is null ? vd.comment : dec.comment,
@@ -259,7 +251,7 @@ class DocVisitor(Writer) : ASTVisitor
 			auto fileWriter = pushSymbol(ident.text, first, itemURL);
 			scope(exit) popSymbol(fileWriter);
 
-			writer.writeBreadcrumbs(fileWriter, baseLength, stack);
+			writer.writeBreadcrumbs(fileWriter, stack);
 
 			string summary = writer.readAndWriteComment(fileWriter, vd.comment, prevComments);
 			// TODO this was hastily updated to get harbored-mod to compile
@@ -333,13 +325,6 @@ class DocVisitor(Writer) : ASTVisitor
 
 	alias visit = ASTVisitor.visit;
 
-	/// The module name in "package.package.module" format.
-	string moduleName;
-
-	/// Path to the HTML file relative to the output directory.
-	string link;
-
-
 private:
 	void visitAggregateDeclaration(string formattingCode, string name, A)(const A ad)
 	{
@@ -353,7 +338,7 @@ private:
 
 		if (first)
 		{
-			writer.writeBreadcrumbs(fileWriter, baseLength, stack);
+			writer.writeBreadcrumbs(fileWriter, stack);
 		}
 		else
 		{
@@ -414,7 +399,7 @@ private:
 		// Stuff above the function doc
 		if (first)
 		{
-			writer.writeBreadcrumbs(fileWriter, baseLength, stack);
+			writer.writeBreadcrumbs(fileWriter, stack);
 		}
 		else
 		{
@@ -523,15 +508,15 @@ private:
 		memberStack.length = memberStack.length + 1;
 		pushMemberFiles();
 		// Path relative to output directory
-		string classDocFileName = moduleFileBase.buildPath(
-			"%s.html".format(stack[baseLength .. $].join(".").array));
+		string classDocFileName = writer.moduleFileBase.buildPath(
+			"%s.html".format(stack[writer.baseLength .. $].join(".").array));
 
-		writer.addSearchEntry(moduleFileBase, baseLength, stack);
+		writer.addSearchEntry(stack);
 		immutable size_t i = memberStack.length - 2;
 		assert (i < memberStack.length, "%s %s".format(i, memberStack.length));
 		auto p = classDocFileName in memberFileStack[i];
 		first = p is null;
-		link = classDocFileName;
+		itemURL = classDocFileName;
 		if (first)
 		{
 			first = true;
@@ -539,7 +524,7 @@ private:
 			memberFileStack[i][classDocFileName] = f;
 
 			auto fileWriter = f.lockingTextWriter;
-			writer.writeHeader(fileWriter, name, baseLength);
+			writer.writeHeader(fileWriter, name, writer.baseLength);
 			writer.writeTOC(fileWriter, moduleName);
 			return f.lockingTextWriter;
 		}
@@ -550,7 +535,6 @@ private:
 	void popSymbol(R)(ref R dst)
 	{
 		stack.popBack();
-
 		memberStack.popBack();
 		popMemberFiles();
 	}
@@ -582,14 +566,11 @@ private:
 		attributes.popBack();
 	}
 
+
+	/// The module name in "package.package.module" format.
+	string moduleName;
 	const(Attribute)[][] attributes;
 	Comment[] prevComments;
-	/* Length, or nest level, of the module name.
-	 *
-	 * `mod` has baseLength, `pkg.mod` has baseLength 2, `pkg.child.mod` has 3, etc.
-	 */
-	size_t baseLength;
-	string moduleFileBase;
 	/** Namespace stack of the current symbol,
 	 *
 	 * E.g. ["package", "subpackage", "module", "Class", "member"]
