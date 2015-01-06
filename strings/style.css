@@ -31,7 +31,6 @@ div.breadcrumbs {
 	box-sizing: border-box;
 	text-align: right;
 	top: 0;
-	position: fixed;
 	width: 100%;
 	height: 48px;
 	font-size: 95%;
@@ -116,7 +115,6 @@ div.breadcrumbs input {
 
 div.toc {
 	float: left;
-	margin-top: 48px;
 	padding: 1.5em 0.75em 1em 0.5em;
 	margin-right: -1px;
 	border-right: 1px solid #D0D0D0;
@@ -200,7 +198,6 @@ div.content {
 	padding: 1.5em;
 	font-size: 90%;
 	line-height: 130%;
-	margin-top: 48px;
 	overflow: hidden;
 	border-left: 1px solid #D0D0D0;
 }
