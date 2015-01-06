@@ -252,7 +252,8 @@ void getDocumentationLink(ref const Config config, string modulePath,
 	auto tokens = getTokensForParser(fileBytes, lexConfig, &cache).array;
 	Module m = parseModule(tokens, modulePath, null, &doNothing);
 	
-	auto visitor = new DocVisitor!HTMLWriter(config, null, fileBytes, null);
+	auto htmlWriter  = new HTMLWriter(config, null, File.init, null, null);
+	auto visitor = new DocVisitor!HTMLWriter(config, null, fileBytes, htmlWriter);
 	visitor.moduleInitLocation(m, link, moduleName);
 }
 
