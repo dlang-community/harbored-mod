@@ -508,8 +508,11 @@ private:
 
 		auto result = writer.pushSymbol(stack, first, itemURL);
 
-		writer.writeHeader(result, name, writer.moduleNameLength);
-		writer.writeTOC(result, moduleName);
+		if(first)
+		{
+			writer.writeHeader(result, name, writer.moduleNameLength);
+			writer.writeTOC(result, moduleName);
+		}
 		return result;
 	}
 
