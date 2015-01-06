@@ -656,7 +656,9 @@ private:
 
 		dst.put(`<td>`);
 		if (item.type !is null)
-			dst.put(`<pre><code>%s</code></pre>`.format(item.type));
+		{
+			writeCodeBlock(dst, { dst.put(item.type); });
+		}
 		dst.put(`</td><td>%s</td></tr>`.format(item.summary));
 	}
 
