@@ -211,27 +211,27 @@ class DocVisitor(Writer) : ASTVisitor
 		bool first;
 		if (ad.identifierList !is null) foreach (name; ad.identifierList.identifiers)
 		{
-			string link;
-			auto fileWriter = pushSymbol(name.text, first, link);
+			string itemURL;
+			auto fileWriter = pushSymbol(name.text, first, itemURL);
 			scope(exit) popSymbol(fileWriter);
 
 			writer.writeBreadcrumbs(fileWriter, baseLength, stack);
 
 			string type = writeAliasType(fileWriter, name.text, ad.type);
 			string summary = writer.readAndWriteComment(fileWriter, ad.comment, prevComments);
-			memberStack[$ - 2].aliases ~= Item(link, name.text, summary, type);
+			memberStack[$ - 2].aliases ~= Item(itemURL, name.text, summary, type);
 		}
 		else foreach (initializer; ad.initializers)
 		{
-			string link;
-			auto fileWriter = pushSymbol(initializer.name.text, first, link);
+			string itemURL;
+			auto fileWriter = pushSymbol(initializer.name.text, first, itemURL);
 			scope(exit) popSymbol(fileWriter);
 
 			writer.writeBreadcrumbs(fileWriter, baseLength, stack);
 
 			string type = writeAliasType(fileWriter, initializer.name.text, initializer.type);
 			string summary = writer.readAndWriteComment(fileWriter, ad.comment, prevComments);
-			memberStack[$ - 2].aliases ~= Item(link, initializer.name.text, summary, type);
+			memberStack[$ - 2].aliases ~= Item(itemURL, initializer.name.text, summary, type);
 		}
 	}
 
@@ -242,8 +242,8 @@ class DocVisitor(Writer) : ASTVisitor
 		{
 			if (vd.comment is null && dec.comment is null)
 				continue;
-			string link;
-			auto fileWriter = pushSymbol(dec.name.text, first, link);
+			string itemURL;
+			auto fileWriter = pushSymbol(dec.name.text, first, itemURL);
 			scope(exit) popSymbol(fileWriter);
 
 			writer.writeBreadcrumbs(fileWriter, baseLength, stack);
@@ -251,12 +251,12 @@ class DocVisitor(Writer) : ASTVisitor
 			string summary = writer.readAndWriteComment(fileWriter,
 				dec.comment is null ? vd.comment : dec.comment,
 				prevComments);
-			memberStack[$ - 2].variables ~= Item(link, dec.name.text, summary, writer.formatNode(vd.type));
+			memberStack[$ - 2].variables ~= Item(itemURL, dec.name.text, summary, writer.formatNode(vd.type));
 		}
 		if (vd.comment !is null && vd.autoDeclaration !is null) foreach (ident; vd.autoDeclaration.identifiers)
 		{
-			string link;
-			auto fileWriter = pushSymbol(ident.text, first, link);
+			string itemURL;
+			auto fileWriter = pushSymbol(ident.text, first, itemURL);
 			scope(exit) popSymbol(fileWriter);
 
 			writer.writeBreadcrumbs(fileWriter, baseLength, stack);
@@ -269,7 +269,7 @@ class DocVisitor(Writer) : ASTVisitor
 			{
 				storageClasses ~= str(stor.token.type);
 			}
-			auto i = Item(link, ident.text, summary, storageClasses.canFind("enum") ? null : "auto");
+			auto i = Item(itemURL, ident.text, summary, storageClasses.canFind("enum") ? null : "auto");
 			if (storageClasses.canFind("enum"))
 				memberStack[$ - 2].enums ~= i;
 			else
@@ -336,8 +336,7 @@ class DocVisitor(Writer) : ASTVisitor
 	/// The module name in "package.package.module" format.
 	string moduleName;
 
-	/// The path to the HTML file that was generated for the module being
-	/// processed.
+	/// The path to the HTML file that was generated for the module being processed.
 	string location;
 
 	/// Path to the HTML file relative to the output directory.
@@ -351,8 +350,8 @@ private:
 		if (ad.comment is null)
 			return;
 
-		string link;
-		auto fileWriter = pushSymbol(ad.name.text, first, link);
+		string itemURL;
+		auto fileWriter = pushSymbol(ad.name.text, first, itemURL);
 		scope(exit) popSymbol(fileWriter);
 
 		if (first)
@@ -376,7 +375,7 @@ private:
 
 		string summary = writer.readAndWriteComment(fileWriter, ad.comment, prevComments,
 			null, getUnittestDocTuple(ad));
-		mixin(`memberStack[$ - 2].` ~ name ~ ` ~= Item(link, ad.name.text, summary);`);
+		mixin(`memberStack[$ - 2].` ~ name ~ ` ~= Item(itemURL, ad.name.text, summary);`);
 		prevComments.length = prevComments.length + 1;
 		ad.accept(this);
 		prevComments.popBack();
@@ -411,8 +410,8 @@ private:
 	void writeFnDocumentation(Fn)(string name, Fn fn, const(Attribute)[] attrs)
 	{
 		bool first;
-		string fileRelative;
-		auto fileWriter = pushSymbol(name, first, fileRelative);
+		string itemURL;
+		auto fileWriter = pushSymbol(name, first, itemURL);
 		scope(exit) popSymbol(fileWriter);
 
 		// Stuff above the function doc
@@ -477,7 +476,7 @@ private:
 			fdName = fn.name.text;
 		else
 			fdName = "this";
-		auto fnItem = Item(fileRelative, fdName, summary, null, fn);
+		auto fnItem = Item(itemURL, fdName, summary, null, fn);
 		memberStack[$ - 2].functions ~= fnItem;
 		prevComments.length = prevComments.length + 1;
 		fn.accept(this);
@@ -513,13 +512,13 @@ private:
 	/**
 	 * Params:
 	 *
-	 * name  = The symbol's name
-	 * first = True if this is the first time that pushSymbol has been called for this name.
-	 * link  = Link to the file where this symbol is documented in config.outputDirectory.
+	 * name    = The symbol's name
+	 * first   = True if this is the first time that pushSymbol has been called for this name.
+	 * itemURL = URL to use in the Item for this symbol.
 	 *
 	 * Returns: A range to write the symbol's documentation to.
 	 */
-	auto pushSymbol(string name, ref bool first, ref string link)
+	auto pushSymbol(string name, ref bool first, ref string itemURL)
 	{
 		import std.array : array, join;
 		import std.string : format;
@@ -573,7 +572,6 @@ private:
 			f.close();
 		}
 		destroy(files);
-		// assert(overloadFiles.length == 0, "Just checking");
 		memberFileStack.popBack();
 	}
 
