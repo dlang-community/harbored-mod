@@ -117,6 +117,7 @@ class DocVisitor(Writer) : ASTVisitor
 		}
 
 		memberStack.length = 1;
+		pushMemberFiles();
 
 		mod.accept(this);
 
@@ -124,6 +125,7 @@ class DocVisitor(Writer) : ASTVisitor
 
 		fileWriter.put(HTML_END);
 		fileWriter.put("\n");
+		popMemberFiles();
 	}
 
 	override void visit(const EnumDeclaration ed)
@@ -523,6 +525,7 @@ private:
 		import std.string : format;
 		stack ~= name;
 		memberStack.length = memberStack.length + 1;
+		pushMemberFiles();
 		// Path relative to output directory
 		string classDocFileName = moduleFileBase.buildPath(
 			"%s.html".format(stack[baseLength .. $].join(".").array));
@@ -530,14 +533,14 @@ private:
 		writer.addSearchEntry(moduleFileBase, baseLength, stack);
 		immutable size_t i = memberStack.length - 2;
 		assert (i < memberStack.length, "%s %s".format(i, memberStack.length));
-		auto p = classDocFileName in memberStack[i].overloadFiles;
+		auto p = classDocFileName in memberFileStack[i];
 		first = p is null;
 		link = classDocFileName;
 		if (first)
 		{
 			first = true;
 			auto f = File(config.outputDirectory.buildPath(classDocFileName), "w");
-			memberStack[i].overloadFiles[classDocFileName] = f;
+			memberFileStack[i][classDocFileName] = f;
 
 			auto fileWriter = f.lockingTextWriter;
 			writer.writeHeader(fileWriter, name, baseLength);
@@ -551,16 +554,36 @@ private:
 	void popSymbol(R)(ref R dst, Flag!"overloadable" overloadable = No.overloadable)
 	{
 		// If a symbol overloadable, it may still have some more overloads to
-		// write in the current file so don't end it yet
+		// write in the current file so don't end it yet (it will be ended when 
+		// the file is popped off file stack)
 		if(!overloadable)
 		{
 			dst.put(HTML_END);
 			dst.put("\n");
 		}
+		
 		stack.popBack();
-		assert(memberStack[$ - 1].overloadFiles.length == 0,
-		       "Files left open before popping symbol");
+
 		memberStack.popBack();
+		popMemberFiles();
+	}
+
+	void pushMemberFiles()
+	{
+		memberFileStack.length = memberFileStack.length + 1;
+	}
+
+	void popMemberFiles()
+	{
+		auto files = memberFileStack.back; 
+		foreach (f; files)
+		{
+			f.writeln(HTML_END);
+			f.close();
+		}
+		destroy(files);
+		// assert(overloadFiles.length == 0, "Just checking");
+		memberFileStack.popBack();
 	}
 
 	void pushAttributes()
@@ -593,6 +616,7 @@ private:
 	 * so the list of all members can be generated.
 	 */
 	Members[] memberStack;
+	File[string][] memberFileStack;
 	TestRange[][size_t] unitTestMapping;
 	const(ubyte[]) fileBytes;
 	const(Config)* config;
@@ -690,7 +714,6 @@ struct Item
 
 struct Members
 {
-	File[string] overloadFiles;
 	Item[] aliases;
 	Item[] classes;
 	Item[] enums;
@@ -731,13 +754,6 @@ struct Members
 		if (values.length > 0)
 			write(dst, values, "Values");
 		dst.put(`</div>`);
-		foreach (f; overloadFiles)
-		{
-			f.writeln(HTML_END);
-			f.close();
-		}
-		destroy(overloadFiles);
-		assert(overloadFiles.length == 0, "Just checking");
 	}
 
 private:
