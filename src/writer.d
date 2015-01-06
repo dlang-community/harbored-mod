@@ -1,6 +1,6 @@
 /**
  * D Documentation Generator
- * Copyright: © 2014 Economic Modeling Specialists, Intl., Ferdinand Majerech
+ * Copyright: © 2014 Economic Modeling Specialists, Intl., © 2015 Ferdinand Majerech
  * Authors: Brian Schott, Ferdinand Majerech
  * License: $(LINK2 http://www.boost.org/LICENSE_1_0.txt Boost License 1.0)
  */
