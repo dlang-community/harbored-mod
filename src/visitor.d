@@ -409,7 +409,6 @@ private:
 
 		// Write the function signature.
 		writer.writeCodeBlock(fileWriter,
-
 		{
 			assert(attributeStack.length > 0,
 				"Attributes stack must not be empty when writing function attributes");

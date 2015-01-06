@@ -6,13 +6,11 @@
  */
 module item;
 
-
 import formatter;
 import std.algorithm;
 import std.array: appender, empty, array;
 import std.d.ast;
 import std.string: format;
-
 
 
 struct Item
@@ -41,10 +39,9 @@ struct Members
 	/// Write the table of members for a class/struct/module/etc.
 	void write(R, Writer)(ref R dst, Writer writer)
 	{
-		if (aliases.length == 0 && classes.length == 0 && enums.length == 0
-			&& functions.length == 0 && interfaces.length == 0
-			&& structs.length == 0 && templates.length == 0 && values.length == 0
-			&& variables.length == 0)
+		if (aliases.empty && classes.empty && enums.empty && functions.empty
+			&& interfaces.empty && structs.empty && templates.empty 
+			&& values.empty && variables.empty)
 		{
 			return;
 		}

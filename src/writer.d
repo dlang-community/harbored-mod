@@ -256,12 +256,9 @@ class HTMLWriter
 		{
 			import dmarkdown;
 			// Ensure param descriptions run through Markdown
-			if(section.name == "Params")
+			if(section.name == "Params") foreach(ref kv; section.mapping)
 			{
-				foreach(ref kv; section.mapping)
-				{
-					kv[1] = filterMarkdown(kv[1], MarkdownFlags.alternateSubheaders);
-				}
+				kv[1] = filterMarkdown(kv[1], MarkdownFlags.alternateSubheaders);
 			}
 			// Do not run code examples through markdown.
 			//
@@ -363,9 +360,7 @@ class HTMLWriter
 	{
 		dst.put(`<pre><code>`);
 		blockCode();
-		dst.put("\n");
-		dst.put(`</code></pre>`);
-		dst.put("\n");
+		dst.put("\n</code></pre>\n");
 	}
 
 	/** Writes a section to range dst, using sectionCode to write section contents.
