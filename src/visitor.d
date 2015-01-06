@@ -521,8 +521,8 @@ private:
 		stack ~= name;
 		memberStack.length = memberStack.length + 1;
 		// Path relative to output directory
-		string classDocFileName = moduleFileBase.buildPath(format("%s.html",
-			join(stack[baseLength .. $], ".").array));
+		string classDocFileName = moduleFileBase.buildPath(
+			"%s.html".format(stack[baseLength .. $].join(".").array));
 
 		writer.addSearchEntry(moduleFileBase, baseLength, stack);
 		immutable size_t i = memberStack.length - 2;
