@@ -205,8 +205,6 @@ class DocVisitor(Writer) : ASTVisitor
 			auto fileWriter = pushSymbol(name.text, first, itemURL);
 			scope(exit) popSymbol(fileWriter);
 
-			writer.writeBreadcrumbs(fileWriter, stack);
-
 			string type = writeAliasType(fileWriter, name.text, ad.type);
 			string summary = writer.readAndWriteComment(fileWriter, ad.comment, prevComments);
 			memberStack[$ - 2].aliases ~= Item(itemURL, name.text, summary, type);
@@ -216,8 +214,6 @@ class DocVisitor(Writer) : ASTVisitor
 			string itemURL;
 			auto fileWriter = pushSymbol(initializer.name.text, first, itemURL);
 			scope(exit) popSymbol(fileWriter);
-
-			writer.writeBreadcrumbs(fileWriter, stack);
 
 			string type = writeAliasType(fileWriter, initializer.name.text, initializer.type);
 			string summary = writer.readAndWriteComment(fileWriter, ad.comment, prevComments);
@@ -236,8 +232,6 @@ class DocVisitor(Writer) : ASTVisitor
 			auto fileWriter = pushSymbol(dec.name.text, first, itemURL);
 			scope(exit) popSymbol(fileWriter);
 
-			writer.writeBreadcrumbs(fileWriter, stack);
-
 			string summary = writer.readAndWriteComment(fileWriter,
 				dec.comment is null ? vd.comment : dec.comment,
 				prevComments);
@@ -248,8 +242,6 @@ class DocVisitor(Writer) : ASTVisitor
 			string itemURL;
 			auto fileWriter = pushSymbol(ident.text, first, itemURL);
 			scope(exit) popSymbol(fileWriter);
-
-			writer.writeBreadcrumbs(fileWriter, stack);
 
 			string summary = writer.readAndWriteComment(fileWriter, vd.comment, prevComments);
 			// TODO this was hastily updated to get harbored-mod to compile
@@ -334,15 +326,6 @@ private:
 		auto fileWriter = pushSymbol(ad.name.text, first, itemURL);
 		scope(exit) popSymbol(fileWriter);
 
-		if (first)
-		{
-			writer.writeBreadcrumbs(fileWriter, stack);
-		}
-		else
-		{
-			writer.writeSeparator(fileWriter);
-		}
-
 		writer.writeCodeBlock(fileWriter, 
 		{
 			auto formatter = writer.newFormatter(fileWriter);
@@ -393,16 +376,6 @@ private:
 		string itemURL;
 		auto fileWriter = pushSymbol(name, first, itemURL);
 		scope(exit) popSymbol(fileWriter);
-
-		// Stuff above the function doc
-		if (first)
-		{
-			writer.writeBreadcrumbs(fileWriter, stack);
-		}
-		else
-		{
-			writer.writeSeparator(fileWriter);
-		}
 
 		auto formatter = writer.newFormatter(fileWriter);
 		scope(exit) destroy(formatter.sink);
@@ -510,6 +483,11 @@ private:
 		{
 			writer.writeHeader(result, name, writer.moduleNameLength);
 			writer.writeTOC(result, moduleName);
+			writer.writeBreadcrumbs(result, stack);
+		}
+		else
+		{
+			writer.writeSeparator(result);
 		}
 		return result;
 	}
