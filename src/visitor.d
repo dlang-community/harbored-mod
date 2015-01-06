@@ -121,8 +121,7 @@ class DocVisitor(Writer) : ASTVisitor
 
 		mod.accept(this);
 
-		memberStack[$ - 1].write(fileWriter);
-
+		memberStack.back.write(fileWriter);
 		fileWriter.put(HTML_END);
 		fileWriter.put("\n");
 		popMemberFiles();
@@ -149,7 +148,7 @@ class DocVisitor(Writer) : ASTVisitor
 		// No interest in detailed docs for an enum member.
 		string summary = writer.readAndWriteComment(dummy, member.comment,
 			prevComments, null, getUnittestDocTuple(member));
-		memberStack[$ - 1].values ~= Item("#", member.name.text, summary);
+		memberStack.back.values ~= Item("#", member.name.text, summary);
 	}
 
 	override void visit(const ClassDeclaration cd)
@@ -307,15 +306,15 @@ class DocVisitor(Writer) : ASTVisitor
 
 	override void visit(const Declaration dec)
 	{
-		attributes[$ - 1] ~= dec.attributes;
+		attributes.back ~= dec.attributes;
 		dec.accept(this);
 		if (dec.attributeDeclaration is null)
-			attributes[$ - 1] = attributes[$ - 1][0 .. $ - dec.attributes.length];
+			attributes.back = attributes.back[0 .. $ - dec.attributes.length];
 	}
 
 	override void visit(const AttributeDeclaration dec)
 	{
-		attributes[$ - 1] ~= dec.attribute;
+		attributes.back ~= dec.attribute;
 	}
 
 	override void visit(const Constructor cons)
@@ -381,7 +380,8 @@ private:
 		prevComments.length = prevComments.length + 1;
 		ad.accept(this);
 		prevComments.popBack();
-		memberStack[$ - 1].write(fileWriter);
+
+		memberStack.back.write(fileWriter);
 	}
 
 	/**
@@ -485,7 +485,7 @@ private:
 		// The function may have nested functions/classes/etc, so at the very
 		// least we need to close their files, and once public/private works even
 		// document them.
-		memberStack[$ - 1].write(fileWriter);
+		memberStack.back.write(fileWriter);
 		prevComments.popBack();
 	}
 
