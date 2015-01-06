@@ -45,9 +45,8 @@ class DocVisitor(Writer) : ASTVisitor
 	}
 
 	/**
-	 * Same as visit(const Module), but only determines the file (location) of the
-	 * documentation, link to that file and module name, without actually writing the
-	 * documentation.
+	 * Determines the file (location) of the documentation for a module, link to that
+	 * file and module name, without actually writing the documentation.
 	 *
 	 * Returns: true if the module location was successfully determined, false if
 	 *          there is no module declaration or the module is excluded from
@@ -77,16 +76,16 @@ class DocVisitor(Writer) : ASTVisitor
 		}
 
 		baseLength = stack.length;
-		moduleFileBase = stack.buildPath;
-		link = moduleFileBase ~ ".html";
 
 
-		const moduleFileBaseAbs = config.outputDirectory.buildPath(moduleFileBase);
-		if (!exists(moduleFileBaseAbs))
-			moduleFileBaseAbs.mkdirRecurse();
-		const outputName = moduleFileBaseAbs ~ ".html";
+			moduleFileBase = stack.buildPath;
+			link = moduleFileBase ~ ".html";
 
-		location = outputName;
+
+			const moduleFileBaseAbs = config.outputDirectory.buildPath(moduleFileBase);
+			if (!exists(moduleFileBaseAbs))
+				moduleFileBaseAbs.mkdirRecurse();
+
 		moduleName = to!string(stack.join("."));
 
 		return true;
@@ -99,7 +98,7 @@ class DocVisitor(Writer) : ASTVisitor
 			return;
 		}
 
-		File output = File(location, "w");
+		File output = File(config.outputDirectory.buildPath(moduleFileBase) ~ ".html", "w");
 		scope(exit) output.close();
 
 		auto fileWriter = output.lockingTextWriter;
@@ -335,9 +334,6 @@ class DocVisitor(Writer) : ASTVisitor
 
 	/// The module name in "package.package.module" format.
 	string moduleName;
-
-	/// The path to the HTML file that was generated for the module being processed.
-	string location;
 
 	/// Path to the HTML file relative to the output directory.
 	string link;
