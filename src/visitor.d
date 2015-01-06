@@ -208,20 +208,17 @@ class DocVisitor(Writer) : ASTVisitor
 		if (ad.comment is null)
 			return;
 		bool first;
-		if (ad.identifierList !is null)
+		if (ad.identifierList !is null) foreach (name; ad.identifierList.identifiers)
 		{
-			foreach (name; ad.identifierList.identifiers)
-			{
-				string link;
-				auto fileWriter = pushSymbol(name.text, first, link);
-				scope(exit) popSymbol(fileWriter);
+			string link;
+			auto fileWriter = pushSymbol(name.text, first, link);
+			scope(exit) popSymbol(fileWriter);
 
-				writer.writeBreadcrumbs(fileWriter, baseLength, stack);
+			writer.writeBreadcrumbs(fileWriter, baseLength, stack);
 
-				string type = writeAliasType(fileWriter, name.text, ad.type);
-				string summary = writer.readAndWriteComment(fileWriter, ad.comment, prevComments);
-				memberStack[$ - 2].aliases ~= Item(link, name.text, summary, type);
-			}
+			string type = writeAliasType(fileWriter, name.text, ad.type);
+			string summary = writer.readAndWriteComment(fileWriter, ad.comment, prevComments);
+			memberStack[$ - 2].aliases ~= Item(link, name.text, summary, type);
 		}
 		else foreach (initializer; ad.initializers)
 		{
@@ -368,8 +365,8 @@ private:
 
 		writer.writeCodeBlock(fileWriter, 
 		{
-			auto formatter = new HarboredFormatter!(File.LockingTextWriter)(fileWriter);
-			scope(exit) formatter.sink = File.LockingTextWriter.init;
+			auto formatter = new HarboredFormatter!(typeof(fileWriter))(fileWriter);
+			scope(exit) destroy(formatter.sink);
 			assert(attributes.length > 0,
 				"Attributes stack must not be empty when writing aggregate attributes");
 			writer.writeAttributes(fileWriter, formatter, attributes.back);
@@ -427,10 +424,11 @@ private:
 		}
 
 		auto formatter = new HarboredFormatter!(typeof(fileWriter))(fileWriter);
-		scope(exit) formatter.sink = File.LockingTextWriter.init;
+		scope(exit) destroy(formatter.sink);
 
 		// Write the function signature.
-		writer.writeCodeBlock(fileWriter, 
+		writer.writeCodeBlock(fileWriter,
+
 		{
 			assert(attributes.length > 0,
 				"Attributes stack must not be empty when writing function attributes");
