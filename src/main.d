@@ -164,8 +164,8 @@ void generateDocumentation(ref const(Config) config, string[string] macros)
 		auto fileWriter = index.lockingTextWriter;
 		auto html = new HTMLWriter(config, macros, search, tocItems, tocAdditional);
 		html.writeHeader(fileWriter, "Index", 0);
-		html.writeTOC(fileWriter);
 		html.writeBreadcrumbs(fileWriter, "Main Page");
+		html.writeTOC(fileWriter);
 
 		if (config.indexFileName !is null)
 		{

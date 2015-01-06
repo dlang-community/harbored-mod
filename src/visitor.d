@@ -98,8 +98,8 @@ class DocVisitor(Writer) : ASTVisitor
 		scope(exit) { writer.popSymbol(); }
 
 		writer.writeHeader(fileWriter, moduleName, stack.length - 1);
-		writer.writeTOC(fileWriter, moduleName);
 		writer.writeBreadcrumbs(fileWriter, stack);
+		writer.writeTOC(fileWriter, moduleName);
 
 		prevComments.length = 1;
 
@@ -482,8 +482,8 @@ private:
 		if(first)
 		{
 			writer.writeHeader(result, name, writer.moduleNameLength);
-			writer.writeTOC(result, moduleName);
 			writer.writeBreadcrumbs(result, stack);
+			writer.writeTOC(result, moduleName);
 		}
 		else
 		{

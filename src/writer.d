@@ -117,6 +117,9 @@ class HTMLWriter
 
 	/** Writes the table of contents to provided range.
 	 *
+	 * Also starts the "content" <div>; must be called after writeBreadcrumbs(), 
+	 * before writing main content.
+	 *
 	 * Params:
 	 *
 	 * dst        = Range to write to.
@@ -138,12 +141,10 @@ class HTMLWriter
 			t.write(dst, moduleName);
 		put(`</ul>`);
 		put(`</div>`);
+		put(`<div class="content">`);
 	}
 
 	/** Writes navigation breadcrumbs to the given range.
-	 *
-	 * Also starts the "content" <div>; must be called after writeTOC(), before writing
-	 * main content.
 	 *
 	 * Params:
 	 *
@@ -159,7 +160,6 @@ class HTMLWriter
 		put(`<input type="search" id="search" placeholder="Search" onkeyup="searchSubmit(this.value, event)"/>`);
 		put(heading);
 		put(`</div>`);
-		put(`<div class="content">`);
 	}
 
 	/** Writes navigation breadcrumbs for a symbol's documentation file.
