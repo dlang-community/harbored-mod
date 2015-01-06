@@ -8,7 +8,6 @@ module visitor;
 
 import config;
 import ddoc.comments;
-import formatter;
 import item;
 import std.algorithm;
 import std.array: appender, empty, array, popBack, back;
@@ -346,7 +345,7 @@ private:
 
 		writer.writeCodeBlock(fileWriter, 
 		{
-			auto formatter = new HarboredFormatter!(typeof(fileWriter))(fileWriter);
+			auto formatter = writer.newFormatter(fileWriter);
 			scope(exit) destroy(formatter.sink);
 			assert(attributeStack.length > 0,
 				"Attributes stack must not be empty when writing aggregate attributes");
@@ -405,7 +404,7 @@ private:
 			writer.writeSeparator(fileWriter);
 		}
 
-		auto formatter = new HarboredFormatter!(typeof(fileWriter))(fileWriter);
+		auto formatter = writer.newFormatter(fileWriter);
 		scope(exit) destroy(formatter.sink);
 
 		// Write the function signature.

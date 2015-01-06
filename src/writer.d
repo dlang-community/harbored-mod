@@ -397,12 +397,18 @@ class HTMLWriter
 
 	/** Formats an AST node to a string.
 	 */
-	static string formatNode(T)(const T t)
+	string formatNode(T)(const T t) const
 	{
 		auto writer = appender!string();
-		auto formatter = new HarboredFormatter!(typeof(writer))(writer);
+		auto formatter = newFormatter(writer);
+		scope(exit) destroy(formatter.sink);
 		formatter.format(t);
 		return writer.data;
+	}
+
+	auto newFormatter(R)(ref R dst) const
+	{
+		return new HarboredFormatter!R(dst);
 	}
 
 	auto pushSymbol(string[] symbolStack, ref bool first, ref string itemURL)
