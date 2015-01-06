@@ -481,6 +481,11 @@ private:
 		memberStack[$ - 2].functions ~= fnItem;
 		prevComments.length = prevComments.length + 1;
 		fn.accept(this);
+
+		// The function may have nested functions/classes/etc, so at the very
+		// least we need to close their files, and once public/private works even
+		// document them.
+		memberStack[$ - 1].write(fileWriter);
 		prevComments.popBack();
 	}
 
@@ -555,6 +560,8 @@ private:
 			dst.put("\n");
 		}
 		stack.popBack();
+		assert(memberStack[$ - 1].overloadFiles.length == 0,
+		       "Files left open before popping symbol");
 		memberStack.popBack();
 	}
 
@@ -731,6 +738,8 @@ struct Members
 			f.writeln(HTML_END);
 			f.close();
 		}
+		destroy(overloadFiles);
+		assert(overloadFiles.length == 0, "Just checking");
 	}
 
 private:
