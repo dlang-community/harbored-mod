@@ -354,7 +354,7 @@ private:
 
 		string link;
 		auto fileWriter = pushSymbol(ad.name.text, first, link);
-		scope(exit) popSymbol(fileWriter, Yes.overloadable);
+		scope(exit) popSymbol(fileWriter);
 
 		if (first)
 		{
@@ -413,7 +413,7 @@ private:
 		bool first;
 		string fileRelative;
 		auto fileWriter = pushSymbol(name, first, fileRelative);
-		scope(exit) popSymbol(fileWriter, Yes.overloadable);
+		scope(exit) popSymbol(fileWriter);
 
 		// Stuff above the function doc
 		if (first)
@@ -551,17 +551,8 @@ private:
 			return p.lockingTextWriter;
 	}
 
-	void popSymbol(R)(ref R dst, Flag!"overloadable" overloadable = No.overloadable)
+	void popSymbol(R)(ref R dst)
 	{
-		// If a symbol overloadable, it may still have some more overloads to
-		// write in the current file so don't end it yet (it will be ended when 
-		// the file is popped off file stack)
-		if(!overloadable)
-		{
-			dst.put(HTML_END);
-			dst.put("\n");
-		}
-		
 		stack.popBack();
 
 		memberStack.popBack();
