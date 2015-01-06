@@ -523,15 +523,9 @@ private:
 		writer.popSymbol();
 	}
 
-	void pushAttributes()
-	{
-		attributeStack.length = attributeStack.length + 1;
-	}
+	void pushAttributes() { attributeStack.length = attributeStack.length + 1; }
 
-	void popAttributes()
-	{
-		attributeStack.popBack();
-	}
+	void popAttributes() { attributeStack.popBack(); }
 
 
 	/// The module name in "package.package.module" format.
