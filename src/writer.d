@@ -367,6 +367,16 @@ class HTMLWriter
 		dst.put("\n");
 	}
 
+
+	/** Write a separator (e.g. between two overloads of a function)
+	 *
+	 * In HTMLWriter this is a horizontal line.
+	 */
+	void writeSeparator(R)(ref R dst)
+	{
+		dst.put("<hr/>");
+	}
+
 	import item;
 	/** Write a table of items of specified category.
 	 *

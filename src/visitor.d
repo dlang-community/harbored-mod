@@ -341,7 +341,7 @@ private:
 		}
 		else
 		{
-			fileWriter.put("<hr/>");
+			writer.writeSeparator(fileWriter);
 		}
 
 		writer.writeCodeBlock(fileWriter, 
@@ -402,7 +402,7 @@ private:
 		}
 		else
 		{
-			fileWriter.put("<hr/>");
+			writer.writeSeparator(fileWriter);
 		}
 
 		auto formatter = new HarboredFormatter!(typeof(fileWriter))(fileWriter);
