@@ -52,7 +52,7 @@ class DocVisitor(Writer) : ASTVisitor
 	 *          there is no module declaration or the module is excluded from
 	 *          generated documentation by the user.
 	 */
-	bool moduleInitLocation(const Module mod)
+	bool moduleInitLocation(const Module mod, out string outLink, out string outModuleName)
 	{
 		import std.range : chain, iota, join, only;
 		import std.file : mkdirRecurse;
@@ -79,21 +79,22 @@ class DocVisitor(Writer) : ASTVisitor
 
 
 			moduleFileBase = stack.buildPath;
-			link = moduleFileBase ~ ".html";
+			link = outLink = moduleFileBase ~ ".html";
 
 
 			const moduleFileBaseAbs = config.outputDirectory.buildPath(moduleFileBase);
 			if (!exists(moduleFileBaseAbs))
 				moduleFileBaseAbs.mkdirRecurse();
 
-		moduleName = to!string(stack.join("."));
+		moduleName = outModuleName = stack.join(".").to!string;
 
 		return true;
 	}
 
 	override void visit(const Module mod)
 	{
-		if(!moduleInitLocation(mod))
+		string dummy;
+		if(!moduleInitLocation(mod, dummy, dummy))
 		{
 			return;
 		}

@@ -253,9 +253,7 @@ void getDocumentationLink(ref const Config config, string modulePath,
 	Module m = parseModule(tokens, modulePath, null, &doNothing);
 	
 	auto visitor = new DocVisitor!HTMLWriter(config, null, fileBytes, null);
-	visitor.moduleInitLocation(m);
-	moduleName = visitor.moduleName;
-	link = visitor.link;
+	visitor.moduleInitLocation(m, link, moduleName);
 }
 
 string[] getFilesToProcess(string[] paths)
