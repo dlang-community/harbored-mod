@@ -347,6 +347,22 @@ class DocVisitor(Writer) : ASTVisitor
 	alias visit = ASTVisitor.visit;
 
 private:
+	/// Get the current protection attribute.
+	IdType currentProtection()
+	out(result)
+	{
+		assert([tok!"private", tok!"package", tok!"protected", tok!"public"].canFind(result),
+		       "Unknown protection attribute");
+	}
+	body
+	{
+		foreach(a; attributeStack.back.filter!(a => a.attribute.type.isProtection))
+		{
+			return a.attribute.type;
+		}
+		return tok!"public";
+	}
+
 	void visitAggregateDeclaration(string formattingCode, string name, A)(const A ad)
 	{
 		bool first;
