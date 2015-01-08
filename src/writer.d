@@ -380,7 +380,8 @@ class HTMLWriter
 	 */
 	void writeSection(R)(ref R dst, void delegate() sectionCode, string extraStyles = "")
 	{
-		dst.put(`<div class="section%s">`.format(extraStyles));
+		dst.put(`<div class="section%s">`
+		        .format(extraStyles is null ? "" : " " ~ extraStyles));
 		sectionCode();
 		dst.put("\n</div>\n");
 	}
@@ -520,7 +521,7 @@ private:
 			const isNote = section.name == "Note";
 			string extraClasses;
 
-			if(isNote) { extraClasses ~= " note"; }
+			if(isNote) { extraClasses ~= "note"; }
 
 			writeSection(dst, 
 			{
