@@ -19,6 +19,7 @@ import std.stdio;
 
 import config;
 import macros;
+import symboldatabase;
 import tocbuilder;
 import unittest_preprocessor;
 import visitor;
@@ -113,7 +114,8 @@ void generateDocumentation(ref const(Config) config, string[string] macros)
 	search.writeln(`"use strict";`);
 	search.writeln(`var items = [`);
 
-	string[] moduleNames;
+	auto database = new SymbolDatabase;
+
 	string[string] moduleNameToDocPath;
 
 	writeln("Collecting data for table of contents");
@@ -134,12 +136,12 @@ void generateDocumentation(ref const(Config) config, string[string] macros)
 
 		if (moduleName != "")
 		{
-			moduleNames ~= moduleName;
+			database.moduleNames ~= moduleName;
 			moduleNameToDocPath[moduleName] = link;
 		}
 	}
 
-	TocItem[] tocItems = buildTree(moduleNames, moduleNameToDocPath);
+	TocItem[] tocItems = buildTree(database.moduleNames, moduleNameToDocPath);
 
 	string tocAdditional = config.tocAdditionalFileName is null 
 	                     ? null : readText(config.tocAdditionalFileName);
@@ -187,7 +189,7 @@ void generateDocumentation(ref const(Config) config, string[string] macros)
 		writeln("Generating documentation for ", f);
 		try
 		{
-			writeDocumentation(config, f, search, tocItems, macros, tocAdditional);
+			writeDocumentation(config, database, f, search, tocItems, macros, tocAdditional);
 		}
 		catch (Exception e)
 		{
@@ -217,8 +219,8 @@ string getCSS(string customCSS)
 }
 
 /// Creates documentation for the module at the given path
-void writeDocumentation(ref const Config config, string path, File search, TocItem[] tocItems,
-	string[string] macros, string tocAdditional)
+void writeDocumentation(ref const Config config, SymbolDatabase database, string path,
+	File search, TocItem[] tocItems, string[string] macros, string tocAdditional)
 {
 	LexerConfig lexConfig;
 	lexConfig.fileName = path;
@@ -233,7 +235,8 @@ void writeDocumentation(ref const Config config, string path, File search, TocIt
 	TestRange[][size_t] unitTestMapping = getUnittestMap(m);
 	
 	auto htmlWriter  = new HTMLWriter(config, macros, search, tocItems, tocAdditional);
-	auto visitor = new DocVisitor!HTMLWriter(config, unitTestMapping, fileBytes, htmlWriter);
+	auto visitor = new DocVisitor!HTMLWriter(config, database, unitTestMapping, 
+	                                         fileBytes, htmlWriter);
 	visitor.visit(m);
 }
 
@@ -253,7 +256,7 @@ void getDocumentationLink(ref const Config config, string modulePath,
 	Module m = parseModule(tokens, modulePath, null, &doNothing);
 	
 	auto htmlWriter  = new HTMLWriter(config, null, File.init, null, null);
-	auto visitor = new DocVisitor!HTMLWriter(config, null, fileBytes, htmlWriter);
+	auto visitor = new DocVisitor!HTMLWriter(config, null, null, fileBytes, htmlWriter);
 	visitor.moduleInitLocation(m, link, moduleName);
 }
 

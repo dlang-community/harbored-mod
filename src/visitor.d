@@ -6,9 +6,6 @@
  */
 module visitor;
 
-import config;
-import ddoc.comments;
-import item;
 import std.algorithm;
 import std.array: appender, empty, array, popBack, back;
 import std.d.ast;
@@ -18,6 +15,11 @@ import std.path;
 import std.stdio;
 import std.string: format;
 import std.typecons;
+
+import config;
+import ddoc.comments;
+import item;
+import symboldatabase;
 import unittest_preprocessor;
 import writer;
 
@@ -28,19 +30,21 @@ class DocVisitor(Writer) : ASTVisitor
 {
 	/**
 	 * Params:
-	 *     config = Configuration data, including macros and the output directory.
-	 *     unitTestMapping = The mapping of declaration addresses to their
-	 *         documentation unittests
-	 *     fileBytes = The source code of the module as a byte array.
-	 *     writer = Handles writing into generated files.
+	 *
+	 * config          = Configuration data, including macros and the output directory.
+	 * database        = Stores information about modules and symbols for e.g. cross-referencing.
+	 * unitTestMapping = The mapping of declaration addresses to their documentation unittests
+	 * fileBytes       = The source code of the module as a byte array.
+	 * writer          = Handles writing into generated files.
 	 */
-	this(ref const Config config, TestRange[][size_t] unitTestMapping,
-		const(ubyte[]) fileBytes, Writer writer)
+	this(ref const Config config, SymbolDatabase database,
+	     TestRange[][size_t] unitTestMapping, const(ubyte[]) fileBytes, Writer writer)
 	{
-		this.config = &config;
+		this.config          = &config;
+		this.database        = database;
 		this.unitTestMapping = unitTestMapping;
-		this.fileBytes = fileBytes;
-		this.writer = writer;
+		this.fileBytes       = fileBytes;
+		this.writer          = writer;
 	}
 
 	/**
@@ -524,5 +528,7 @@ private:
 	TestRange[][size_t] unitTestMapping;
 	const(ubyte[]) fileBytes;
 	const(Config)* config;
+	/// Information about modules and symbols for e.g. cross-referencing.
+	SymbolDatabase database;
 	Writer writer;
 }
