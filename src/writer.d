@@ -386,6 +386,52 @@ class HTMLWriter
 		dst.put("\n</div>\n");
 	}
 
+	/** Writes an unordered list to range dst, using listCode to write list contents.
+	 *
+	 * Params:
+	 *
+	 * dst      = Range to write to.
+	 * name     = Name of the list, if any. Will be used as heading if specified.
+	 * listCode = Function that will write the list contents.
+	 */
+	void writeList(R)(ref R dst, string name, void delegate() listCode)
+	{
+		if(name !is null) { dst.put(`<h2>%s</h2>`.format(name)); }
+		dst.put(`<ul>`);
+		listCode();
+		dst.put("\n</ul>\n");
+	}
+
+	/** Writes a list item to range dst, using itemCode to write list contents.
+	 *
+	 * Params:
+	 *
+	 * dst      = Range to write to.
+	 * itemCode = Function that will write the item contents.
+	 */
+	void writeListItem(R)(ref R dst, void delegate() itemCode)
+	{
+		dst.put(`<li>`);
+		itemCode();
+		dst.put("</li>");
+	}
+
+	/** Writes a link to range dst, using linkCode to write link text (but not the
+	 * link itself).
+	 *
+	 * Params:
+	 *
+	 * dst      = Range to write to.
+	 * link     = Link (URL) to write.
+	 * linkCode = Function that will write the link text.
+	 */
+	void writeLink(R)(ref R dst, string link, void delegate() linkCode)
+	{
+		dst.put(`<a href="%s">`.format(link));
+		linkCode();
+		dst.put("</a>");
+	}
+
 	/** Write a separator (e.g. between two overloads of a function)
 	 *
 	 * In HTMLWriter this is a horizontal line.
