@@ -45,6 +45,11 @@ class HTMLWriter
 
 	string moduleLink() { return moduleLink_; }
 
+	string moduleLink(string[] moduleNameParts)
+	{
+		return moduleNameParts.buildPath ~ ".html";
+	}
+
 	size_t moduleNameLength() { return moduleNameLength_; }
 
 	/** Prepare for writing documentation for symbols in specified module.
@@ -57,8 +62,8 @@ class HTMLWriter
 	 */
 	void prepareModule(string[] moduleNameParts)
 	{
-		moduleFileBase_  = moduleNameParts.buildPath;
-		moduleLink_      = moduleFileBase_ ~ ".html";
+		moduleFileBase_   = moduleNameParts.buildPath;
+		moduleLink_       = moduleLink(moduleNameParts);
 		moduleNameLength_ = moduleNameParts.length;
 		
 		// Not really absolute, just relative to working, not output, directory
