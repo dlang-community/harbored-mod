@@ -304,7 +304,7 @@ div.content td .extrainfo{
 
 /**** SECTION-SPECIFIC STYLES ****/
 
-div.section.seealso, div.section.note {
+.section.seealso, .section.note, .section.imports {
 	font-size: 75%;
 	line-height: 135%;
 	/* background-color: #F0F0C0; */
@@ -316,7 +316,7 @@ div.section.seealso, div.section.note {
 	margin-bottom: 0.5em;
 }
 
-div.section.seealso h2, div.section.note h2 {
+.section.seealso h2, .section.note h2 {
 	display: block;
 	float: left;
 	margin: 0 0.7em -0.05em 0em;
@@ -324,20 +324,82 @@ div.section.seealso h2, div.section.note h2 {
 	font-size: 1.1em;
 }
 
-div.section.seealso div.seealso-content, div.section.note div.note-content {
+.section.imports h2 {
+	display: inline;
+	margin: 0.5em 0em;
+	padding: 0;
+	font-size: 1.1em;
+}
+
+.section.seealso div.seealso-content, .section.note div.note-content {
 	display: block;
 	margin-left: 6.5em;
 }
 
-div.section.seealso *:first-child, div.section.note *:first-child {
+.section.imports ul {
+	margin: 0;
+	list-style-type: none;
+	padding-left: 1.5em;
+ 
+	-moz-column-count: 4;
+	-moz-column-gap: 20px;
+	-webkit-column-count: 4;
+	-webkit-column-gap: 20px;
+	column-count: 4;
+	column-gap: 20px;
+}
+
+@media only screen and (max-width: 1400px)
+{
+	.section.imports ul {
+		-moz-column-count: 3;
+		-moz-column-gap: 20px;
+		-webkit-column-count: 3;
+		-webkit-column-gap: 20px;
+		column-count: 3;
+		column-gap: 20px;
+	}
+}
+
+@media only screen and (max-width: 1100px)
+{
+	.section.imports ul {
+	-moz-column-count: 2;
+	-moz-column-gap: 13px;
+	-webkit-column-count: 2;
+	-webkit-column-gap: 13px;
+	column-count: 2;
+	column-gap: 13px;
+	}
+}
+
+@media only screen and (max-width: 800px)
+{
+	.section.imports ul {
+		-moz-column-count: 1;
+		-moz-column-gap: 7px;
+		-webkit-column-count: 1;
+		-webkit-column-gap: 7px;
+		column-count: 1;
+		column-gap: 7px;
+	}
+}
+ 
+
+.section.imports ul a {
+	color: #111;
+}
+
+
+.section.seealso *:first-child, .section.note *:first-child {
 	margin-top: 0em;
 }
 
-div.section.seealso ul, div.section.note ul {
+.section.seealso ul, .section.note ul {
 	padding-left: 1.5em;
 }
 
-div.section.seealso *:last-child, div.section.note *:last-child {
+.section.seealso *:last-child, .section.note *:last-child {
 	margin-bottom: 0em;
 }
 
