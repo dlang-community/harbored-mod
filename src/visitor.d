@@ -317,6 +317,33 @@ class DocVisitor(Writer) : ASTVisitor
 		writeFnDocumentation(fd.name.text, fd, attributeStack.back);
 	}
 
+	override void visit(const ImportDeclaration imp)
+	{
+		// public attribute must be specified explicitly for public imports.
+		foreach(attr; attributeStack.back) if(attr.attribute.type == tok!"public")
+		{
+			foreach(i; imp.singleImports)
+			{
+				import std.conv;
+				// Using 'dup' here because of std.algorithm's apparent
+				// inability to work with const arrays. Probably not an
+				// issue (imports are not hugely common), but keep the
+				// possible GC overhead in mind.
+				auto nameParts = i.identifierChain.identifiers
+				                 .dup.map!(t => t.text).array;
+				const name = nameParts.joiner(".").to!string;
+
+				const knownModule = database.moduleNames.canFind(name);
+				const link = knownModule ? writer.moduleLink(nameParts)
+				                         : null;
+				memberStack.back.publicImports ~= 
+					Item(link, name, null, null, imp);
+			}
+			return;
+		}
+		//TODO handle imp.importBindings as well? Need to figure out how it works.
+	}
+
 	alias visit = ASTVisitor.visit;
 
 private:

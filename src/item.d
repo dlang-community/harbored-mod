@@ -36,6 +36,8 @@ struct Members
 	Item[] values;
 	Item[] variables;
 
+	Item[] publicImports;
+
 	/// Write the table of members for a class/struct/module/etc.
 	void write(R, Writer)(ref R dst, Writer writer)
 	{
