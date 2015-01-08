@@ -108,15 +108,17 @@ class DocVisitor(Writer) : ASTVisitor
 		prevComments.length = 1;
 
 		const comment = mod.moduleDeclaration.comment;
+		memberStack.length = 1;
+
+		mod.accept(this);
+
+		memberStack.back.writeImports(fileWriter, writer);
+
 		if (comment !is null)
 		{
 			writer.readAndWriteComment(fileWriter, comment, prevComments,
 				null, getUnittestDocTuple(mod.moduleDeclaration));
 		}
-
-		memberStack.length = 1;
-
-		mod.accept(this);
 
 		memberStack.back.write(fileWriter, writer);
 	}

@@ -38,6 +38,28 @@ struct Members
 
 	Item[] publicImports;
 
+	void writeImports(R, Writer)(ref R dst, Writer writer)
+	{
+		if(publicImports.empty) { return; }
+		writer.writeSection(dst, 
+		{
+			writer.writeList(dst, "Public imports",
+			{
+				foreach(imp; publicImports) writer.writeListItem(dst,
+				{
+					if(imp.url is null)
+					{
+						dst.put(imp.name);
+					}
+					else writer.writeLink(dst, imp.url,
+					{
+						dst.put(imp.name);
+					});
+				});
+			});
+		}, "imports");
+	}
+
 	/// Write the table of members for a class/struct/module/etc.
 	void write(R, Writer)(ref R dst, Writer writer)
 	{
