@@ -201,7 +201,6 @@ class DocVisitor(Writer) : ASTVisitor
 
 	override void visit(const AliasDeclaration ad)
 	{
-		import std.path : dirSeparator;
 		if (ad.comment is null)
 			return;
 		bool first;
@@ -490,11 +489,11 @@ private:
 	}
 
 	/**
-	 * Writes an alias' type to the given file and returns it.
+	 * Writes an alias' type to the given range and returns it.
 	 * Params:
-	 *     f = The file to write to
+	 *     dst  = The range to write to
 	 *     name = the name of the alias
-	 *     t = the aliased type
+	 *     t    = the aliased type
 	 * Returns: A string reperesentation of the given type.
 	 */
 	string writeAliasType(R)(ref R dst, string name, const Type t)
@@ -515,7 +514,7 @@ private:
 	 *
 	 * name    = The symbol's name
 	 * first   = True if this is the first time that pushSymbol has been called for this name.
-	 * itemURL = URL to use in the Item for this symbol.
+	 * itemURL = URL to use in the Item for this symbol will be written here.
 	 *
 	 * Returns: A range to write the symbol's documentation to.
 	 */
