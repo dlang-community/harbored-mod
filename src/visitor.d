@@ -47,52 +47,16 @@ class DocVisitor(Writer) : ASTVisitor
 		this.writer          = writer;
 	}
 
-	/**
-	 * Determines the file (location) of the documentation for a module, link to that
-	 * file and module name, without actually writing the documentation.
-	 *
-	 * Returns: true if the module location was successfully determined, false if
-	 *          there is no module declaration or the module is excluded from
-	 *          generated documentation by the user.
-	 */
-	bool moduleInitLocation(const Module mod, out string outLink, out string outModuleName)
-	{
-		import std.range : chain, iota, join, only;
-		import std.file : mkdirRecurse;
-		import std.conv : to;
-
-		if (mod.moduleDeclaration is null)
-			return false;
-		pushAttributes();
-		stack = cast(string[]) mod.moduleDeclaration.moduleName.identifiers.map!(a => a.text).array;
-
-		foreach(exclude; config.excludes)
-		{
-			// If module name is pkg1.pkg2.mod, we first check
-			// "pkg1", then "pkg1.pkg2", then "pkg1.pkg2.mod"
-			// i.e. we only check for full package/module names.
-			if(iota(stack.length + 1).map!(l => stack[0 .. l].join(".")).canFind(exclude))
-			{
-				writeln("Excluded module ", stack.join("."));
-				return false;
-			}
-		}
-
-		writer.prepareModule(stack);
-
-		outLink = writer.moduleLink;
-		moduleName = outModuleName = stack.join(".").to!string;
-
-		return true;
-	}
-
 	override void visit(const Module mod)
 	{
-		string dummy;
-		if(!moduleInitLocation(mod, dummy, dummy))
-		{
-			return;
-		}
+		import std.conv : to;
+		assert(mod.moduleDeclaration !is null, "DataGatherVisitor should have caught this");
+		pushAttributes();
+		stack = cast(string[]) mod.moduleDeclaration.moduleName.identifiers.map!(a => a.text).array;
+		writer.prepareModule(stack);
+
+		moduleName = stack.join(".").to!string;
+
 		scope(exit) { writer.finishModule(); }
 
 		// The module is the first and only top-level "symbol".

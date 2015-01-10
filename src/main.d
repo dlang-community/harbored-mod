@@ -114,34 +114,11 @@ void generateDocumentation(ref const(Config) config, string[string] macros)
 	search.writeln(`"use strict";`);
 	search.writeln(`var items = [`);
 
-	auto database = new SymbolDatabase;
+	auto database =
+		gatherData(config, new HTMLWriter(config, macros, search, null, null), files);
 
-	string[string] moduleNameToDocPath;
 
-	writeln("Collecting data for table of contents");
-	foreach(modulePath; files)
-	{
-		string moduleName;
-		string link;
-
-		try
-		{
-			getDocumentationLink(config, modulePath, moduleName, link);
-		}
-		catch(Exception e)
-		{
-			stderr.writeln("Could not build a TOC entry for ", modulePath, ": ", e.msg);
-			continue;
-		}
-
-		if (moduleName != "")
-		{
-			database.moduleNames ~= moduleName;
-			moduleNameToDocPath[moduleName] = link;
-		}
-	}
-
-	TocItem[] tocItems = buildTree(database.moduleNames, moduleNameToDocPath);
+	TocItem[] tocItems = buildTree(database.moduleNames, database.moduleNameToLink);
 
 	string tocAdditional = config.tocAdditionalFileName is null 
 	                     ? null : readText(config.tocAdditionalFileName);
@@ -184,7 +161,7 @@ void generateDocumentation(ref const(Config) config, string[string] macros)
 	}
 
 
-	foreach (f; files)
+	foreach (f; database.moduleFiles)
 	{
 		writeln("Generating documentation for ", f);
 		try
@@ -238,26 +215,6 @@ void writeDocumentation(ref const Config config, SymbolDatabase database, string
 	auto visitor = new DocVisitor!HTMLWriter(config, database, unitTestMapping, 
 	                                         fileBytes, htmlWriter);
 	visitor.visit(m);
-}
-
-/// Gets link (in output directory) and module name for documentation of specified module.
-void getDocumentationLink(ref const Config config, string modulePath,
-	ref string moduleName, ref string link)
-{
-	LexerConfig lexConfig;
-	lexConfig.fileName = modulePath;
-	lexConfig.stringBehavior = StringBehavior.source;
-
-	File f = File(modulePath);
-	ubyte[] fileBytes = uninitializedArray!(ubyte[])(to!size_t(f.size));
-	f.rawRead(fileBytes);
-	StringCache cache = StringCache(1024 * 4);
-	auto tokens = getTokensForParser(fileBytes, lexConfig, &cache).array;
-	Module m = parseModule(tokens, modulePath, null, &doNothing);
-	
-	auto htmlWriter  = new HTMLWriter(config, null, File.init, null, null);
-	auto visitor = new DocVisitor!HTMLWriter(config, null, null, fileBytes, htmlWriter);
-	visitor.moduleInitLocation(m, link, moduleName);
 }
 
 string[] getFilesToProcess(string[] paths)
