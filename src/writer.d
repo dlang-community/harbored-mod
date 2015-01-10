@@ -360,13 +360,9 @@ class HTMLWriter
 		string rVal = "";
 		if (c.sections.length && c.sections[0].name == "Summary")
 			rVal = c.sections[0].content;
-		else
+		else foreach (section; c.sections.find!(s => s.name == "Returns"))
 		{
-			foreach (section; c.sections)
-			{
-				if (section.name == "Returns")
-					rVal = "Returns: " ~ section.content;
-			}
+			rVal = "Returns: " ~ section.content;
 		}
 		if (testDocs !is null) foreach (doc; testDocs)
 		{
