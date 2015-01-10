@@ -193,6 +193,174 @@ class DataGatherVisitor(Writer) : ASTVisitor
 		mod.accept(this);
 	}
 
+	/// Gather data about various members ///
+
+	override void visit(const EnumDeclaration ed)
+	{
+		visitAggregateDeclaration!"enums"(ed);
+	}
+
+	// Document all enum members even if they have no doc comments.
+	override void visit(const EnumMember member)
+	{
+		// Link to the enum owning the member (enum members themselves have no
+		// files/detailed explanations).
+		const link = writer.symbolLink(moduleName.split("."), symbolStack);
+		string dummyLink;
+		MembersTree* members = pushSymbol(member.name.text, dummyLink);
+		scope(exit) popSymbol();
+		members.values ~= Item(link, member.name.text, null, null, member);
+	}
+
+	override void visit(const ClassDeclaration cd)
+	{
+		visitAggregateDeclaration!"classes"(cd);
+	}
+
+	override void visit(const TemplateDeclaration td)
+	{
+		visitAggregateDeclaration!"templates"(td);
+	}
+
+	override void visit(const StructDeclaration sd)
+	{
+		visitAggregateDeclaration!"structs"(sd);
+	}
+
+	override void visit(const InterfaceDeclaration id)
+	{
+		visitAggregateDeclaration!"interfaces"(id);
+	}
+
+	override void visit(const AliasDeclaration ad)
+	{
+		if (ad.comment is null)
+			return;
+
+		if (ad.identifierList !is null) foreach (name; ad.identifierList.identifiers)
+		{
+			string itemLink;
+			MembersTree* members = pushSymbol(name.text, itemLink);
+			scope(exit) popSymbol();
+
+			members.aliases ~= Item(itemLink, name.text, null, null, ad);
+		}
+		else foreach (initializer; ad.initializers)
+		{
+			string itemLink;
+			MembersTree* members = pushSymbol(initializer.name.text, itemLink);
+			scope(exit) popSymbol();
+
+			members.aliases ~= Item(itemLink, initializer.name.text, null, null, ad);
+		}
+	}
+
+	override void visit(const VariableDeclaration vd)
+	{
+		foreach (const Declarator dec; vd.declarators)
+		{
+			if (vd.comment is null && dec.comment is null)
+				continue;
+			string itemLink;
+			MembersTree* members = pushSymbol(dec.name.text, itemLink);
+			scope(exit) popSymbol();
+
+			members.variables ~= Item(itemLink, dec.name.text, null, null, dec);
+		}
+		if (vd.comment !is null && vd.autoDeclaration !is null) foreach (ident; vd.autoDeclaration.identifiers)
+		{
+			string itemLink;
+			MembersTree* members = pushSymbol(ident.text, itemLink);
+			scope(exit) popSymbol();
+
+			string[] storageClasses;
+			foreach(stor; vd.storageClasses)
+			{
+				storageClasses ~= str(stor.token.type);
+			}
+			auto i = Item(itemLink, ident.text, null, null);
+			if (storageClasses.canFind("enum"))
+				members.enums ~= i;
+			else
+				members.variables ~= i;
+		}
+	}
+
+	override void visit(const Constructor cons)
+	{
+		if (cons.comment is null)
+			return;
+		visitFunctionDeclaration("this", cons);
+	}
+
+	override void visit(const FunctionDeclaration fd)
+	{
+		if (fd.comment is null)
+			return;
+		visitFunctionDeclaration(fd.name.text, fd);
+	}
+
+
+private:
+	void visitAggregateDeclaration(string name, A)(const A ad)
+	{
+		if (ad.comment is null)
+			return;
+
+		string itemLink;
+		// pushSymbol will push to stack, add tree entry and return MembersTree
+		// containing that entry so we can also add the aggregate to the correct
+		// Item array
+		MembersTree* members = pushSymbol(ad.name.text, itemLink);
+		scope(exit) popSymbol();
+
+		mixin(`members.%s ~= Item(itemLink, ad.name.text, null, null, ad);`.format(name));
+
+		ad.accept(this);
+	}
+
+	void visitFunctionDeclaration(Fn)(string name, Fn fn)
+	{
+		string itemLink;
+		MembersTree* members = pushSymbol(name, itemLink);
+		scope(exit) popSymbol();
+
+		string fdName;
+		static if (__traits(hasMember, typeof(fn), "name"))
+			fdName = fn.name.text;
+		else
+			fdName = "this";
+		auto fnItem = Item(itemLink, fdName, null, null, fn);
+		members.functions ~= fnItem;
+		fn.accept(this);
+	}
+
+	/** Push a symbol to the stack, moving into its scope.
+	 *
+	 * Params:
+	 *
+	 * name     = The symbol's name
+	 * itemLink = URL to use in the Item for this symbol will be written here.
+	 *
+	 * Returns: Tree of the *parent* symbol of the pushed symbol.
+	 */
+	MembersTree* pushSymbol(string name, ref string itemLink)
+	{
+		auto parentStack = symbolStack;
+		symbolStack ~= name;
+		itemLink = writer.symbolLink(moduleName.split("."), symbolStack);
+
+		MembersTree* members = database.getMembers(moduleName, parentStack);
+		if(!(name in members.children)) { members.children[name] = MembersTree.init; }
+		return members;
+	}
+
+	/// Leave scope of a symbol, moving back to its parent.
+	void popSymbol()
+	{
+		symbolStack.popBack();
+	}
+
 	/// Harbored-mod configuration.
 	const(Config)* config;
 	/// Database we're gathering data into.
