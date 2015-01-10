@@ -341,7 +341,7 @@ class DocVisitor(Writer) : ASTVisitor
 				const knownModule = database.moduleNames.canFind(name);
 				const link = knownModule ? writer.moduleLink(nameParts)
 				                         : null;
-				memberStack.back.publicImports ~= 
+				memberStack.back.publicImports ~=
 					Item(link, name, null, null, imp);
 			}
 			return;
@@ -378,7 +378,7 @@ private:
 		auto fileWriter = pushSymbol(ad.name.text, first, itemURL);
 		scope(exit) popSymbol(fileWriter);
 
-		writer.writeCodeBlock(fileWriter, 
+		writer.writeCodeBlock(fileWriter,
 		{
 			auto formatter = writer.newFormatter(fileWriter);
 			scope(exit) destroy(formatter.sink);
