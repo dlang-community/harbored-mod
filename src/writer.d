@@ -41,6 +41,7 @@ class HTMLWriter
 		this.searchIndex   = searchIndex;
 		this.tocItems      = tocItems;
 		this.tocAdditional = tocAdditional;
+		this.processCode   = &processCodeDefault;
 	}
 
 	/** Get a link to the module for which we're currently writing documentation.
@@ -294,8 +295,12 @@ class HTMLWriter
 		foreach(ref section; c.sections) 
 		{
 			import dmarkdown;
+			// We want to enable '***' subheaders and to post-process code
+			// for cross-referencing.
 			auto mdSettings = new MarkdownSettings();
 			mdSettings.flags = MarkdownFlags.alternateSubheaders;
+			mdSettings.processCode = processCode;
+
 			// Ensure param descriptions run through Markdown
 			if(section.name == "Params") foreach(ref kv; section.mapping)
 			{
@@ -351,7 +356,7 @@ class HTMLWriter
 				doc[1].unDecorateComment(docApp);
 				Comment dc = parseComment(docApp.data, macros);
 				writeComment(dst, dc);
-				writeCodeBlock(dst, { dst.put(outdent(doc[0])); } );
+				writeCodeBlock(dst, { dst.put(processCode(outdent(doc[0]))); } );
 			});
 		}
 		return rVal;
@@ -755,6 +760,12 @@ private:
 		}
 		dst.put(`</td><td>%s</td></tr>`.format(item.summary));
 	}
+
+	/// Default processCode function.
+	string processCodeDefault(string str) @safe nothrow { return str; }
+
+	/// Function to process inline code and code blocks with (used for cross-referencing).
+	public string delegate(string) @safe nothrow processCode;
 
 private:
 	const(Config)* config;
