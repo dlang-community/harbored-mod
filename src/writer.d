@@ -421,13 +421,16 @@ class HTMLWriter
 	 *
 	 * Params:
 	 *
-	 * dst      = Range to write to.
-	 * link     = Link (URL) to write.
-	 * linkCode = Function that will write the link text.
+	 * dst         = Range to write to.
+	 * link        = Link (URL) to write.
+	 * linkCode    = Function that will write the link text.
+	 * extraStyles = Extra style classes to use for the link, separated by spaces.
+	 *               May be ignored by non-HTML writers.
 	 */
-	void writeLink(R)(ref R dst, string link, void delegate() linkCode)
+	void writeLink(R)(ref R dst, string link, void delegate() linkCode, string extraStyles = "")
 	{
-		dst.put(`<a href="%s">`.format(link));
+		const styles = extraStyles.empty ? "" : ` class="%s"`.format(extraStyles);
+		dst.put(`<a href="%s"%s>`.format(link, styles));
 		linkCode();
 		dst.put("</a>");
 	}
