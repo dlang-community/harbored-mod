@@ -65,6 +65,27 @@ class HTMLWriter
 		return moduleNameParts.buildPath ~ ".html";
 	}
 
+	/** Get a link to a symbol.
+	 *
+	 * Note: this does not check if the symbol actually exists; calling symbolLink()
+	 * for a nonexistent or undocumented symbol will return a link to a nonexistent
+	 * file.
+	 *
+	 * Params:
+	 *
+	 * moduleNameParts = Name of the module containing the symbols, as an array of
+	 *                   parts (e.g. ["std", "stdio"])
+	 * symbolNameParts = Name of the symbol in the module, as an array of parts.
+	 * 
+	 * Returns: Link to the file with documentation for the symbol.
+	 */
+	string symbolLink(string[] moduleNameParts, string[] symbolNameParts)
+	{
+		if(symbolNameParts.empty) { return moduleLink(moduleNameParts); }
+		import std.string: join;
+		return moduleNameParts.buildPath.buildPath(symbolNameParts.join(".") ~ ".html");
+	}
+
 	size_t moduleNameLength() { return moduleNameLength_; }
 
 	/** Prepare for writing documentation for symbols in specified module.
