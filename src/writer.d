@@ -156,7 +156,7 @@ class HTMLWriter
 	 * dst     = Range (e.g. appender) to write to.
 	 * heading = Page heading (e.g. module name or "Main Page").
 	 */
-	void writeBreadcrumbs(R)(R dst, string heading)
+	void writeBreadcrumbs(R)(ref R dst, string heading)
 	{
 		void put(string str) { dst.put(str); dst.put("\n"); }
 		put(`<div class="breadcrumbs">`);
