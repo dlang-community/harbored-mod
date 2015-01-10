@@ -416,6 +416,13 @@ code {
 	display: block;
 }
 
+code a {
+	color: white;
+	text-decoration: none;
+	border-bottom: 1px dotted #888;
+}
+
+
 /* Markdown inline code */
 code.prettyprint {
 	font-family: monospace;
@@ -425,6 +432,11 @@ code.prettyprint {
 	border: 1px solid #C0C0C0;
 	padding: 0.22em;
 	display: inline;
+}
+
+code.prettyprint a {
+	color: black;
+	border-color: #777;
 }
 
 /*do not affect the first <pre>, which is not in a section*/
