@@ -261,10 +261,12 @@ class HTMLWriter
 		foreach(ref section; c.sections) 
 		{
 			import dmarkdown;
+			auto mdSettings = new MarkdownSettings();
+			mdSettings.flags = MarkdownFlags.alternateSubheaders;
 			// Ensure param descriptions run through Markdown
 			if(section.name == "Params") foreach(ref kv; section.mapping)
 			{
-				kv[1] = filterMarkdown(kv[1], MarkdownFlags.alternateSubheaders);
+				kv[1] = filterMarkdown(kv[1], mdSettings);
 			}
 			// Do not run code examples through markdown.
 			//
@@ -276,8 +278,7 @@ class HTMLWriter
 			// blocks.
 			if(!section.content.canFind("<pre><code>")) 
 			{
-				section.content = filterMarkdown(section.content,
-					MarkdownFlags.alternateSubheaders);
+				section.content = filterMarkdown(section.content, mdSettings);
 			}
 		}
 
