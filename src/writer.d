@@ -226,11 +226,9 @@ class HTMLWriter
 		
 		string link()
 		{
-			assert(moduleNameLength_ <= i + 1, "unexpected value of i");
-			if(moduleNameLength_ == i + 1) { return moduleFileBase_ ~ ".html"; }
-
-			const symbolName = symbolStack[moduleNameLength_ .. i + 1].joiner(".").array;
-			return moduleFileBase_.buildPath(symbolName.to!string ~ ".html");
+			assert(i + 1 >= moduleNameLength_, "unexpected value of i");
+			return symbolLink(symbolStack[0 .. moduleNameLength], 
+			                  symbolStack[moduleNameLength .. i + 1]);
 		}
 
 		// Module
@@ -266,7 +264,6 @@ class HTMLWriter
 		heading ~= symbolStack[i];
 		heading ~= `</span>`;
 	}
-
 
 	/** Writes a doc comment to the given range and returns the summary text.
 	 *
