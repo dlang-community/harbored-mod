@@ -161,7 +161,8 @@ class HTMLWriter
 		void put(string str) { dst.put(str); dst.put("\n"); }
 		put(`<div class="breadcrumbs">`);
 		put(`<table id="results"></table>`);
-		put(`<a class="home" href=index.html>⌂</a>`);
+
+		writeLink(dst, "index.html", { dst.put("⌂"); }, "home");
 		put(`<input type="search" id="search" placeholder="Search" onkeyup="searchSubmit(this.value, event)"/>`);
 		put(heading);
 		put(`</div>`);
