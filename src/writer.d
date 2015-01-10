@@ -43,8 +43,23 @@ class HTMLWriter
 		this.tocAdditional = tocAdditional;
 	}
 
+	/** Get a link to the module for which we're currently writing documentation.
+	 *
+	 * See_Also: `prepareModule`
+	 */
 	string moduleLink() { return moduleLink_; }
 
+	/** Get a link to a module.
+	 *
+	 * Note: this does not check if the module actually exists; calling moduleLink()
+	 * for a nonexistent or undocumented module will return a link to a nonexistent
+	 * file.
+	 *
+	 * Params:
+	 *
+	 * moduleNameParts = Name of the module containing the symbols, as an array of
+	 *                   parts (e.g. ["std", "stdio"])
+	 */
 	string moduleLink(string[] moduleNameParts)
 	{
 		return moduleNameParts.buildPath ~ ".html";
