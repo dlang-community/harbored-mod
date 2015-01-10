@@ -36,10 +36,10 @@ class HTMLWriter
 	this(ref const Config config, string[string] macros, File searchIndex,
 	     TocItem[] tocItems, string tocAdditional)
 	{
-		this.config = &config;
-		this.macros = macros;
-		this.searchIndex = searchIndex;
-		this.tocItems = tocItems;
+		this.config        = &config;
+		this.macros        = macros;
+		this.searchIndex   = searchIndex;
+		this.tocItems      = tocItems;
 		this.tocAdditional = tocAdditional;
 	}
 
