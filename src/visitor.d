@@ -138,8 +138,12 @@ class DocVisitor(Writer) : ASTVisitor
 
 	override void visit(const EnumMember member)
 	{
+		// Document all enum members even if they have no doc comments.
 		if (member.comment is null)
+		{
+			memberStack.back.values ~= Item("#", member.name.text, "");
 			return;
+		}
 		auto dummy = appender!string();
 		// No interest in detailed docs for an enum member.
 		string summary = writer.readAndWriteComment(dummy, member.comment,
