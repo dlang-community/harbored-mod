@@ -635,7 +635,7 @@ private:
 			dst.put(`<h2>Contracts</h2>`);
 			writeCodeBlock(dst, 
 			{
-				auto formatter = new HarboredFormatter!R(dst);
+				auto formatter = newFormatter(dst);
 				scope(exit) formatter.sink = R.init;
 				if (inStatement !is null)
 				{
@@ -665,7 +665,7 @@ private:
 			string formatAttrib(T)(T attr)
 			{
 				auto writer = appender!(char[])();
-				auto formatter = new HarboredFormatter!(typeof(writer))(writer);
+				auto formatter = newFormatter(writer);
 				formatter.format(attr);
 				auto str = writer.data.idup;
 				writer.clear();
