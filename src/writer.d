@@ -141,10 +141,10 @@ class HTMLWriter
 			put(tocAdditional);
 			put(`</div>`);
 		}
-		put(`<ul>`);
-		foreach (t; tocItems)
-			t.write(dst, moduleName);
-		put(`</ul>`);
+		writeList(dst, null,
+		{
+			foreach (t; tocItems) { t.write(dst, moduleName); }
+		});
 		put(`</div>`);
 		put(`<div class="content">`);
 	}
