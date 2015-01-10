@@ -504,7 +504,7 @@ class HTMLWriter
 
 	/** Formats an AST node to a string.
 	 */
-	string formatNode(T)(const T t) const
+	string formatNode(T)(const T t)
 	{
 		auto writer = appender!string();
 		auto formatter = newFormatter(writer);
@@ -513,7 +513,7 @@ class HTMLWriter
 		return writer.data;
 	}
 
-	auto newFormatter(R)(ref R dst) const
+	auto newFormatter(R)(ref R dst)
 	{
 		return new HarboredFormatter!R(dst);
 	}
