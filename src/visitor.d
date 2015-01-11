@@ -7,7 +7,7 @@
 module visitor;
 
 import std.algorithm;
-import std.array: appender, empty, array, popBack, back;
+import std.array: appender, empty, array, popBack, back, popFront, front;
 import std.d.ast;
 import std.d.lexer;
 import std.file;
@@ -45,6 +45,8 @@ class DocVisitor(Writer) : ASTVisitor
 		this.unitTestMapping = unitTestMapping;
 		this.fileBytes       = fileBytes;
 		this.writer          = writer;
+
+		this.writer.processCode = &crossReference;
 	}
 
 	override void visit(const Module mod)
@@ -475,6 +477,101 @@ private:
 			dst.put(formatted);
 		});
 		return formatted;
+	}
+
+
+	/** Generate links from symbols in input to files documenting those symbols.
+	 *
+	 * Note: The current implementation is far from perfect. It doesn't try to parse
+	 * input; it just searches for alphanumeric words and patterns like
+	 * "alnumword.otheralnumword" and asks SymbolDatabase to find a reference to them.
+	 *
+	 * TODO: Improve this by trying to parse input as D code first, only falling back
+	 * to current implementation if the parsing fails. Parsing would only be used to
+	 * correctly detect names, but must not reformat any code from input.
+	 *
+	 * Params:
+	 *
+	 * input = String to find symbols in.
+	 *
+	 * Returns:
+	 *
+	 * string with symbols replaced by links (links' format depends on Writer).
+	 */
+	string crossReference(string input) @trusted nothrow
+	{
+		import std.ascii;
+		bool isNameCharacter(dchar c)
+		{
+			char c8 = cast(char)c;
+			return c8 == c && (c8.isAlphaNum || "_.".canFind(c8));
+		}
+
+		auto app = appender!string();
+		dchar prevC = '\0';
+		dchar c;
+
+		// Scan a symbol name. When done, both c and input.front will be set to
+		// the first character after the name.
+		string scanName()
+		{
+			auto scanApp = appender!string();
+			while(!input.empty)
+			{
+				c = input.front;
+				if(!isNameCharacter(c) && isNameCharacter(prevC)) { break; }
+
+				scanApp.put(c);
+				prevC = c;
+				input.popFront();
+			}
+			return scanApp.data;
+		}
+
+		// There should be no UTF decoding errors as we validate text when loading
+		// with std.file.readText().
+		try while(!input.empty)
+		{
+			c = input.front;
+			if(isNameCharacter(c) && !isNameCharacter(prevC))
+			{
+				string name = scanName();
+
+				auto link = database.crossReference(writer, stack, name);
+				size_t partIdx = 0;
+
+				if(link !is null) writer.writeLink(app, link, { app.put(name); });
+				// Attempt to cross-reference individual parts of the name
+				// (e.g. "variable.method" will not match anything if
+				// "variable" is a local variable "method" by itself may
+				// still match something)
+				else foreach(part; name.splitter("."))
+				{
+					if(partIdx++ > 0) { app.put("."); }
+
+					link = database.crossReference(writer, stack, part);
+					if(link !is null) writer.writeLink(app, link, { app.put(part); });
+					else { app.put(part); }
+				}
+			}
+
+			if(input.empty) { break; }
+
+			// Even if scanName was called above, c is the first character
+			// *after* scanName.
+			app.put(c);
+			prevC = c;
+			// Must check again because scanName might have exhausted the input.
+			input.popFront();
+		}
+		catch(Exception e)
+		{
+			import std.exception: assumeWontThrow;
+			writeln("Unexpected exception when cross-referencing: ", e.msg)
+				.assumeWontThrow;
+		}
+
+		return app.data;
 	}
 
 	/**
