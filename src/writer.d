@@ -534,7 +534,7 @@ class HTMLWriter
 
 	auto newFormatter(R)(ref R dst)
 	{
-		return new HarboredFormatter!R(dst);
+		return new HarboredFormatter!R(dst, processCode);
 	}
 
 	auto pushSymbol(string[] symbolStack, ref bool first, ref string itemURL)
