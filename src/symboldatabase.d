@@ -63,6 +63,201 @@ class SymbolDatabase
 
 	//TODO if all the AAs are too slow, try RedBlackTree before completely overhauling
 
+	/** Get a link to documentation of symbol specified by word (if word is a symbol).
+	 *
+	 * Searching for a symbol matching to word is done in 3 stages:
+	 * 1. Assume word starts by a module name (with or without parent packages of the
+	 *    module), look for matching modules, and if any, try to find the symbol there.
+	 * 2. If 1. didn't find anything, assume word refers to a local symbol (parent
+	 *    scope - siblings of the symbol being documented or current scope - children
+	 *    of that symbol).
+	 * 3. If 2. didn't find anything, assume word refers to a symbol in any module;
+	 *    search for a symbol with identical full name (but without the module part)
+	 *    in all modules.
+	 *
+	 * Params:
+	 *
+	 * writer     = Writer used to determine links.
+	 * scopeStack = Scope of the symbol the documentation of which contains word.
+	 * word       = Word to cross-reference.
+	 *
+	 * Returns: link if a matching symbol was found, null otherwise.
+	 */
+	string crossReference(Writer)(Writer writer, string[] scopeStack, string word)
+	{
+		string result;
+		// Don't cross-reference nonsense
+		if(word.splitter(".").empty || word.endsWith(".")) { return null; }
+
+		// Search for a nested child with specified name stack in a members tree.
+		// If found, return true and rewrite the members tree pointer. The
+		// optional deleg argument can be used to execute code in each iteration.
+		//
+		// (e.g. for "File.writeln" nameStack would be ["File", "writeln"] and 
+		// this would look for members.children["File"].children["writeln"])
+		bool findNested(Parts)(ref MembersTree* m, Parts nameStack,
+		                       void delegate(size_t partIdx, MembersTree* members) deleg = null)
+		{
+			auto members = m;
+			size_t partIdx;
+			foreach(part; nameStack)
+			{
+				if(!(part in members.children)) { return false; }
+				members = part in members.children; 
+				if(deleg) { deleg(partIdx++, members); }
+			}
+			m = members;
+			return true;
+		}
+
+		// If module name is "tharsis.util.traits", this first checks if
+		// word starts with("tharsis.util.traits"), then "util.traits" and
+		// then "traits".
+		bool startsWithPartOf(Splitter)(Splitter wParts, Splitter mParts)
+		{
+			while(!mParts.empty)
+			{
+				if(wParts.startsWith(mParts)) { return true; }
+				mParts.popFront;
+			}
+
+			return false;
+		}
+
+		// Search for the symbol in specified module, return true if found.
+		bool searchInModule(string modName)
+		{
+			// Parts of the symbol name within the module.
+			string wordLocal = word;
+			// Remove the part of module name the word starts with.
+			wordLocal.skipOver(".");
+			foreach(part; modName.splitter(".")) if(wordLocal.startsWith(part))
+			{
+				wordLocal.skipOver(part);
+				wordLocal.skipOver(".");
+			}
+
+			MembersTree* members = modName in modules;
+			assert(members !is null, "Can't search in a nonexistent module");
+
+			auto parts = wordLocal.split(".");
+			if(!findNested(members, parts)) { return false; }
+			result = writer.symbolLink(modName.split("."), parts);
+			return true;
+		}
+
+		// Search for a matching symbol assuming word starts by (part of) the name
+		// of the module containing the symbol.
+		bool searchAssumingExplicitModule(ref string result)
+		{
+			auto parts = word.splitter(".");
+			// Avoid e.g. "typecons" automatically referencing to std.typecons;
+			// at least 2 parts must be specified (e.g. "std.typecons" or
+			// "typecons.Tuple" but not just "typecons" or "Tuple" ("Tuple"
+			// would still be found by searchInModulesTopLevel))
+			if(parts.walkLength <= 1) { return false; }
+
+			// Start by assuming fully qualified name.
+			// If word is fully prefixed by modName, it almost certainly refers
+			// to that module (unless there is a module the name of which
+			// *ends* with same string in another package and the word refers
+			// to a symbol in *that* module. To handle that very unlikely case,
+			// we don't return false if we fail to find the symbol in the module)
+			foreach(modName; modules.byKey) if(parts.startsWith(modName.splitter(".")))
+			{
+				if(searchInModule(modName)) { return true; }
+			}
+			// If not fully qualified name, assume the name is prefixed at
+			// least by a part of a module name. If it is, look in that module.
+			foreach(modName; modules.byKey) if(startsWithPartOf(parts, modName.splitter(".")))
+			{
+				if(searchInModule(modName)) { return true; }
+			}
+
+			return false;
+		}
+
+		// Search for a matching symbol in the local scope (scopeStack) - children
+		// of documented symbol and its parent scope - siblings of the symbol.
+		bool searchLocal(ref string result)
+		{
+			MembersTree* membersScope;
+			MembersTree* membersParent;
+			string thisModule;
+
+			// For a fully qualified name, we need module name (thisModule),
+			// scope containing the symbol (scopeLocal for current scope,
+			// scopeLocal[0 .. $ - 1] for parent scope) *and* symbol name in
+			// the scope.
+			string[] scopeLocal;
+
+			// Find the module with the local scope.
+			foreach(modName; modules.byKey) if(scopeStack.startsWith(modName.splitter(".")))
+			{
+				thisModule = modName;
+
+				scopeLocal = scopeStack;
+				scopeLocal.skipOver(modName.splitter("."));
+
+				MembersTree* members = &modules[modName];
+				void saveScopes(size_t depth, MembersTree* members)
+				{
+					const maxDepth = scopeLocal.length;
+					if(depth == maxDepth - 1)      { membersScope = members; }
+					else if(depth == maxDepth - 2) { membersParent = members; }
+				}
+				if(findNested(members, scopeLocal, &saveScopes))
+				{
+					break;
+				}
+			}
+
+			// Search for the symbol specified by word in a members tree.
+			// This assumes word directly names a member of the tree.
+			bool searchMembers(string[] scope_, MembersTree* members)
+			{
+				auto parts = word.split(".");
+				if(!findNested(members, parts)) { return false; }
+				result = writer.symbolLink(thisModule.split("."), scope_ ~ parts);
+				return true;
+			}
+
+
+			if(membersScope && searchMembers(scopeLocal, membersScope))
+			{
+				return true;
+			}
+			if(membersParent && searchMembers(scopeLocal[0 .. $ - 1], membersParent))
+			{
+				return true;
+			}
+
+			return false;
+		}
+
+		// Search for a matching symbol in top-level scopes of all modules. For a
+		// non-top-level sumbol to match, it must be prefixed by a top-level symbol,
+		// e.g. "Array.clear" instead of just "clear"
+		bool searchInModulesTopLevel(ref string result)
+		{
+			auto parts = word.splitter(".");
+			// Search in top-level scopes of each module.
+			foreach(moduleName, ref MembersTree membersRef; modules)
+			{
+				MembersTree* members = &membersRef;
+				if(!findNested(members, parts)) { continue; }
+
+				result = writer.symbolLink(moduleName.split("."), parts.array);
+				return true;
+			}
+			return false;
+		}
+
+		if(searchAssumingExplicitModule(result)) { return result; }
+		if(searchLocal(result))                  { return result; }
+		if(searchInModulesTopLevel(result))      { return result; }
+		return null;
+	}
 
 private:
 	/// Member trees of all modules, indexed by module names.
