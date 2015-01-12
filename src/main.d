@@ -70,10 +70,12 @@ int main(string[] args)
 
 	if (config.doGenerateCSSPath !is null)
 	{
+		writefln("Generating CSS file '%s'", config.doGenerateCSSPath);
 		return writeProtected(config.doGenerateCSSPath, stylecss, "CSS");
 	}
 	if(config.doGenerateConfig)
 	{
+		writefln("Generating config file '%s'", defaultConfigPath);
 		return writeProtected(defaultConfigPath, defaultConfigString, "config");
 	}
 
