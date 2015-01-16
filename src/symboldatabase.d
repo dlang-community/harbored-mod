@@ -283,6 +283,113 @@ class SymbolDatabase
 		return null;
 	}
 
+	/** Get a range describing a symbol with specified name.
+	 *
+	 * Params:
+	 *
+	 * moduleStack = Module name stack (module name split by ".").
+	 * symbolStack = Symbol name stack (symbol name in the module split by ".").
+	 *
+	 * Returns: An InputRange describing the fully qualified symbol name.
+	 *          Every item of the range will be a struct describing a part of the
+	 *          name, with `string name` and `SymbolType type` members.
+	 *          E.g. for `"std.stdio.File"` the range items would be 
+	 *          `{name: "std", type: Package}, {name: "stdio", type: Module},
+	 *          {name: "File", type: Class}`.
+	 * 
+	 * Note: If the symbol does not exist, the returned range will only contain 
+	 *       items for parent symbols that do exist (e.g. if moduleStack is
+	 *       ["std", "stdio"], symbolStack is ["noSuchThing"]), the symbolStack
+	 *       will describe the "std" package and "stdio" module, but will contain
+	 *       no entry for "noSuchThing".
+	 * 
+	 */
+	auto symbolStack(S1, S2)(S1 moduleStack, S2 symbolStack)
+	{
+		assert(!moduleStack.empty,
+		       "Can't get a symbol stack with no module stack");
+		
+		struct SymbolStack 
+		{
+		private:
+			SymbolDatabase database;
+			S1 moduleStack;
+			S2 symbolStack;
+
+			MembersTree* currentSymbol;
+			string moduleName;
+
+			this(SymbolDatabase db, S1 modStack, S2 symStack)
+			{
+				database    = db;
+				moduleStack = modStack;
+				symbolStack = symStack;
+				delve(false);
+			}
+		public:
+			auto front()
+			{
+				assert(!empty, "Can't get front of an empty range");
+				struct Result 
+				{
+					string name;
+					alias name this;
+					SymbolType type;
+				}
+				return Result(moduleStack.empty ? symbolStack.front : moduleStack.front,
+				              currentSymbol.type);
+			}
+			
+			void popFront()
+			{
+				assert(!empty, "Can't pop front of an empty range");
+				if(!moduleStack.empty) 
+				{
+					moduleStack.popFront(); 
+					delve(moduleStack.empty);
+				}
+				else
+				{
+					symbolStack.popFront(); 
+					delve(false);
+				}
+			}
+			
+			bool empty()
+			{
+				return currentSymbol is null;
+			}
+
+			void delve(bool justFinishedModule)
+			{
+				if(!moduleStack.empty) with(database)
+				{
+					if(!moduleName.empty) { moduleName ~= "."; }
+					moduleName ~= moduleStack.front;
+					currentSymbol = currentSymbol is null
+					              ? (moduleStack.front in modulesTree.children)
+					              : (moduleStack.front in currentSymbol.children);
+					return;
+				}
+				if(!symbolStack.empty)
+				{
+					if(justFinishedModule) with(database)
+					{
+						currentSymbol = moduleName in modules;
+						assert(currentSymbol !is null,
+						       "A module that's in moduleTree "
+						       "must be in modules too");
+					}
+					currentSymbol = symbolStack.front in currentSymbol.children;
+					return;
+				}
+				currentSymbol = null;
+			}
+		}
+
+		return SymbolStack(this, moduleStack, symbolStack);
+	}
+
 private:
 	/** Pre-compute any data structures needed for fast cross-referencing.
 	 *
