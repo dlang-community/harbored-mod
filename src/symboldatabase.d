@@ -39,6 +39,7 @@ SymbolDatabase gatherData(Writer)(ref const(Config) config, Writer writer, strin
 	{
 		gatherModuleData(config, database, writer, modulePath);
 	}
+	database.preCache();
 
 	return database;
 }
@@ -88,6 +89,18 @@ class SymbolDatabase
 		string result;
 		// Don't cross-reference nonsense
 		if(word.splitter(".").empty || word.endsWith(".")) { return null; }
+
+		/// Does a module with specified name exists?
+		bool moduleExists(string moduleName)
+		{
+			MembersTree* node = &modulesTree;
+			foreach(part; moduleName.splitter("."))
+			{
+				node = part in node.children;
+				if(node is null) { return false; }
+			}
+			return node.type == SymbolType.Module;
+		}
 
 		// Search for a nested child with specified name stack in a members tree.
 		// If found, return true and rewrite the members tree pointer. The
@@ -260,8 +273,36 @@ class SymbolDatabase
 	}
 
 private:
+	/** Pre-compute any data structures needed for fast cross-referencing.
+	 *
+	 * Currently used for modulesTree, which allows quick decisions on whether a
+	 * module exists.
+	 */
+	void preCache()
+	{
+		foreach(name; modules.byKey)
+		{
+			auto parts = name.splitter(".");
+			MembersTree* node = &modulesTree;
+			foreach(part; parts)
+			{
+				MembersTree* child = part in node.children;
+				if(child is null) 
+				{
+					node.children[part] = MembersTree.init;
+					child = part in node.children;
+				}
+				node = child;
+			}
+			node.type = SymbolType.Module;
+		}
+	}
+
 	/// Member trees of all modules, indexed by module names.
 	MembersTree[string] modules;
+
+	/// Allows to quickly determine whether a module exists. Built by preCache.
+	MembersTree modulesTree;
 
 	/// Get members of symbol with specified name stack in specified module.
 	MembersTree* getMembers(string moduleName, string[] symbolStack)
@@ -277,6 +318,16 @@ private:
 
 private:
 
+/// Enumberates types of symbols in the symbol database.
+enum SymbolType: ubyte
+{
+	/// A 'don't care' value for when symbol types are not needed/used.
+	Any,
+	/// A module.
+	Module
+}
+
+
 // Reusing Members here is a very quick hack, and we may need something better than a
 // tree of AA's if generating docs for big projects is too slow.
 /// Recursive tree of all members of a symbol.
@@ -285,6 +336,8 @@ struct MembersTree
 
 	/// Members of children of this tree node.
 	MembersTree[string] children;
+	/// Type of this symbol, if specified. SymbolType.Any otherwise.
+	SymbolType type = SymbolType.Any;
 }
 
 
@@ -381,6 +434,8 @@ class DataGatherVisitor(Writer) : ASTVisitor
 		database.moduleFiles ~= fileName;
 		database.moduleNameToLink[moduleName] = writer.moduleLink(stack);
 		database.modules[moduleName] = MembersTree.init;
+
+		database.modules[moduleName].type = SymbolType.Module;
 
 		mod.accept(this);
 	}
