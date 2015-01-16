@@ -282,9 +282,6 @@ private:
 /// Recursive tree of all members of a symbol.
 struct MembersTree
 {
-	/// Members of this tree node (e.g. module or class).
-	Members members;
-	alias members this;
 
 	/// Members of children of this tree node.
 	MembersTree[string] children;
@@ -404,7 +401,6 @@ class DataGatherVisitor(Writer) : ASTVisitor
 		string dummyLink;
 		MembersTree* members = pushSymbol(member.name.text, dummyLink);
 		scope(exit) popSymbol();
-		members.values ~= Item(link, member.name.text, null, null, member);
 	}
 
 	override void visit(const ClassDeclaration cd)
@@ -437,16 +433,12 @@ class DataGatherVisitor(Writer) : ASTVisitor
 			string itemLink;
 			MembersTree* members = pushSymbol(name.text, itemLink);
 			scope(exit) popSymbol();
-
-			members.aliases ~= Item(itemLink, name.text, null, null, ad);
 		}
 		else foreach (initializer; ad.initializers)
 		{
 			string itemLink;
 			MembersTree* members = pushSymbol(initializer.name.text, itemLink);
 			scope(exit) popSymbol();
-
-			members.aliases ~= Item(itemLink, initializer.name.text, null, null, ad);
 		}
 	}
 
@@ -459,8 +451,6 @@ class DataGatherVisitor(Writer) : ASTVisitor
 			string itemLink;
 			MembersTree* members = pushSymbol(dec.name.text, itemLink);
 			scope(exit) popSymbol();
-
-			members.variables ~= Item(itemLink, dec.name.text, null, null, dec);
 		}
 		if (vd.comment !is null && vd.autoDeclaration !is null) foreach (ident; vd.autoDeclaration.identifiers)
 		{
@@ -473,11 +463,6 @@ class DataGatherVisitor(Writer) : ASTVisitor
 			{
 				storageClasses ~= str(stor.token.type);
 			}
-			auto i = Item(itemLink, ident.text, null, null);
-			if (storageClasses.canFind("enum"))
-				members.enums ~= i;
-			else
-				members.variables ~= i;
 		}
 	}
 
@@ -516,8 +501,6 @@ private:
 		MembersTree* members = pushSymbol(ad.name.text, itemLink);
 		scope(exit) popSymbol();
 
-		mixin(`members.%s ~= Item(itemLink, ad.name.text, null, null, ad);`.format(name));
-
 		ad.accept(this);
 	}
 
@@ -532,8 +515,6 @@ private:
 			fdName = fn.name.text;
 		else
 			fdName = "this";
-		auto fnItem = Item(itemLink, fdName, null, null, fn);
-		members.functions ~= fnItem;
 		fn.accept(this);
 	}
 
@@ -553,7 +534,10 @@ private:
 		itemLink = writer.symbolLink(moduleName.split("."), symbolStack);
 
 		MembersTree* members = database.getMembers(moduleName, parentStack);
-		if(!(name in members.children)) { members.children[name] = MembersTree.init; }
+		if(!(name in members.children)) 
+		{
+			members.children[name] = MembersTree.init;
+		}
 		return members;
 	}
 
