@@ -171,7 +171,13 @@ class HTMLWriter
 	void writeTOC(R)(ref R dst, string moduleName = "")
 	{
 		void put(string str) { dst.put(str); dst.put("\n"); }
-		put(`<div class="toc">`);
+		import std.string;
+		const link = moduleName ? moduleLink(moduleName.split(".")) : "";
+		put(`<div class="sidebar">`);
+		// Links allowing to show/hide the TOC.
+		put(`<a href="%s#hide-toc" class="hide" id="hide-toc">&#171;</a>`.format(link));
+		put(`<a href="%s#show-toc" class="show" id="show-toc">&#187;</a>`.format(link));
+		put(`<div id="toc-id" class="toc">`);
 		if(tocAdditional !is null)
 		{
 			put(`<div class="toc-additional">`);
@@ -190,6 +196,7 @@ class HTMLWriter
 			foreach (t; tocItems) { t.write(scopeBuf, moduleName); }
 			dst.put(scopeBuf[]);
 		});
+		put(`</div>`);
 		put(`</div>`);
 		put(`<div class="content">`);
 	}

@@ -111,7 +111,15 @@ div.breadcrumbs input {
 }
 
 
-/**** TABLE OF CONTENTS ****/
+/**** SIDEBAR, TABLE OF CONTENTS ****/
+
+div.sidebar {
+	float: left;
+	margin-right: -1px;
+	border-right: 1px solid #D0D0D0;
+	background-color: #F8F8F0;
+}
+
 
 div.toc {
 	float: left;
@@ -120,7 +128,9 @@ div.toc {
 	border-right: 1px solid #D0D0D0;
 	font-size: 0.72em;
 	line-height: 1.3em;
+	display:block; 
 }
+
 @media only screen and (max-width: 800px)
 {
 	div.toc {
@@ -129,6 +139,43 @@ div.toc {
 		line-height: 1.7em;
 	}
 }
+
+.hide, .show {
+	display: block;
+	float: right;
+	border-right: 1px solid #D0D0D0;
+	border-bottom: 1px solid #D0D0D0;
+	border-left: 1px solid #D0D0D0;
+	/* to avoid having double border */
+	margin-right: -1px;
+	font-size: 1.1em;
+	padding: 0 0.6em;
+}
+a.hide, a.show {
+	color: #111; 
+	text-decoration: none;
+}
+.hide {
+	background-color: #F8F8F8;
+	border-bottom-left-radius:3px;
+	border-right: 1px solid #F8F8F8;
+}
+.show {
+	background-color: #F8F8F0;
+	border-bottom-right-radius:3px;
+	display: none; 
+}
+.hide:target + .show {
+	display: inline; 
+	position: absolute;
+}
+.hide:target {
+	display: none; 
+}
+.hide:target ~ .toc {
+	display:none; 
+}
+
 
 div.toc .toc-additional {
 	border-bottom: 1px dashed #333;
