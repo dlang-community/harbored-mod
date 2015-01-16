@@ -171,15 +171,23 @@ class SymbolDatabase
 			if(parts.walkLength <= 1) { return false; }
 
 			// Start by assuming fully qualified name.
-			// If word is fully prefixed by modName, it almost certainly refers
-			// to that module (unless there is a module the name of which
+			// If word is fully prefixed by a module name, it almost certainly
+			// refers to that module (unless there is a module the name of which
 			// *ends* with same string in another package and the word refers
 			// to a symbol in *that* module. To handle that very unlikely case,
 			// we don't return false if we fail to find the symbol in the module)
-			foreach(modName; modules.byKey) if(parts.startsWith(modName.splitter(".")))
+			string prefix;
+			foreach(part; parts)
 			{
-				if(searchInModule(modName)) { return true; }
+				prefix ~= part;
+				// Use searchInModule for speed.
+				if(moduleExists(prefix) && searchInModule(prefix))
+				{
+					return true;
+				}
+				prefix ~= ".";
 			}
+
 			// If not fully qualified name, assume the name is prefixed at
 			// least by a part of a module name. If it is, look in that module.
 			foreach(modName; modules.byKey) if(startsWithPartOf(parts, modName.splitter(".")))
@@ -204,15 +212,18 @@ class SymbolDatabase
 			// the scope.
 			string[] scopeLocal;
 
-			// Find the module with the local scope.
-			foreach(modName; modules.byKey) if(scopeStack.startsWith(modName.splitter(".")))
+			string prefix;
+			foreach(part; scopeStack)
 			{
-				thisModule = modName;
+				prefix ~= part;
+				scope(exit) { prefix ~= "."; }
+				if(!moduleExists(prefix)) { continue; }
+				thisModule = prefix;
 
 				scopeLocal = scopeStack;
-				scopeLocal.skipOver(modName.splitter("."));
+				scopeLocal.skipOver(thisModule.splitter("."));
 
-				MembersTree* members = &modules[modName];
+				MembersTree* members = &modules[thisModule];
 				void saveScopes(size_t depth, MembersTree* members)
 				{
 					const maxDepth = scopeLocal.length;
@@ -253,14 +264,14 @@ class SymbolDatabase
 		// e.g. "Array.clear" instead of just "clear"
 		bool searchInModulesTopLevel(ref string result)
 		{
-			auto parts = word.splitter(".");
+			auto parts = word.split(".");
 			// Search in top-level scopes of each module.
 			foreach(moduleName, ref MembersTree membersRef; modules)
 			{
 				MembersTree* members = &membersRef;
 				if(!findNested(members, parts)) { continue; }
 
-				result = writer.symbolLink(moduleName.split("."), parts.array);
+				result = writer.symbolLink(moduleName.split("."), parts);
 				return true;
 			}
 			return false;
