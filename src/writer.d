@@ -20,7 +20,6 @@ import std.string: format;
 import std.typecons;
 import tocbuilder: TocItem;
 
-
 class HTMLWriter
 {
 	/** Construct a HTMLWriter.
@@ -102,7 +101,7 @@ class HTMLWriter
 		moduleFileBase_   = moduleNameParts.buildPath;
 		moduleLink_       = moduleLink(moduleNameParts);
 		moduleNameLength_ = moduleNameParts.length;
-		
+
 		// Not really absolute, just relative to working, not output, directory
 		const moduleFileBaseAbs = config.outputDirectory.buildPath(moduleFileBase_);
 		if (!moduleFileBaseAbs.exists)
@@ -159,7 +158,7 @@ class HTMLWriter
 
 	/** Writes the table of contents to provided range.
 	 *
-	 * Also starts the "content" <div>; must be called after writeBreadcrumbs(), 
+	 * Also starts the "content" <div>; must be called after writeBreadcrumbs(),
 	 * before writing main content.
 	 *
 	 * Params:
@@ -233,13 +232,13 @@ class HTMLWriter
 		import std.conv : to;
 		import std.range : chain, only;
 		import std.string: format;
-		
+
 		string heading;
 		scope(exit) { writeBreadcrumbs(dst, heading); }
 
 		assert(moduleNameLength_ <= symbolStack.length, "stack shallower than the current module?");
 		size_t i;
-		
+
 		string link()
 		{
 			assert(i + 1 >= moduleNameLength_, "unexpected value of i");
@@ -326,7 +325,7 @@ class HTMLWriter
 		}
 
 		// Run sections through markdown.
-		foreach(ref section; c.sections) 
+		foreach(ref section; c.sections)
 		{
 			import dmarkdown;
 			// We want to enable '***' subheaders and to post-process code
@@ -348,7 +347,7 @@ class HTMLWriter
 			//
 			// Alternatively, dmarkdown could be changed to ignore <pre>/<code>
 			// blocks.
-			if(!section.content.canFind("<pre><code>")) 
+			if(!section.content.canFind("<pre><code>"))
 			{
 				section.content = filterMarkdown(section.content, mdSettings);
 			}
@@ -365,8 +364,8 @@ class HTMLWriter
 			else
 				prevComments[$ - 1] = c;
 		}
-		
-		
+
+
 		writeComment(dst, c, functionBody);
 
 		// Shortcut to write text followed by newline
@@ -589,7 +588,7 @@ class HTMLWriter
 
 	void popSymbol()
 	{
-		auto files = memberFileStack.back; 
+		auto files = memberFileStack.back;
 		foreach (f; files)
 		{
 			f.writeln(HTML_END);
@@ -601,14 +600,14 @@ class HTMLWriter
 
 private:
 	/** Add an entry for JavaScript search for the symbol with specified name stack.
-	 * 
+	 *
 	 * symbolStack = Name stack of the current symbol, including module name parts.
 	 */
 	void addSearchEntry(string[] symbolStack)
 	{
 		import std.path: buildPath;
 		import std.conv: to;
-		
+
 		const symbol = symbolStack.joiner(".").array;
 		const symbolInModule = symbolStack[moduleNameLength_ .. $].joiner(".").array;
 		const fileName = moduleFileBase_.buildPath(symbolInModule.to!string) ~ ".html";
@@ -646,7 +645,7 @@ private:
 
 			if(isNote) { extraClasses ~= "note"; }
 
-			writeSection(dst, 
+			writeSection(dst,
 			{
 				if (section.name != "Summary" && section.name != "Description")
 				{
@@ -703,10 +702,10 @@ private:
 	{
 		if (inStatement is null && outStatement is null)
 			return;
-		writeSection(dst, 
+		writeSection(dst,
 		{
 			dst.put(`<h2>Contracts</h2>`);
-			writeCodeBlock(dst, 
+			writeCodeBlock(dst,
 			{
 				auto formatter = newFormatter(dst);
 				scope(exit) formatter.sink = R.init;
@@ -727,7 +726,7 @@ private:
 		dst.put(`<tr><td>`);
 		void writeName()
 		{
-			dst.put(item.url == "#" 
+			dst.put(item.url == "#"
 				? item.name : `<a href="%s">%s</a>`.format(item.url, item.name));
 		}
 
@@ -815,7 +814,7 @@ private:
 	 * documentation file, memberFileStack[1] doc pages of the module's child classes,
 	 * etc; memberFileStack.back contains the doc page currently being written.
 	 *
-	 * When popSymbol() is called, all doc page files of that symbol's members are 
+	 * When popSymbol() is called, all doc page files of that symbol's members are
 	 * closed (they must be kept open until then to ensure overloads are put into the
 	 * same file).
 	 */
