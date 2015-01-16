@@ -297,6 +297,7 @@ private:
 			MembersTree* node = &modulesTree;
 			foreach(part; parts)
 			{
+				node.type = SymbolType.Package;
 				MembersTree* child = part in node.children;
 				if(child is null) 
 				{
@@ -305,6 +306,7 @@ private:
 				}
 				node = child;
 			}
+			// The leaf nodes of the module tree are packages.
 			node.type = SymbolType.Module;
 		}
 	}
@@ -327,17 +329,35 @@ private:
 	}
 }
 
-private:
 
 /// Enumberates types of symbols in the symbol database.
 enum SymbolType: ubyte
 {
-	/// A 'don't care' value for when symbol types are not needed/used.
-	Any,
+	/// A package with no module file (package.d would be considered a module).
+	Package,
 	/// A module.
-	Module
+	Module,
+	/// An alias.
+	Alias,
+	/// An enum.
+	Enum,
+	/// A class.
+	Class,
+	/// A struct.
+	Struct,
+	/// An interface.
+	Interface,
+	/// A function (including e.g. constructors).
+	Function,
+	/// A template (not a template function/template class/etc).
+	Template,
+	/// Only used for enum members at the moment.
+	Value,
+	/// A variable member.
+	Variable
 }
 
+private:
 
 // Reusing Members here is a very quick hack, and we may need something better than a
 // tree of AA's if generating docs for big projects is too slow.
@@ -347,8 +367,9 @@ struct MembersTree
 
 	/// Members of children of this tree node.
 	MembersTree[string] children;
-	/// Type of this symbol, if specified. SymbolType.Any otherwise.
-	SymbolType type = SymbolType.Any;
+
+	/// Type of this symbol.
+	SymbolType type;
 }
 
 
@@ -455,7 +476,7 @@ class DataGatherVisitor(Writer) : ASTVisitor
 
 	override void visit(const EnumDeclaration ed)
 	{
-		visitAggregateDeclaration!"enums"(ed);
+		visitAggregateDeclaration!(SymbolType.Enum)(ed);
 	}
 
 	// Document all enum members even if they have no doc comments.
@@ -463,30 +484,28 @@ class DataGatherVisitor(Writer) : ASTVisitor
 	{
 		// Link to the enum owning the member (enum members themselves have no
 		// files/detailed explanations).
-		const link = writer.symbolLink(moduleName.split("."), symbolStack);
-		string dummyLink;
-		MembersTree* members = pushSymbol(member.name.text, dummyLink);
+		MembersTree* members = pushSymbol(member.name.text, SymbolType.Value);
 		scope(exit) popSymbol();
 	}
 
 	override void visit(const ClassDeclaration cd)
 	{
-		visitAggregateDeclaration!"classes"(cd);
+		visitAggregateDeclaration!(SymbolType.Class)(cd);
 	}
 
 	override void visit(const TemplateDeclaration td)
 	{
-		visitAggregateDeclaration!"templates"(td);
+		visitAggregateDeclaration!(SymbolType.Template)(td);
 	}
 
 	override void visit(const StructDeclaration sd)
 	{
-		visitAggregateDeclaration!"structs"(sd);
+		visitAggregateDeclaration!(SymbolType.Struct)(sd);
 	}
 
 	override void visit(const InterfaceDeclaration id)
 	{
-		visitAggregateDeclaration!"interfaces"(id);
+		visitAggregateDeclaration!(SymbolType.Interface)(id);
 	}
 
 	override void visit(const AliasDeclaration ad)
@@ -496,14 +515,12 @@ class DataGatherVisitor(Writer) : ASTVisitor
 
 		if (ad.identifierList !is null) foreach (name; ad.identifierList.identifiers)
 		{
-			string itemLink;
-			MembersTree* members = pushSymbol(name.text, itemLink);
+			MembersTree* members = pushSymbol(name.text, SymbolType.Alias);
 			scope(exit) popSymbol();
 		}
 		else foreach (initializer; ad.initializers)
 		{
-			string itemLink;
-			MembersTree* members = pushSymbol(initializer.name.text, itemLink);
+			MembersTree* members = pushSymbol(initializer.name.text, SymbolType.Alias);
 			scope(exit) popSymbol();
 		}
 	}
@@ -514,14 +531,12 @@ class DataGatherVisitor(Writer) : ASTVisitor
 		{
 			if (vd.comment is null && dec.comment is null)
 				continue;
-			string itemLink;
-			MembersTree* members = pushSymbol(dec.name.text, itemLink);
+			MembersTree* members = pushSymbol(dec.name.text, SymbolType.Variable);
 			scope(exit) popSymbol();
 		}
 		if (vd.comment !is null && vd.autoDeclaration !is null) foreach (ident; vd.autoDeclaration.identifiers)
 		{
-			string itemLink;
-			MembersTree* members = pushSymbol(ident.text, itemLink);
+			MembersTree* members = pushSymbol(ident.text, SymbolType.Variable);
 			scope(exit) popSymbol();
 
 			string[] storageClasses;
@@ -555,16 +570,15 @@ class DataGatherVisitor(Writer) : ASTVisitor
 	override void visit(const InExpression inExpression) {}
 
 private:
-	void visitAggregateDeclaration(string name, A)(const A ad)
+	void visitAggregateDeclaration(SymbolType type, A)(const A ad)
 	{
 		if (ad.comment is null)
 			return;
 
-		string itemLink;
 		// pushSymbol will push to stack, add tree entry and return MembersTree
 		// containing that entry so we can also add the aggregate to the correct
 		// Item array
-		MembersTree* members = pushSymbol(ad.name.text, itemLink);
+		MembersTree* members = pushSymbol(ad.name.text, type);
 		scope(exit) popSymbol();
 
 		ad.accept(this);
@@ -572,8 +586,7 @@ private:
 
 	void visitFunctionDeclaration(Fn)(string name, Fn fn)
 	{
-		string itemLink;
-		MembersTree* members = pushSymbol(name, itemLink);
+		MembersTree* members = pushSymbol(name, SymbolType.Function);
 		scope(exit) popSymbol();
 
 		string fdName;
@@ -588,21 +601,21 @@ private:
 	 *
 	 * Params:
 	 *
-	 * name     = The symbol's name
-	 * itemLink = URL to use in the Item for this symbol will be written here.
+	 * name = The symbol's name
+	 * type = Type of the symbol.
 	 *
 	 * Returns: Tree of the *parent* symbol of the pushed symbol.
 	 */
-	MembersTree* pushSymbol(string name, ref string itemLink)
+	MembersTree* pushSymbol(string name, SymbolType type)
 	{
 		auto parentStack = symbolStack;
 		symbolStack ~= name;
-		itemLink = writer.symbolLink(moduleName.split("."), symbolStack);
 
 		MembersTree* members = database.getMembers(moduleName, parentStack);
 		if(!(name in members.children)) 
 		{
 			members.children[name] = MembersTree.init;
+			members.children[name].type = type;
 		}
 		return members;
 	}
