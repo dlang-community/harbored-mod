@@ -68,23 +68,53 @@ class HTMLWriter
 	/** Get a link to a symbol.
 	 *
 	 * Note: this does not check if the symbol actually exists; calling symbolLink()
-	 * for a nonexistent or undocumented symbol will return a link to a nonexistent
-	 * file.
+	 * with a SymbolStack of a nonexistent symbol will result in a link to the deepest
+	 * existing parent symbol.
 	 *
 	 * Params:
 	 *
-	 * moduleNameParts = Name of the module containing the symbols, as an array of
-	 *                   parts (e.g. ["std", "stdio"])
-	 * symbolNameParts = Name of the symbol in the module, as an array of parts.
-	 * 
+	 * nameStack = SymbolStack returned by SymbolDatabase.symbolStack(), describing
+	 *             a fully qualified symbol name.
+	 *
 	 * Returns: Link to the file with documentation for the symbol.
 	 */
-	string symbolLink(string[] moduleNameParts, string[] symbolNameParts)
+	string symbolLink(SymbolStack)(auto ref SymbolStack nameStack)
 	{
-		if(symbolNameParts.empty) { return moduleLink(moduleNameParts); }
-		import std.string: join;
-		return moduleNameParts.buildPath.buildPath(symbolNameParts.join(".") ~ ".html");
+		string result;
+		if(!nameStack.empty)
+		{
+			result = nameStack.front;
+			nameStack.popFront();
+		}
+		
+		bool lastWasModule = false;
+		foreach(name; nameStack)
+		{
+			import symboldatabase: SymbolType;
+			final switch(name.type) with(SymbolType)
+			{
+				// A new directory is created for each module
+				case Module, Package:
+					result = result.buildPath(name.name);
+					lastWasModule = true;
+					break;
+				// These symbol types have separate files in a module directory.
+				case Class, Struct, Interface, Enum,
+				     Function, Variable, Alias, Template:
+					result = lastWasModule ? result.buildPath(name.name)
+					                       : result ~ "." ~ name.name;
+					lastWasModule = false;
+					break;
+				// Enum members are documented in their enums.
+				case Value:
+					result = result;
+					break;
+			}
+		}
+
+		return result ~ ".html";
 	}
+
 
 	size_t moduleNameLength() { return moduleNameLength_; }
 
@@ -219,6 +249,7 @@ class HTMLWriter
 		put(`</div>`);
 	}
 
+	import symboldatabase;
 	/** Writes navigation breadcrumbs for a symbol's documentation file.
 	 *
 	 * Params:
@@ -226,7 +257,7 @@ class HTMLWriter
 	 * dst              = Range to write to.
 	 * symbolStack      = Name stack of the current symbol, including module name parts.
 	 */
-	void writeBreadcrumbs(R)(ref R dst, string[] symbolStack)
+	void writeBreadcrumbs(R)(ref R dst, string[] symbolStack, SymbolDatabase database)
 	{
 		import std.array : join;
 		import std.conv : to;
@@ -242,8 +273,9 @@ class HTMLWriter
 		string link()
 		{
 			assert(i + 1 >= moduleNameLength_, "unexpected value of i");
-			return symbolLink(symbolStack[0 .. moduleNameLength], 
-			                  symbolStack[moduleNameLength .. i + 1]);
+			return symbolLink(database.symbolStack(
+			                  symbolStack[0 .. moduleNameLength],
+			                  symbolStack[moduleNameLength .. i + 1]));
 		}
 
 		// Module

@@ -90,6 +90,11 @@ class SymbolDatabase
 		// Don't cross-reference nonsense
 		if(word.splitter(".").empty || word.endsWith(".")) { return null; }
 
+		string symbolLink(S1, S2)(S1 modStack, S2 symStack)
+		{
+			return writer.symbolLink(symbolStack(modStack, symStack));
+		}
+
 		/// Does a module with specified name exists?
 		bool moduleExists(string moduleName)
 		{
@@ -155,7 +160,7 @@ class SymbolDatabase
 
 			auto parts = wordLocal.split(".");
 			if(!findNested(members, parts)) { return false; }
-			result = writer.symbolLink(modName.split("."), parts);
+			result = symbolLink(modName.split("."), parts);
 			return true;
 		}
 
@@ -242,7 +247,7 @@ class SymbolDatabase
 			{
 				auto parts = word.split(".");
 				if(!findNested(members, parts)) { return false; }
-				result = writer.symbolLink(thisModule.split("."), scope_ ~ parts);
+				result = symbolLink(thisModule.split("."), scope_ ~ parts);
 				return true;
 			}
 
@@ -271,7 +276,7 @@ class SymbolDatabase
 				MembersTree* members = &membersRef;
 				if(!findNested(members, parts)) { continue; }
 
-				result = writer.symbolLink(moduleName.split("."), parts);
+				result = symbolLink(moduleName.split("."), parts);
 				return true;
 			}
 			return false;
