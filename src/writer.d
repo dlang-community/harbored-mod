@@ -180,7 +180,15 @@ class HTMLWriter
 		}
 		writeList(dst, null,
 		{
-			foreach (t; tocItems) { t.write(dst, moduleName); }
+			// Buffering to scopeBuffer to avoid small file writes *and*
+			// allocations
+			import std.internal.scopebuffer;
+			char[1024 * 64] buf;
+			auto scopeBuf = ScopeBuffer!char(buf);
+			scope(exit) { scopeBuf.free(); }
+
+			foreach (t; tocItems) { t.write(scopeBuf, moduleName); }
+			dst.put(scopeBuf[]);
 		});
 		put(`</div>`);
 		put(`<div class="content">`);
