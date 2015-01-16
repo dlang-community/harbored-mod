@@ -315,6 +315,14 @@ class DocVisitor(Writer) : ASTVisitor
 		//TODO handle imp.importBindings as well? Need to figure out how it works.
 	}
 
+	// Optimization: don't allow visit() for these AST nodes to result in visit()
+	// calls for their subnodes. This avoids most of the dynamic cast overhead.
+	override void visit(const AssignExpression assignExpression) {}
+	override void visit(const CmpExpression cmpExpression) {}
+	override void visit(const TernaryExpression ternaryExpression) {}
+	override void visit(const IdentityExpression identityExpression) {}
+	override void visit(const InExpression inExpression) {}
+
 	alias visit = ASTVisitor.visit;
 
 private:

@@ -495,6 +495,13 @@ class DataGatherVisitor(Writer) : ASTVisitor
 		visitFunctionDeclaration(fd.name.text, fd);
 	}
 
+	// Optimization: don't allow visit() for these AST nodes to result in visit()
+	// calls for their subnodes. This avoids most of the dynamic cast overhead.
+	override void visit(const AssignExpression assignExpression) {}
+	override void visit(const CmpExpression cmpExpression) {}
+	override void visit(const TernaryExpression ternaryExpression) {}
+	override void visit(const IdentityExpression identityExpression) {}
+	override void visit(const InExpression inExpression) {}
 
 private:
 	void visitAggregateDeclaration(string name, A)(const A ad)
