@@ -464,6 +464,10 @@ code a {
 	border-bottom: 1px dotted #888;
 }
 
+/* hmod/libddoc errors */
+div.error {
+	color: darkred;
+}
 
 /* Markdown inline code */
 code.prettyprint {
