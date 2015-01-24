@@ -224,12 +224,14 @@ string[] getFilesToProcess(string[] paths)
 	auto files = appender!(string[])();
 	foreach (arg; paths)
 	{
-		if (isDir(arg)) foreach (string fileName; dirEntries(arg, "*.{d,di}", SpanMode.depth))
-			files.put(expandTilde(fileName));
-		else if (isFile(arg))
-			files.put(expandTilde(arg));
+		if(!arg.exists)
+			stderr.writefln("WARNING: '%s' does not exist, ignoring", arg);
+		else if (arg.isDir) foreach (string fileName; arg.dirEntries("*.{d,di}", SpanMode.depth))
+			files.put(fileName.expandTilde);
+		else if (arg.isFile)
+			files.put(arg.expandTilde);
 		else
-			stderr.writeln("Could not open `", arg, "`");
+			stderr.writefln("WARNING: Could not open '%s', ignoring", arg);
 	}
 	return files.data;
 }
