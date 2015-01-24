@@ -28,6 +28,13 @@ import writer;
 
 int main(string[] args)
 {
+	import std.datetime;
+	const startTime = Clock.currStdTime;
+	scope(exit) 
+	{
+		writefln("Time spent: %.3fs", (Clock.currStdTime - startTime) / 10_000_000.0); 
+	}
+
 	Config config;
 	enum defaultConfigPath = "hmod.cfg";
 	config.loadConfigFile(defaultConfigPath);
