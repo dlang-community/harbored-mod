@@ -599,7 +599,7 @@ private:
 			// outside examples. Alternatively, we could look for *multi-line*
 			// <pre>/<code> blocks, or, before parsing comments, for "---" pairs.
 			// Or, dmarkdown could be changed to ignore <pre>/<code> blocks.
-			const isCode = !section.content.canFind("<pre><code>");
+			const isCode = section.content.canFind("<pre><code>");
 			section.content = isCode ? processCodeBlocks(section.content)
 			                         : filterMarkdown(section.content, mdSettings);
 		}
