@@ -330,6 +330,8 @@ class HTMLWriter
 		 const FunctionBody functionBody = null,
 		 Tuple!(string, string)[] testDocs = null)
 	{
+		if(comment.empty) { return null; }
+
 		import core.exception: RangeError;
 		try
 		{
