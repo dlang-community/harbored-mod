@@ -449,6 +449,21 @@ div.content td .extrainfo{
 	margin-bottom: 0em;
 }
 
+/**** FOOTER ****/
+
+footer 
+{
+    text-align: center;
+    font-size: 60%;
+    color: white;
+    background-color: #333;
+}
+
+footer a
+{
+    color: white;
+}
+
 
 
 /**** CODE ****/
