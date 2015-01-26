@@ -540,6 +540,8 @@ class HTMLWriter
 		auto files = memberFileStack.back;
 		foreach (f; files)
 		{
+
+			f.writeln(`<script>hljs.initHighlightingOnLoad();</script>`);
 			f.writeln(HTML_END);
 			f.close();
 		}
@@ -867,14 +869,17 @@ private:
 }
 
 
-private:
 
 enum HTML_END = `
-<script>hljs.initHighlightingOnLoad();</script>
 </div>
+<footer>
+Generated with <a href="https://github.com/kiith-sa/harbored-mod">harbored-mod</a>
+</footer>
 </div>
 </body>
 </html>`;
+
+private:
 
 string prettySectionName(string sectionName)
 {

@@ -165,11 +165,7 @@ void generateDocumentation(ref const(Config) config, string[string] macros)
 			indexFile.rawRead(indexBytes);
 			html.readAndWriteComment(fileWriter, cast(string)indexBytes);
 		}
-		index.writeln(`
-</div>
-</div>
-</body>
-</html>`);
+		index.writeln(HTML_END);
 	}
 
 
