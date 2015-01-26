@@ -129,14 +129,17 @@ void generateDocumentation(ref const(Config) config, string[string] macros)
 
 	TocItem[] tocItems = buildTree(database.moduleNames, database.moduleNameToLink);
 
-	string tocAdditional = config.tocAdditionalFileName is null 
-	                     ? null : readText(config.tocAdditionalFileName);
-	if (config.tocAdditionalFileName !is null)
+	enum noFile = "missing file";
+	string[] tocAdditionals =
+		config.tocAdditionalFileNames.map!(path => path.exists ? readText(path) : noFile)
+		                             .array ~
+		config.tocAdditionalStrings;
+	if(!tocAdditionals.empty) foreach(ref text; tocAdditionals)
 	{
+		auto html = new HTMLWriter(config, macros, search, null, null);
 		auto writer = appender!string();
-		auto html = new HTMLWriter(config, macros, search, tocItems, tocAdditional);
-		html.readAndWriteComment(writer, tocAdditional);
-		tocAdditional = writer.data;
+		html.readAndWriteComment(writer, text);
+		text = writer.data;
 	}
 
 	// Write index.html and style.css
@@ -150,7 +153,7 @@ void generateDocumentation(ref const(Config) config, string[string] macros)
 		File index = File(buildPath(config.outputDirectory, "index.html"), "w");
 
 		auto fileWriter = index.lockingTextWriter;
-		auto html = new HTMLWriter(config, macros, search, tocItems, tocAdditional);
+		auto html = new HTMLWriter(config, macros, search, tocItems, tocAdditionals);
 		html.writeHeader(fileWriter, "Index", 0);
 		html.writeBreadcrumbs(fileWriter, "Main Page");
 		html.writeTOC(fileWriter);
@@ -175,7 +178,7 @@ void generateDocumentation(ref const(Config) config, string[string] macros)
 		writeln("Generating documentation for ", f);
 		try
 		{
-			writeDocumentation(config, database, f, search, tocItems, macros, tocAdditional);
+			writeDocumentation(config, database, f, search, tocItems, macros, tocAdditionals);
 		}
 		catch (Exception e)
 		{
@@ -206,7 +209,7 @@ string getCSS(string customCSS)
 
 /// Creates documentation for the module at the given path
 void writeDocumentation(ref const Config config, SymbolDatabase database, string path,
-	File search, TocItem[] tocItems, string[string] macros, string tocAdditional)
+	File search, TocItem[] tocItems, string[string] macros, string[] tocAdditionals)
 {
 	LexerConfig lexConfig;
 	lexConfig.fileName = path;
@@ -220,7 +223,7 @@ void writeDocumentation(ref const Config config, SymbolDatabase database, string
 	Module m = parseModule(tokens, path, null, &doNothing);
 	TestRange[][size_t] unitTestMapping = getUnittestMap(m);
 	
-	auto htmlWriter  = new HTMLWriter(config, macros, search, tocItems, tocAdditional);
+	auto htmlWriter  = new HTMLWriter(config, macros, search, tocItems, tocAdditionals);
 	auto visitor = new DocVisitor!HTMLWriter(config, database, unitTestMapping, 
 	                                         fileBytes, htmlWriter);
 	visitor.visit(m);

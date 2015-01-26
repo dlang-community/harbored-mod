@@ -26,21 +26,21 @@ class HTMLWriter
 	 *
 	 * Params:
 	 *
-	 * config        = Configuration data, including macros and the output directory.
-	 * macros        = DDoc macro definitions indexed by macro name.
-	 * searchIndex   = A file where the search information will be written
-	 * tocItems      = Items of the table of contents to write into each documentation file.
-	 * tocAdditional = Additional content for the table of contents sidebar.
+	 * config         = Configuration data, including macros and the output directory.
+	 * macros         = DDoc macro definitions indexed by macro name.
+	 * searchIndex    = A file where the search information will be written
+	 * tocItems       = Items of the table of contents to write into each documentation file.
+	 * tocAdditionals = Additional pieces of content for the table of contents sidebar.
 	 */
 	this(ref const Config config, string[string] macros, File searchIndex,
-	     TocItem[] tocItems, string tocAdditional)
+	     TocItem[] tocItems, string[] tocAdditionals)
 	{
-		this.config        = &config;
-		this.macros        = macros;
-		this.searchIndex   = searchIndex;
-		this.tocItems      = tocItems;
-		this.tocAdditional = tocAdditional;
-		this.processCode   = &processCodeDefault;
+		this.config         = &config;
+		this.macros         = macros;
+		this.searchIndex    = searchIndex;
+		this.tocItems       = tocItems;
+		this.tocAdditionals = tocAdditionals;
+		this.processCode    = &processCodeDefault;
 	}
 
 	/** Get a link to the module for which we're currently writing documentation.
@@ -207,10 +207,11 @@ class HTMLWriter
 		put(`<a href="%s#hide-toc" class="hide" id="hide-toc">&#171;</a>`.format(link));
 		put(`<a href="%s#show-toc" class="show" id="show-toc">&#187;</a>`.format(link));
 		put(`<div id="toc-id" class="toc">`);
-		if(tocAdditional !is null)
+		import std.range: retro;
+		foreach(text; tocAdditionals.retro)
 		{
 			put(`<div class="toc-additional">`);
-			put(tocAdditional);
+			put(text);
 			put(`</div>`);
 		}
 		writeList(dst, null,
@@ -843,7 +844,7 @@ private:
 	string[string] macros;
 	File searchIndex;
 	TocItem[] tocItems;
-	string tocAdditional;
+	string[] tocAdditionals;
 
 	/** Stack of associative arrays.
 	 *

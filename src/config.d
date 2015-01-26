@@ -32,7 +32,8 @@ struct Config
 	string doGenerateCSSPath = null;
 	string[] macroFileNames = [];
 	string indexFileName = null;
-	string tocAdditionalFileName = null;
+	string[] tocAdditionalFileNames = [];
+	string[] tocAdditionalStrings = [];
 	string cssFileName = null;
 	string outputDirectory = "./doc";
 	/// Names of packages and modules to exclude from generated documentation.
@@ -68,7 +69,9 @@ struct Config
 			getopt(cliArgs, std.getopt.config.caseSensitive,
 			       "m|macros", &newMacroFiles, "o|output-directory", &outputDirectory,
 			       "h|help", &doHelp, "i|index", &indexFileName, 
-			       "t|toc-additional", &tocAdditionalFileName, "e|exclude", &newExcludes,
+			       "t|toc-additional", &tocAdditionalFileNames, 
+			       "T|toc-additional-direct", &tocAdditionalStrings,
+			       "e|exclude", &newExcludes,
 			       "c|css", &cssFileName, "C|generate-css", &doGenerateCSSPath,
 			       "g|generate-cfg", &doGenerateConfig);
 		}
@@ -149,7 +152,7 @@ private:
 			case "generate-css":     doGenerateCSSPath = value;                 break;
 			case "macros":           add(macroFileNames, value);                break;
 			case "index":            indexFileName = value;                     break;
-			case "toc-additional":   tocAdditionalFileName = value;             break;
+			case "toc-additional":   tocAdditionalFileNames ~= value;           break;
 			case "css":              cssFileName = value;                       break;
 			case "output-directory": outputDirectory = value;                   break;
 			case "exclude":          add(excludes, value);                      break;
