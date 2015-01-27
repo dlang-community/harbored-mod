@@ -590,7 +590,8 @@ private:
 			// We want to enable '***' subheaders and to post-process code
 			// for cross-referencing.
 			auto mdSettings = new MarkdownSettings();
-			mdSettings.flags = MarkdownFlags.alternateSubheaders;
+			mdSettings.flags = MarkdownFlags.alternateSubheaders |
+			                   MarkdownFlags.disableUnderscoreEmphasis;
 			mdSettings.processCode = processCode;
 
 			// Ensure param descriptions run through Markdown

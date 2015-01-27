@@ -107,8 +107,11 @@ Differences from vanilla Markdown:
 
   Use ``- - -`` instead. This is still standard Markdown.
 
+* *emphasis* can be denoted by ``*``, but not by ``_`` (this would break snake_case
+  names).
+
 * This does not work (again because DDoc uses ``---`` to mark code blocks)::
-  
+
      Subheading
      ----------
 
