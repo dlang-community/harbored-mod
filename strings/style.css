@@ -25,9 +25,8 @@ div.main {
 div.breadcrumbs {
 	color: white;
 	background-color: #333;
-	padding-top: 1em;
-	padding-left: 1em;
-	padding-right: 1em;
+	padding: 1.0em 0.5em 0.0em 0.5em;
+	left: 0;
 	box-sizing: border-box;
 	text-align: right;
 	top: 0;
