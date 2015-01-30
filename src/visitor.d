@@ -70,6 +70,7 @@ class DocVisitor(Writer) : ASTVisitor
 		writer.writeHeader(fileWriter, moduleName, stack.length - 1);
 		writer.writeBreadcrumbs(fileWriter, stack, database);
 		writer.writeTOC(fileWriter, moduleName);
+		writer.writeSymbolStart(fileWriter, link);
 
 		prevComments.length = 1;
 
@@ -90,6 +91,7 @@ class DocVisitor(Writer) : ASTVisitor
 		});
 
 		memberStack.back.write(fileWriter, writer);
+		writer.writeSymbolEnd(fileWriter);
 	}
 
 	override void visit(const EnumDeclaration ed)
@@ -666,11 +668,13 @@ private:
 		{
 			writer.writeSeparator(result);
 		}
+		writer.writeSymbolStart(result, itemURL);
 		return result;
 	}
 
 	void popSymbol(R)(ref R dst)
 	{
+		writer.writeSymbolEnd(dst);
 		stack.popBack();
 		memberStack.popBack();
 		writer.popSymbol();
