@@ -2,6 +2,8 @@
 harbored-mod
 ============
 
+**NOTE**: the default output format has changed to one file per aggregate instead of one 
+file per symbol. Use `--format=html-simple` to get the previous default output format.
 
 ------------
 Introduction
