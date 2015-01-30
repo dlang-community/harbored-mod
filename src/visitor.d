@@ -586,7 +586,8 @@ private:
 	 * Params:
 	 *
 	 * name    = The symbol's name
-	 * first   = True if this is the first time that pushSymbol has been called for this name.
+	 * first   = Set to true if this is the first time that pushSymbol has been
+	 *           called for this name.
 	 * itemURL = URL to use in the Item for this symbol will be written here.
 	 *
 	 * Returns: A range to write the symbol's documentation to.
