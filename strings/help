@@ -9,8 +9,10 @@ Examples:
         Write documentation for source code in directory 'source' to directory 'doc'.
         If file 'hmod.cfg' exists, load more configuration options from there.
 
-    hmod source -o doc/api
-        Write documentation for source code in directory 'source' to directory 'doc/api'.
+    hmod source -o doc/api -f html-simple
+        Write documentation for source code in directory 'source' to directory 'doc/api',
+        using the 'simple' HTML format (the former default format, where every 
+        function or variable is documented in a separate file).
         If file 'hmod.cfg' exists, load more configuration options from there.
 
     hmod -g
@@ -33,6 +35,21 @@ Options:
         Writes the generated documentation to the given directory. If this
         option is not specified, documentation will be written to a folder
         called "doc" in the current directory.
+
+    --format | -f FORMAT
+        Write to specified format. Supported values:
+        html-simple
+            Every function, variable, etc. will be documented in a separate 
+            HTML file. A documentation page of an aggregate (e.g. class) will
+            link to these files. Generates a large number of files; not 
+            recommended for large projects.
+        html-aggregated
+            Members of an aggregate will be documented in the same file as the
+            aggregate, unless they are aggregates themselves. That is, member
+            functions or variables will be documented in the same file as the
+            class that contains them, but a subclass will be documented in a
+            separate file.
+        Default: html-aggregated
 
     --exclude | -e MODULE_NAME
         Exclude given module or package from the generated documentation.

@@ -72,7 +72,7 @@ struct Config
 			       "h|help", &doHelp, "i|index", &indexFileName, 
 			       "t|toc-additional", &tocAdditionalFileNames, 
 			       "T|toc-additional-direct", &tocAdditionalStrings,
-			       "e|exclude", &newExcludes,
+			       "e|exclude", &newExcludes, "f|format", &format,
 			       "c|css", &cssFileName, "C|generate-css", &doGenerateCSSPath,
 			       "g|generate-cfg", &doGenerateConfig);
 		}
