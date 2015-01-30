@@ -138,6 +138,8 @@ div.toc {
 	}
 }
 
+
+/* stuff for showing/hiding the sidebar */
 .hide, .show {
 	display: block;
 	float: right;
@@ -261,9 +263,9 @@ div.content {
 }
 
 div.content h2 {
-	margin: .35em 0 .5em 0;
+	margin: .35em 0 .45em 0;
 	padding-top: .35em;
-	font-size: 1.35em;
+	font-size: 1.3em;
 }
 
 div.content h3 {
@@ -357,6 +359,7 @@ div.content td .extrainfo{
 	/* background-color: #DA8F07; */
 	/* background-color: #DA9F07; */
 	background-color: #DAAF07;
+	/* background-color: #EABD08; */
 	padding: 1em;
 	margin-bottom: 0.5em;
 }
@@ -466,6 +469,10 @@ footer a
 
 
 /**** CODE ****/
+
+pre {
+	margin-top: 0.4em;
+}
 
 /* DDoc code examples */
 code {
