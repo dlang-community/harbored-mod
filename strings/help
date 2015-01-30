@@ -56,10 +56,10 @@ Options:
         table of contents. Can be used more than once.
 
     --generate-cfg | -g
-        Generate the default configuration file and write it into 'hmod.cfg'. This file
-        can be used to store configuration options instead of passing them on
-        command-line. By default, hmod loads configuration from this file if it exists.
-        See also: --config
+        Generate the default configuration file and write it into 'hmod.cfg'. 
+        This file can be used to store configuration options instead of passing
+        them through the command line. By default, hmod loads configuration 
+        from this file if it exists.  See also: --config
 
     --css | -c CSS_FILE
         Use CSS_FILE to style the documentation instead of using default CSS.
