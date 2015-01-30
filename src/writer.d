@@ -12,11 +12,12 @@ import ddoc.comments;
 import formatter;
 import std.algorithm;
 import std.array: appender, empty, array, back, popBack;
+import std.conv: to;
 import std.d.ast;
 import std.file: exists, mkdirRecurse;
 import std.path: buildPath;
 import std.stdio;
-import std.string: format, outdent;
+import std.string: format, outdent, split;
 import std.typecons;
 import tocbuilder: TocItem;
 
@@ -47,20 +48,17 @@ class HTMLWriter
 	 *
 	 * See_Also: `prepareModule`
 	 */
-	string moduleLink() { return moduleLink_; }
+	final string moduleLink() { return moduleLink_; }
 
 	/** Get a link to a module.
 	 *
-	 * Note: this does not check if the module actually exists; calling moduleLink()
-	 * for a nonexistent or undocumented module will return a link to a nonexistent
-	 * file.
+	 * Note: this does not check if the module exists; calling moduleLink() for a
+	 * nonexistent or undocumented module will return a link to a nonexistent file.
 	 *
-	 * Params:
-	 *
-	 * moduleNameParts = Name of the module containing the symbols, as an array of
-	 *                   parts (e.g. ["std", "stdio"])
+	 * Params: moduleNameParts = Name of the module containing the symbols, as an array
+	 *                           of parts (e.g. ["std", "stdio"])
 	 */
-	string moduleLink(string[] moduleNameParts)
+	final string moduleLink(string[] moduleNameParts)
 	{
 		return moduleNameParts.buildPath ~ ".html";
 	}
@@ -116,17 +114,16 @@ class HTMLWriter
 	}
 
 
-	size_t moduleNameLength() { return moduleNameLength_; }
+	final size_t moduleNameLength() { return moduleNameLength_; }
 
 	/** Prepare for writing documentation for symbols in specified module.
 	 *
-	 * Initializes module-related file paths.
+	 * Initializes module-related file paths and creates the directory to write
+	 * documentation of module members into.
 	 *
-	 * Params:
-	 *
-	 * moduleNameParts = Parts of the module name, without the dots.
+	 * Params: moduleNameParts = Parts of the module name, without the dots.
 	 */
-	void prepareModule(string[] moduleNameParts)
+	final void prepareModule(string[] moduleNameParts)
 	{
 		moduleFileBase_   = moduleNameParts.buildPath;
 		moduleLink_       = moduleLink(moduleNameParts);
@@ -148,7 +145,7 @@ class HTMLWriter
 	 *
 	 * Must be called to ensure any open files are closed.
 	 */
-	void finishModule()
+	final void finishModule()
 	{
 		moduleFileBase_  = null;
 		moduleLink_      = null;
@@ -165,7 +162,7 @@ class HTMLWriter
 	 * depth = The directory depth of the file. This is used for ensuring that
 	 *         the "base" element is correct so that links resolve properly.
 	 */
-	void writeHeader(R)(ref R dst, string title, size_t depth)
+	final void writeHeader(R)(ref R dst, string title, size_t depth)
 	{
 		import std.range: repeat;
 		const rootPath = "../".repeat(depth).joiner.array;
@@ -197,10 +194,9 @@ class HTMLWriter
 	 * moduleName = Name of the module or package documentation page of which we're
 	 *              writing the TOC for.
 	 */
-	void writeTOC(R)(ref R dst, string moduleName = "")
+	final void writeTOC(R)(ref R dst, string moduleName = "")
 	{
 		void put(string str) { dst.put(str); dst.put("\n"); }
-		import std.string;
 		const link = moduleName ? moduleLink(moduleName.split(".")) : "";
 		put(`<div class="sidebar">`);
 		// Links allowing to show/hide the TOC.
@@ -210,9 +206,7 @@ class HTMLWriter
 		import std.range: retro;
 		foreach(text; tocAdditionals.retro)
 		{
-			put(`<div class="toc-additional">`);
-			put(text);
-			put(`</div>`);
+			put(`<div class="toc-additional">`); put(text); put(`</div>`);
 		}
 		writeList(dst, null,
 		{
@@ -226,19 +220,20 @@ class HTMLWriter
 			foreach (t; tocItems) { t.write(scopeBuf, moduleName); }
 			dst.put(scopeBuf[]);
 		});
-		put(`</div>`);
-		put(`</div>`);
+		put(`</div></div>`);
 		put(`<div class="content">`);
 	}
 
 	/** Writes navigation breadcrumbs to the given range.
+	 *
+	 * For symbols, use the other writeBreadcrumbs overload.
 	 *
 	 * Params:
 	 *
 	 * dst     = Range (e.g. appender) to write to.
 	 * heading = Page heading (e.g. module name or "Main Page").
 	 */
-	void writeBreadcrumbs(R)(ref R dst, string heading)
+	final void writeBreadcrumbs(R)(ref R dst, string heading)
 	{
 		void put(string str) { dst.put(str); dst.put("\n"); }
 		put(`<div class="breadcrumbs">`);
@@ -260,43 +255,38 @@ class HTMLWriter
 	 */
 	void writeBreadcrumbs(R)(ref R dst, string[] symbolStack, SymbolDatabase database)
 	{
-		import std.array : join;
-		import std.conv : to;
-		import std.range : chain, only;
-		import std.string: format;
-
 		string heading;
 		scope(exit) { writeBreadcrumbs(dst, heading); }
 
 		assert(moduleNameLength_ <= symbolStack.length, "stack shallower than the current module?");
-		size_t i;
+		size_t depth;
 
 		string link()
 		{
-			assert(i + 1 >= moduleNameLength_, "unexpected value of i");
+			assert(depth + 1 >= moduleNameLength_, "unexpected value of depth");
 			return symbolLink(database.symbolStack(
 			                  symbolStack[0 .. moduleNameLength],
-			                  symbolStack[moduleNameLength .. i + 1]));
+			                  symbolStack[moduleNameLength .. depth + 1]));
 		}
 
 		// Module
 		{
 			heading ~= "<small>";
 			scope(exit) { heading ~= "</small>"; }
-			for(; i + 1 < moduleNameLength_; ++i)
+			for(; depth + 1 < moduleNameLength_; ++depth)
 			{
-				heading ~= symbolStack[i] ~ ".";
+				heading ~= symbolStack[depth] ~ ".";
 			}
 			// Module link if the module is a parent of the current page.
-			if(i + 1 < symbolStack.length)
+			if(depth + 1 < symbolStack.length)
 			{
-				heading ~= `<a href=%s>%s</a>.`.format(link(), symbolStack[i]);
-				++i;
+				heading ~= `<a href=%s>%s</a>.`.format(link(), symbolStack[depth]);
+				++depth;
 			}
 			// Just the module name, not a link, if we're at the module page.
 			else
 			{
-				heading ~= symbolStack[i];
+				heading ~= symbolStack[depth];
 				return;
 			}
 		}
@@ -304,12 +294,12 @@ class HTMLWriter
 		// Class/Function/etc. in the module
 		heading ~= `<span class="highlight">`;
 		// The rest of the stack except the last element (parents of current page).
-		for(; i + 1 < symbolStack.length; ++i)
+		for(; depth + 1 < symbolStack.length; ++depth)
 		{
-			heading  ~= `<a href=%s>%s</a>.`.format(link(), symbolStack[i]);
+			heading  ~= `<a href=%s>%s</a>.`.format(link(), symbolStack[depth]);
 		}
 		// The last element (no need to link to the current page).
-		heading ~= symbolStack[i];
+		heading ~= symbolStack[depth];
 		heading ~= `</span>`;
 	}
 
@@ -325,7 +315,7 @@ class HTMLWriter
 	 *
 	 * Returns: the summary from the given comment
 	 */
-	string readAndWriteComment(R)
+	final string readAndWriteComment(R)
 		(ref R dst, string comment, Comment[] prevComments = null,
 		 const FunctionBody functionBody = null,
 		 Tuple!(string, string)[] testDocs = null)
@@ -387,9 +377,7 @@ class HTMLWriter
 	 */
 	void writeCodeBlock(R)(ref R dst, void delegate() blockCode)
 	{
-		dst.put(`<pre><code>`);
-		blockCode();
-		dst.put("\n</code></pre>\n");
+		dst.put(`<pre><code>`); blockCode(); dst.put("\n</code></pre>\n");
 	}
 
 	/** Writes a section to range dst, using sectionCode to write section contents.
@@ -421,9 +409,7 @@ class HTMLWriter
 	void writeList(R)(ref R dst, string name, void delegate() listCode)
 	{
 		if(name !is null) { dst.put(`<h2>%s</h2>`.format(name)); }
-		dst.put(`<ul>`);
-		listCode();
-		dst.put("\n</ul>\n");
+		dst.put(`<ul>`); listCode(); dst.put("\n</ul>\n");
 	}
 
 	/** Writes a list item to range dst, using itemCode to write list contents.
@@ -435,9 +421,7 @@ class HTMLWriter
 	 */
 	void writeListItem(R)(ref R dst, void delegate() itemCode)
 	{
-		dst.put(`<li>`);
-		itemCode();
-		dst.put("</li>");
+		dst.put(`<li>`); itemCode(); dst.put("</li>");
 	}
 
 	/** Writes a link to range dst, using linkCode to write link text (but not the
@@ -454,9 +438,7 @@ class HTMLWriter
 	void writeLink(R)(ref R dst, string link, void delegate() linkCode, string extraStyles = "")
 	{
 		const styles = extraStyles.empty ? "" : ` class="%s"`.format(extraStyles);
-		dst.put(`<a href="%s"%s>`.format(link, styles));
-		linkCode();
-		dst.put("</a>");
+		dst.put(`<a href="%s"%s>`.format(link, styles)); linkCode(); dst.put("</a>");
 	}
 
 	/** Write a separator (e.g. between two overloads of a function)
@@ -497,7 +479,7 @@ class HTMLWriter
 		return writer.data;
 	}
 
-	auto newFormatter(R)(ref R dst)
+	final auto newFormatter(R)(ref R dst)
 	{
 		return new HarboredFormatter!R(dst, processCode);
 	}
@@ -553,7 +535,7 @@ class HTMLWriter
 
 private:
 	/// See_Also: `readAndWriteComment`
-	string readAndWriteComment_(R)
+	final string readAndWriteComment_(R)
 		(ref R dst, string comment, Comment[] prevComments,
 		 const FunctionBody functionBody, Tuple!(string, string)[] testDocs)
 	{
@@ -561,7 +543,7 @@ private:
 		auto app = appender!string();
 		comment.unDecorateComment(app);
 		Comment c = parseComment(app.data, macros);
-		
+
 		immutable ditto = c.isDitto;
 
 		// Finds code blocks generated by libddoc and calls processCode() on them,
@@ -658,7 +640,7 @@ private:
 		searchIndex.writefln(`{"%s" : "%s"},`, symbol, fileName);
 	}
 
-	void writeComment(R)(ref R dst, Comment comment, const FunctionBody functionBody = null)
+	final void writeComment(R)(ref R dst, Comment comment, const FunctionBody functionBody = null)
 	{
 	//		writeln("writeComment: ", comment.sections.length, " sections.");
 		// Shortcut to write text followed by newline
@@ -731,17 +713,14 @@ private:
 				dst.put(prettySectionName(seealsos.front.name));
 				put("</h2>");
 				put(`<div class="seealso-content">`);
-				foreach(section; seealsos)
-				{
-					put(section.content);
-				}
+				foreach(section; seealsos) { put(section.content); }
 				put(`</div>`);
 				put(`</div>`);
 			}
 		}
 	}
 
-	void writeContracts(R)(ref R dst, const InStatement inStatement,
+	final void writeContracts(R)(ref R dst, const InStatement inStatement,
 		const OutStatement outStatement)
 	{
 		if (inStatement is null && outStatement is null)
@@ -756,8 +735,7 @@ private:
 				if (inStatement !is null)
 				{
 					formatter.format(inStatement);
-					if (outStatement !is null)
-						dst.put("\n");
+					if (outStatement !is null) { dst.put("\n"); }
 				}
 				if (outStatement !is null)
 					formatter.format(outStatement);
@@ -765,7 +743,8 @@ private:
 		});
 	}
 
-	void writeItemEntry(R)(ref R dst, ref Item item)
+	import item;
+	final void writeItemEntry(R)(ref R dst, ref Item item)
 	{
 		dst.put(`<tr><td>`);
 		void writeName()
@@ -786,7 +765,6 @@ private:
 				auto str = writer.data.idup;
 				writer.clear();
 				import std.ascii: isAlpha;
-				import std.conv: to;
 				// Sanitize CSS class name for the attribute,
 				auto strSane = str.filter!isAlpha.array.to!string;
 				return `<span class="attr-` ~ strSane ~ `">` ~ str ~ `</span>`;
@@ -805,10 +783,8 @@ private:
 				dst.put(`</span>`);
 			}
 
-
 			// The actual function name
 			writeName();
-
 
 			// Below the function name
 			dst.put(`<span class="extrainfo">`);
@@ -824,10 +800,8 @@ private:
 			}
 			dst.put(`</span>`);
 		}
-		else
-		{
-			writeName();
-		}
+		// By default, just print the name of the item.
+		else { writeName(); }
 		dst.put(`</td>`);
 
 		dst.put(`<td>`);
@@ -865,7 +839,7 @@ private:
 	File[string][] memberFileStack;
 
 	string moduleFileBase_;
-	/// Path to the HTML file relative to the output directory.
+	// Path to the HTML file relative to the output directory.
 	string moduleLink_;
 	// Name length of the module (e.g. 2 for std.stdio)
 	size_t moduleNameLength_;
