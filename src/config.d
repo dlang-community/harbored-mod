@@ -107,7 +107,7 @@ struct Config
 		{
 			if(requestedByUser)
 			{
-				writeln("Config file '%s' not found");
+				writefln("Config file '%s' not found", fileName);
 			}
 			return;
 		}
