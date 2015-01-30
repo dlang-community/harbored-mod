@@ -60,7 +60,7 @@ struct Config
 		try
 		{
 			getopt(cliArgs, std.getopt.config.caseSensitive,
-			       std.getopt.config.passThrough, "f|config", &configFile);
+			       std.getopt.config.passThrough, "F|config", &configFile);
 			if(configFile !is null)
 			{
 			    loadConfigFile(configFile, true);
