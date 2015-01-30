@@ -80,6 +80,6 @@ struct Members
 			if(!classes.empty)    writer.writeItems(dst, classes, "Classes");
 			if(!templates.empty)  writer.writeItems(dst, templates, "Templates");
 			if(!values.empty)     writer.writeItems(dst, values, "Values");
-		});
+		}, "members");
 	}
 }
