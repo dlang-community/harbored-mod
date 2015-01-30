@@ -36,6 +36,7 @@ struct Config
 	string[] tocAdditionalStrings = [];
 	string cssFileName = null;
 	string outputDirectory = "./doc";
+	string format = "html-aggregated";
 	/// Names of packages and modules to exclude from generated documentation.
 	string[] excludes = [];
 	string[] sourcePaths = [];

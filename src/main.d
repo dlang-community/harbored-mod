@@ -96,7 +96,12 @@ int main(string[] args)
 		return 1;
 	}
 
-	generateDocumentation(config, macros);
+	switch(config.format)
+	{
+		case "html-simple": generateDocumentation!HTMLWriterSimple(config, macros); break;
+		case "html-aggregated": generateDocumentation!HTMLWriterAggregated(config, macros); break;
+		default: writeln("Unknown format: ", config.format);
+	}
 
 	return 0;
 }
@@ -111,7 +116,7 @@ string[string] readMacros(const string[] macroFiles)
 	return rVal;
 }
 
-void generateDocumentation(ref const(Config) config, string[string] macros)
+void generateDocumentation(Writer)(ref const(Config) config, string[string] macros)
 {
 	string[] files = getFilesToProcess(config.sourcePaths.dup);
 	import std.stdio;
@@ -124,7 +129,7 @@ void generateDocumentation(ref const(Config) config, string[string] macros)
 	search.writeln(`var items = [`);
 
 	auto database =
-		gatherData(config, new HTMLWriter(config, macros, search, null, null), files);
+		gatherData(config, new Writer(config, macros, search, null, null), files);
 
 
 	TocItem[] tocItems = buildTree(database.moduleNames, database.moduleNameToLink);
@@ -136,7 +141,7 @@ void generateDocumentation(ref const(Config) config, string[string] macros)
 		config.tocAdditionalStrings;
 	if(!tocAdditionals.empty) foreach(ref text; tocAdditionals)
 	{
-		auto html = new HTMLWriter(config, macros, search, null, null);
+		auto html = new Writer(config, macros, search, null, null);
 		auto writer = appender!string();
 		html.readAndWriteComment(writer, text);
 		text = writer.data;
@@ -153,7 +158,7 @@ void generateDocumentation(ref const(Config) config, string[string] macros)
 		File index = File(buildPath(config.outputDirectory, "index.html"), "w");
 
 		auto fileWriter = index.lockingTextWriter;
-		auto html = new HTMLWriter(config, macros, search, tocItems, tocAdditionals);
+		auto html = new Writer(config, macros, search, tocItems, tocAdditionals);
 		html.writeHeader(fileWriter, "Index", 0);
 		html.writeBreadcrumbs(fileWriter, "Main Page");
 		html.writeTOC(fileWriter);
@@ -174,7 +179,8 @@ void generateDocumentation(ref const(Config) config, string[string] macros)
 		writeln("Generating documentation for ", f);
 		try
 		{
-			writeDocumentation(config, database, f, search, tocItems, macros, tocAdditionals);
+			writeDocumentation!Writer(config, database, f, search, tocItems,
+			                          macros, tocAdditionals);
 		}
 		catch (Exception e)
 		{
@@ -204,7 +210,7 @@ string getCSS(string customCSS)
 }
 
 /// Creates documentation for the module at the given path
-void writeDocumentation(ref const Config config, SymbolDatabase database, string path,
+void writeDocumentation(Writer)(ref const Config config, SymbolDatabase database, string path,
 	File search, TocItem[] tocItems, string[string] macros, string[] tocAdditionals)
 {
 	LexerConfig lexConfig;
@@ -219,8 +225,8 @@ void writeDocumentation(ref const Config config, SymbolDatabase database, string
 	Module m = parseModule(tokens, path, null, &doNothing);
 	TestRange[][size_t] unitTestMapping = getUnittestMap(m);
 	
-	auto htmlWriter  = new HTMLWriter(config, macros, search, tocItems, tocAdditionals);
-	auto visitor = new DocVisitor!HTMLWriter(config, database, unitTestMapping, 
+	auto htmlWriter  = new Writer(config, macros, search, tocItems, tocAdditionals);
+	auto visitor = new DocVisitor!Writer(config, database, unitTestMapping, 
 	                                         fileBytes, htmlWriter);
 	visitor.visit(m);
 }

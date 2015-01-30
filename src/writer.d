@@ -19,9 +19,12 @@ import std.path: buildPath;
 import std.stdio;
 import std.string: format, outdent, split;
 import std.typecons;
+import symboldatabase;
 import tocbuilder: TocItem;
 
-class HTMLWriter
+
+// Only used for shared implementation, not interface (could probably use composition too)
+private class HTMLWriterBase(alias symbolLink)
 {
 	/** Construct a HTMLWriter.
 	 *
@@ -63,57 +66,6 @@ class HTMLWriter
 		return moduleNameParts.buildPath ~ ".html";
 	}
 
-	/** Get a link to a symbol.
-	 *
-	 * Note: this does not check if the symbol actually exists; calling symbolLink()
-	 * with a SymbolStack of a nonexistent symbol will result in a link to the deepest
-	 * existing parent symbol.
-	 *
-	 * Params:
-	 *
-	 * nameStack = SymbolStack returned by SymbolDatabase.symbolStack(), describing
-	 *             a fully qualified symbol name.
-	 *
-	 * Returns: Link to the file with documentation for the symbol.
-	 */
-	string symbolLink(SymbolStack)(auto ref SymbolStack nameStack)
-	{
-		string result;
-		if(!nameStack.empty)
-		{
-			result = nameStack.front;
-			nameStack.popFront();
-		}
-		
-		bool lastWasModule = false;
-		foreach(name; nameStack)
-		{
-			import symboldatabase: SymbolType;
-			final switch(name.type) with(SymbolType)
-			{
-				// A new directory is created for each module
-				case Module, Package:
-					result = result.buildPath(name.name);
-					lastWasModule = true;
-					break;
-				// These symbol types have separate files in a module directory.
-				case Class, Struct, Interface, Enum,
-				     Function, Variable, Alias, Template:
-					result = lastWasModule ? result.buildPath(name.name)
-					                       : result ~ "." ~ name.name;
-					lastWasModule = false;
-					break;
-				// Enum members are documented in their enums.
-				case Value:
-					result = result;
-					break;
-			}
-		}
-
-		return result ~ ".html";
-	}
-
-
 	final size_t moduleNameLength() { return moduleNameLength_; }
 
 	/** Prepare for writing documentation for symbols in specified module.
@@ -131,14 +83,12 @@ class HTMLWriter
 
 		// Not really absolute, just relative to working, not output, directory
 		const moduleFileBaseAbs = config.outputDirectory.buildPath(moduleFileBase_);
-		if (!moduleFileBaseAbs.exists)
-		{
-			moduleFileBaseAbs.mkdirRecurse();
-		}
-		assert(memberFileStack.empty,
-			"prepareModule called before finishing previous module?");
+		// Create directory to write documentation for module members.
+		if (!moduleFileBaseAbs.exists) { moduleFileBaseAbs.mkdirRecurse(); }
+		assert(symbolFileStack.empty,
+		       "prepareModule called before finishing previous module?");
 		// Need a "parent" in the stack that will contain the module File
-		memberFileStack.length = 1;
+		symbolFileStack.length = 1;
 	}
 
 	/** Finish writing documentation for current module.
@@ -245,7 +195,6 @@ class HTMLWriter
 		put(`</div>`);
 	}
 
-	import symboldatabase;
 	/** Writes navigation breadcrumbs for a symbol's documentation file.
 	 *
 	 * Params:
@@ -303,6 +252,37 @@ class HTMLWriter
 		heading ~= `</span>`;
 	}
 
+
+	/** Writes attributes to the range dst using formatter to format code.
+	 *
+	 * Params:
+	 *
+	 * dst       = Range to write to.
+	 * formatter = Formatter to format the attributes with.
+	 * attrs     = Attributes to write.
+	 */
+	final void writeAttributes(R, F)(ref R dst, F formatter, const(Attribute)[] attrs)
+	{
+		import std.d.lexer: IdType, isProtection, tok;
+		IdType protection;
+		foreach (a; attrs.filter!(a => a.attribute.type.isProtection))
+		{
+			protection = a.attribute.type;
+		}
+		switch (protection)
+		{
+			case tok!"private":   dst.put("private ");   break;
+			case tok!"package":   dst.put("package ");   break;
+			case tok!"protected": dst.put("protected "); break;
+			default:              dst.put("public ");    break;
+		}
+		foreach (a; attrs.filter!(a => !a.attribute.type.isProtection))
+		{
+			formatter.format(a);
+			dst.put(" ");
+		}
+	}
+
 	/** Writes a doc comment to the given range and returns the summary text.
 	 *
 	 * Params:
@@ -334,36 +314,6 @@ class HTMLWriter
 			        "\n<pre>%s</pre>\n<h3>error</h3>\n<pre>%s</pre></div>"
 			        .format(comment, e));
 			return null;
-		}
-	}
-
-	/** Writes attributes to the range dst using formatter to format code.
-	 *
-	 * Params:
-	 *
-	 * dst       = Range to write to.
-	 * formatter = Formatter to format the attributes with.
-	 * attrs     = Attributes to write.
-	 */
-	void writeAttributes(R, F)(ref R dst, F formatter, const(Attribute)[] attrs)
-	{
-		import std.d.lexer: IdType, isProtection, tok;
-		IdType protection;
-		foreach (a; attrs.filter!(a => a.attribute.type.isProtection))
-		{
-			protection = a.attribute.type;
-		}
-		switch (protection)
-		{
-			case tok!"private":   dst.put("private ");   break;
-			case tok!"package":   dst.put("package ");   break;
-			case tok!"protected": dst.put("protected "); break;
-			default:              dst.put("public ");    break;
-		}
-		foreach (a; attrs.filter!(a => !a.attribute.type.isProtection))
-		{
-			formatter.format(a);
-			dst.put(" ");
 		}
 	}
 
@@ -441,87 +391,14 @@ class HTMLWriter
 		dst.put(`<a href="%s"%s>`.format(link, styles)); linkCode(); dst.put("</a>");
 	}
 
-	/** Write a separator (e.g. between two overloads of a function)
-	 *
-	 * In HTMLWriter this is a horizontal line.
-	 */
-	void writeSeparator(R)(ref R dst)
-	{
-		dst.put("<hr/>");
-	}
-
-	import item;
-	/** Write a table of items of specified category.
-	 *
-	 * Params:
-	 *
-	 * dst      = Range to write to.
-	 * items    = Items the table will contain.
-	 * category = Category of the items, used in heading, E.g. "Functions" or
-	 *            "Variables" or "Structs".
-	 */
-	void writeItems(R)(ref R dst, Item[] items, string category)
-	{
-		dst.put("<h2>%s</h2>".format(category));
-		dst.put(`<table>`);
-		foreach (ref i; items) { writeItemEntry(dst, i); }
-		dst.put(`</table>`);
-	}
-
-	/** Formats an AST node to a string.
-	 */
-	string formatNode(T)(const T t)
-	{
-		auto writer = appender!string();
-		auto formatter = newFormatter(writer);
-		scope(exit) destroy(formatter.sink);
-		formatter.format(t);
-		return writer.data;
-	}
-
 	final auto newFormatter(R)(ref R dst)
 	{
 		return new HarboredFormatter!R(dst, processCode);
 	}
 
-	auto pushSymbol(string[] symbolStack, ref bool first, ref string itemURL)
+	final void popSymbol()
 	{
-		import std.conv: to;
-		memberFileStack.length = memberFileStack.length + 1;
-
-		assert(symbolStack.length >= moduleNameLength_,
-		       "symbol stack shorter than module name");
-
-		auto tail = symbolStack[moduleNameLength_ .. $];
-		// Path relative to output directory
-		const docFileName = tail.empty
-			? moduleFileBase_ ~ ".html"
-			: moduleFileBase_.buildPath(tail.joiner(".").array.to!string) ~ ".html";
-
-		addSearchEntry(symbolStack);
-
-		// The second last element of memberFileStack
-		immutable size_t i = memberFileStack.length - 2;
-		assert (i < memberFileStack.length, "%s %s".format(i, memberFileStack.length));
-		auto p = docFileName in memberFileStack[i];
-		first = p is null;
-		itemURL = docFileName;
-		if (first)
-		{
-			first = true;
-			auto f = File(config.outputDirectory.buildPath(docFileName), "w");
-			memberFileStack[i][docFileName] = f;
-
-			auto fileWriter = f.lockingTextWriter;
-			return f.lockingTextWriter;
-		}
-		else
-			return p.lockingTextWriter;
-	}
-
-	void popSymbol()
-	{
-		auto files = memberFileStack.back;
+		auto files = symbolFileStack.back;
 		foreach (f; files)
 		{
 
@@ -530,10 +407,26 @@ class HTMLWriter
 			f.close();
 		}
 		destroy(files);
-		memberFileStack.popBack();
+		symbolFileStack.popBack();
 	}
 
-private:
+	/// Default processCode function.
+	final string processCodeDefault(string str) @safe nothrow { return str; }
+
+	/// Function to process inline code and code blocks with (used for cross-referencing).
+	public string delegate(string) @safe nothrow processCode;
+
+protected:
+	/** Add an entry for JavaScript search for the symbol with specified name stack.
+	 *
+	 * symbolStack = Name stack of the current symbol, including module name parts.
+	 */
+	final void addSearchEntry(SymbolStack)(SymbolStack symbolStack)
+	{
+		const symbol = symbolStack.map!(s => s.name).joiner(".").array;
+		searchIndex.writefln(`{"%s" : "%s"},`, symbol, symbolLink(symbolStack));
+	}
+
 	/// See_Also: `readAndWriteComment`
 	final string readAndWriteComment_(R)
 		(ref R dst, string comment, Comment[] prevComments,
@@ -623,21 +516,6 @@ private:
 			});
 		}
 		return rVal;
-	}
-
-	/** Add an entry for JavaScript search for the symbol with specified name stack.
-	 *
-	 * symbolStack = Name stack of the current symbol, including module name parts.
-	 */
-	void addSearchEntry(string[] symbolStack)
-	{
-		import std.path: buildPath;
-		import std.conv: to;
-
-		const symbol = symbolStack.joiner(".").array;
-		const symbolInModule = symbolStack[moduleNameLength_ .. $].joiner(".").array;
-		const fileName = moduleFileBase_.buildPath(symbolInModule.to!string) ~ ".html";
-		searchIndex.writefln(`{"%s" : "%s"},`, symbol, fileName);
 	}
 
 	final void writeComment(R)(ref R dst, Comment comment, const FunctionBody functionBody = null)
@@ -812,13 +690,35 @@ private:
 		dst.put(`</td><td>%s</td></tr>`.format(item.summary));
 	}
 
-	/// Default processCode function.
-	string processCodeDefault(string str) @safe nothrow { return str; }
+	/** Write a table of items of specified category.
+	 *
+	 * Params:
+	 *
+	 * dst      = Range to write to.
+	 * items    = Items the table will contain.
+	 * category = Category of the items, used in heading, E.g. "Functions" or
+	 *            "Variables" or "Structs".
+	 */
+	void writeItems(R)(ref R dst, Item[] items, string category)
+	{
+		dst.put("<h2>%s</h2>".format(category));
+		dst.put(`<table>`);
+		foreach (ref i; items) { writeItemEntry(dst, i); }
+		dst.put(`</table>`);
+	}
 
-	/// Function to process inline code and code blocks with (used for cross-referencing).
-	public string delegate(string) @safe nothrow processCode;
+	/** Formats an AST node to a string.
+	 */
+	string formatNode(T)(const T t)
+	{
+		auto writer = appender!string();
+		auto formatter = newFormatter(writer);
+		scope(exit) destroy(formatter.sink);
+		formatter.format(t);
+		return writer.data;
+	}
 
-private:
+protected:
 	const(Config)* config;
 	string[string] macros;
 	File searchIndex;
@@ -827,16 +727,22 @@ private:
 
 	/** Stack of associative arrays.
 	 *
-	 * Each level of the stack contains files of documentation pages of members of
-	 * the symbol at that level; e.g. memberFileStack[0] contains the module
-	 * documentation file, memberFileStack[1] doc pages of the module's child classes,
-	 * etc; memberFileStack.back contains the doc page currently being written.
+	 * Each level contains documentation page files of members of the symbol at that
+	 * level; e.g. symbolFileStack[0] contains the module documentation file,
+	 * symbolFileStack[1] doc pages of the module's child classes, and so on.
 	 *
-	 * When popSymbol() is called, all doc page files of that symbol's members are
-	 * closed (they must be kept open until then to ensure overloads are put into the
-	 * same file).
+	 * Note that symbolFileStack levels correspond to symbol stack levels. Depending
+	 * on the HTMLWriter implementation, there may not be files for all levels.
+	 *
+	 * E.g. with HTMLWriterAggregated, if we have a class called `Class.method.NestedClass`,
+	 * when writing `NestedClass` docs symbolFileStack[$ - 3 .. 0] will be something like:
+	 * `[["ClassFileName": File(stuff)], [], ["NestedClassFileName": * File(stuff)]]`,
+	 * i.e. there will be a stack level for `method` but it will have no contents.
+	 *
+	 * When popSymbol() is called, all doc page files of that symbol's members are closed
+	 * (they must be kept open until then to ensure overloads are put into the same file).
 	 */
-	File[string][] memberFileStack;
+	File[string][] symbolFileStack;
 
 	string moduleFileBase_;
 	// Path to the HTML file relative to the output directory.
@@ -845,6 +751,291 @@ private:
 	size_t moduleNameLength_;
 }
 
+/** Get a link to a symbol.
+ *
+ * Note: this does not check if the symbol exists; calling symbolLink() with a SymbolStack
+ * of a nonexistent symbol will result in a link to the deepest existing parent symbol.
+ *
+ * Params: nameStack = SymbolStack returned by SymbolDatabase.symbolStack(),
+ *                     describing a fully qualified symbol name.
+ *
+ * Returns: Link to the file with documentation for the symbol.
+ */
+string symbolLinkAggregated(SymbolStack)(auto ref SymbolStack nameStack)
+{
+	if(nameStack.empty) { return "UNKNOWN.html"; }
+	// Start with the first part of the name so we have something we can buildPath() with.
+	string result = nameStack.front;
+	bool moduleParent = [SymbolType.Module, SymbolType.Package].canFind(nameStack.front.type);
+	nameStack.popFront();
+
+	bool inAnchor = false;
+	foreach(name; nameStack) final switch(name.type) with(SymbolType)
+	{
+		// A new directory is created for each module
+		case Module, Package:
+			result = result.buildPath(name.name);
+			moduleParent = true;
+			break;
+		// These symbol types have separate files in a module directory.
+		case Class, Struct, Interface, Enum, Template:
+			// If last name was module/package, the file will be in its
+			// directory. Otherwise it will be in the same dir as the parent.
+			result = moduleParent ? result.buildPath(name.name)
+			                       : result ~ "." ~ name.name;
+			moduleParent = false;
+			break;
+		// These symbol types are documented in their parent symbol's files.
+		case Function, Variable, Alias, Value:
+			// inAnchor allows us to handle nested functions, which are still
+			// documented in the same file as their parent function.
+			// E.g. a nested function called entity.EntityManager.foo.bar will
+			// have link entity/EntityManager#foo.bar
+			result = inAnchor ? result ~ "." ~ name.name
+			                  : result ~ ".html#" ~ name.name;
+			inAnchor = true;
+			break;
+	}
+
+	return result ~ (inAnchor ? "" : ".html");
+}
+
+/** A HTML writer generating 'aggregated' HTML documentation.
+ *
+ * Instead of generating a separate file for every variable or function, this only
+ * generates files for aggregates (module, struct, class, interface, template, enum),
+ * and any non-aggregate symbols are put documented in their aggregate parent's
+ * documentation files.
+ *
+ * E.g. all member functions and data members of a class are documented directly in the
+ * file documenting that class instead of in separate files the class documentation would
+ * link to like with HTMLWriterSimple.
+ *
+ * This output results in much less files and lower file size than HTMLWriterSimple, and
+ * is arguably easier to use due to less clicking between files.
+ */
+class HTMLWriterAggregated: HTMLWriterBase!symbolLinkAggregated
+{
+	alias Super = typeof(super);
+	private alias config = Super.config;
+	alias writeBreadcrumbs = Super.writeBreadcrumbs;
+	alias symbolLink = symbolLinkAggregated;
+
+	this(ref const Config config, string[string] macros, File searchIndex,
+	     TocItem[] tocItems, string[] tocAdditionals)
+	{
+		super(config, macros, searchIndex, tocItems, tocAdditionals);
+	}
+
+	// No separator needed; symbols are already in divs.
+	void writeSeparator(R)(ref R dst) {}
+
+	void writeSymbolStart(R)(ref R dst, string link)
+	{
+		const isAggregate = !link.canFind("#");
+		if(!isAggregate)
+		{
+			// We need a separate anchor so we can style it separately to
+			// compensate for fixed breadcrumbs.
+			dst.put(`<a class="anchor" id="`);
+			dst.put(link.findSplit("#")[2]);
+			dst.put(`"></a>`);
+		}
+		dst.put(isAggregate ? `<div class="aggregate-symbol">` : `<div class="symbol">`);
+	}
+
+	void writeSymbolEnd(R)(ref R dst) { dst.put(`</div>`); }
+
+	void writeSymbolDescription(R)(ref R dst, void delegate() descriptionCode)
+	{
+		dst.put(`<div class="description">`); descriptionCode(); dst.put(`</div>`);
+	}
+
+	auto pushSymbol(string[] symbolStackRaw, SymbolDatabase database,
+	                ref bool first, ref string itemURL)
+	{
+		assert(symbolStackRaw.length >= moduleNameLength_,
+		       "symbol stack shorter than module name");
+
+		// A symbol-type-aware stack.
+		auto symbolStack = database.symbolStack(symbolStackRaw[0 .. moduleNameLength],
+		                                        symbolStackRaw[moduleNameLength .. $]);
+
+		// Is this symbol an aggregate?
+		// If the last part of the symbol stack (this symbol) is an aggregate, we
+		// create a new file for it. Otherwise we write into parent aggregate's file.
+		bool isAggregate = false;
+		// The deepest level in the symbol stack that is an aggregate symbol.
+		// If this symbol is an aggregate, that's symbolStack.walkLength - 1, if
+		// this symbol is not an aggregate but its parent is, that's
+		// symbolStack.walkLength - 2, etc.
+		size_t deepestAggregateLevel = size_t.max;
+		size_t nameDepth = 0;
+		foreach(name; symbolStack)
+		{
+			scope(exit) { ++nameDepth; }
+			final switch(name.type) with(SymbolType)
+			{
+				case Module, Package, Class, Struct, Interface, Enum, Template:
+					isAggregate = true;
+					deepestAggregateLevel = nameDepth;
+					break;
+				case Function, Variable, Alias, Value:
+					isAggregate = false;
+					break;
+			}
+		}
+
+		symbolFileStack.length = symbolFileStack.length + 1;
+		addSearchEntry(symbolStack);
+
+		// Name stack of the symbol in the documentation file of which we will
+		// write, except the module name part.
+		string[] targetSymbolStack;
+		size_t fileDepth;
+		// If the symbol is not an aggregate, its docs will be written into its
+		// closest aggregate parent.
+		if(!isAggregate)
+		{
+			assert(deepestAggregateLevel != size_t.max,
+			       "A non-aggregate with no aggregate parent; maybe modules "
+			       "are not considered aggregates? (we can't handle that case)");
+
+			// Write into the file for the deepest aggregate parent (+1 is
+			// needed to include the name of the parent itself)
+			targetSymbolStack =
+			    symbolStackRaw[moduleNameLength_ .. deepestAggregateLevel + 1];
+
+			// Going relatively from the end, as the symbolFileStack does not
+			// contain items for some or all top-most packages.
+			fileDepth = symbolFileStack.length -
+			            (symbolStackRaw.length - deepestAggregateLevel) - 1;
+		}
+		// If the symbol is an aggregate, it will have a file just for itself.
+		else
+		{
+			// The symbol itself is the target.
+			targetSymbolStack = symbolStackRaw[moduleNameLength_ .. $];
+			// Parent is the second last element of symbolFileStack
+			fileDepth = symbolFileStack.length - 2;
+			assert(fileDepth < symbolFileStack.length,
+			       "integer overflow (symbolFileStack should have length >= 2 here): %s %s"
+			       .format(fileDepth, symbolFileStack.length));
+		}
+
+		// Path relative to output directory
+		string docFileName = targetSymbolStack.empty
+			? moduleFileBase_ ~ ".html"
+			: moduleFileBase_.buildPath(targetSymbolStack.joiner(".").array.to!string) ~ ".html";
+		itemURL = symbolLink(symbolStack);
+
+		// Look for a file if it already exists, create if it does not.
+		File* p = docFileName in symbolFileStack[fileDepth];
+		first = p is null;
+		if (first)
+		{
+			auto f = File(config.outputDirectory.buildPath(docFileName), "w");
+			symbolFileStack[fileDepth][docFileName] = f;
+			return f.lockingTextWriter;
+		}
+		else { return p.lockingTextWriter; }
+	}
+}
+
+
+/** symbolLink implementation for HTMLWriterSimple.
+ *
+ * See_Also: symbolLinkAggregated
+ */
+string symbolLinkSimple(SymbolStack)(auto ref SymbolStack nameStack)
+{
+	if(nameStack.empty) { return "UNKNOWN.html"; }
+	// Start with the first part of the name so we have something we can buildPath() with.
+	string result = nameStack.front;
+	bool moduleParent = [SymbolType.Module, SymbolType.Package].canFind(nameStack.front.type);
+	nameStack.popFront();
+
+	foreach(name; nameStack) final switch(name.type) with(SymbolType)
+	{
+		// A new directory is created for each module
+		case Module, Package:
+			result = result.buildPath(name.name);
+			moduleParent = true;
+			break;
+		// These symbol types have separate files in a module directory.
+		case Class, Struct, Interface, Enum, Function, Variable, Alias, Template:
+			// If last name was module/package, the file will be in its
+			// directory. Otherwise it will be in the same dir as the parent.
+			result = moduleParent ? result.buildPath(name.name)
+			                       : result ~ "." ~ name.name;
+			moduleParent = false;
+			break;
+		// Enum members are documented in their enums.
+		case Value: result = result; break;
+	}
+
+	return result ~ ".html";
+}
+
+class HTMLWriterSimple: HTMLWriterBase!symbolLinkSimple
+{
+	alias Super = typeof(super);
+	private alias config = Super.config;
+	alias writeBreadcrumbs = Super.writeBreadcrumbs;
+	alias symbolLink = symbolLinkSimple;
+
+	this(ref const Config config, string[string] macros, File searchIndex,
+	     TocItem[] tocItems, string[] tocAdditionals)
+	{
+		super(config, macros, searchIndex, tocItems, tocAdditionals);
+	}
+
+	/// Write a separator (e.g. between two overloads of a function)
+	void writeSeparator(R)(ref R dst) { dst.put("<hr/>"); }
+
+	// Do nothing. No divs needed as every symbol is in a separate file.
+	void writeSymbolStart(R)(ref R dst, string link) { }
+	void writeSymbolEnd(R)(ref R dst) { }
+
+	void writeSymbolDescription(R)(ref R dst, void delegate() descriptionCode)
+	{
+		descriptionCode();
+	}
+
+	auto pushSymbol(string[] symbolStack, SymbolDatabase database,
+	                ref bool first, ref string itemURL)
+	{
+		symbolFileStack.length = symbolFileStack.length + 1;
+
+		assert(symbolStack.length >= moduleNameLength_,
+		       "symbol stack shorter than module name");
+
+		auto tail = symbolStack[moduleNameLength_ .. $];
+		// Path relative to output directory
+		const docFileName = tail.empty
+			? moduleFileBase_ ~ ".html"
+			: moduleFileBase_.buildPath(tail.joiner(".").array.to!string) ~ ".html";
+
+		addSearchEntry(database.symbolStack(symbolStack[0 .. moduleNameLength],
+		                                    symbolStack[moduleNameLength .. $]));
+
+		// The second last element of symbolFileStack
+		immutable size_t i = symbolFileStack.length - 2;
+		assert (i < symbolFileStack.length, "%s %s".format(i, symbolFileStack.length));
+		auto p = docFileName in symbolFileStack[i];
+		first = p is null;
+		itemURL = docFileName;
+		if (first)
+		{
+			first = true;
+			auto f = File(config.outputDirectory.buildPath(docFileName), "w");
+			symbolFileStack[i][docFileName] = f;
+			return f.lockingTextWriter;
+		}
+		else
+			return p.lockingTextWriter;
+	}
+}
 
 
 enum HTML_END = `

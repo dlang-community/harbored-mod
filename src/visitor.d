@@ -63,8 +63,8 @@ class DocVisitor(Writer) : ASTVisitor
 
 		// The module is the first and only top-level "symbol".
 		bool dummyFirst;
-		string dummyURL;
-		auto fileWriter = writer.pushSymbol(stack, dummyFirst, dummyURL);
+		string link;
+		auto fileWriter = writer.pushSymbol(stack, database, dummyFirst, link);
 		scope(exit) { writer.popSymbol(); }
 
 		writer.writeHeader(fileWriter, moduleName, stack.length - 1);
@@ -78,13 +78,16 @@ class DocVisitor(Writer) : ASTVisitor
 
 		mod.accept(this);
 
-		memberStack.back.writeImports(fileWriter, writer);
-
-		if (comment !is null)
+		writer.writeSymbolDescription(fileWriter,
 		{
-			writer.readAndWriteComment(fileWriter, comment, prevComments,
-				null, getUnittestDocTuple(mod.moduleDeclaration));
-		}
+			memberStack.back.writeImports(fileWriter, writer);
+
+			if (comment !is null)
+			{
+				writer.readAndWriteComment(fileWriter, comment, prevComments,
+					null, getUnittestDocTuple(mod.moduleDeclaration));
+			}
+		});
 
 		memberStack.back.write(fileWriter, writer);
 	}
@@ -180,8 +183,13 @@ class DocVisitor(Writer) : ASTVisitor
 			auto fileWriter = pushSymbol(name.text, first, itemURL);
 			scope(exit) popSymbol(fileWriter);
 
-			string type = writeAliasType(fileWriter, name.text, ad.type);
-			string summary = writer.readAndWriteComment(fileWriter, ad.comment, prevComments);
+			string type, summary;
+			writer.writeSymbolDescription(fileWriter,
+			{
+				type = writeAliasType(fileWriter, name.text, ad.type);
+				summary = writer.readAndWriteComment(fileWriter, ad.comment, prevComments);
+			});
+
 			memberStack[$ - 2].aliases ~= Item(itemURL, name.text, summary, type);
 		}
 		else foreach (initializer; ad.initializers)
@@ -190,14 +198,36 @@ class DocVisitor(Writer) : ASTVisitor
 			auto fileWriter = pushSymbol(initializer.name.text, first, itemURL);
 			scope(exit) popSymbol(fileWriter);
 
-			string type = writeAliasType(fileWriter, initializer.name.text, initializer.type);
-			string summary = writer.readAndWriteComment(fileWriter, ad.comment, prevComments);
+			string type, summary;
+			writer.writeSymbolDescription(fileWriter,
+			{
+				type = writeAliasType(fileWriter, initializer.name.text, initializer.type);
+				summary = writer.readAndWriteComment(fileWriter, ad.comment, prevComments);
+			});
+
 			memberStack[$ - 2].aliases ~= Item(itemURL, initializer.name.text, summary, type);
 		}
 	}
 
 	override void visit(const VariableDeclaration vd)
 	{
+		// Write the variable attributes, type, name.
+		void writeVariableHeader(R)(ref R dst, string typeStr, string nameStr)
+		{
+			writer.writeCodeBlock(dst,
+			{
+				assert(attributeStack.length > 0,
+				    "Attributes stack must not be empty when writing variable attributes");
+				auto formatter = writer.newFormatter(dst);
+				scope(exit) { destroy(formatter.sink); }
+				// Attributes like public, etc.
+				writer.writeAttributes(dst, formatter, attributeStack.back);
+				dst.put(typeStr);
+				dst.put(` `);
+				dst.put(nameStr);
+				// TODO also default value
+			});
+		}
 		bool first;
 		foreach (const Declarator dec; vd.declarators)
 		{
@@ -207,10 +237,15 @@ class DocVisitor(Writer) : ASTVisitor
 			auto fileWriter = pushSymbol(dec.name.text, first, itemURL);
 			scope(exit) popSymbol(fileWriter);
 
-			string summary = writer.readAndWriteComment(fileWriter,
-				dec.comment is null ? vd.comment : dec.comment,
-				prevComments);
 			string typeStr = writer.formatNode(vd.type);
+			string summary;
+			writer.writeSymbolDescription(fileWriter,
+			{
+				writeVariableHeader(fileWriter, typeStr, dec.name.text);
+				summary = writer.readAndWriteComment(fileWriter,
+					dec.comment is null ? vd.comment : dec.comment,
+					prevComments);
+			});
 
 			memberStack[$ - 2].variables ~= Item(itemURL, dec.name.text, summary, typeStr);
 		}
@@ -220,7 +255,6 @@ class DocVisitor(Writer) : ASTVisitor
 			auto fileWriter = pushSymbol(ident.text, first, itemURL);
 			scope(exit) popSymbol(fileWriter);
 
-			string summary = writer.readAndWriteComment(fileWriter, vd.comment, prevComments);
 			// TODO this was hastily updated to get harbored-mod to compile
 			// after a libdparse update. Revisit and validate/fix any errors.
 			string[] storageClasses;
@@ -230,6 +264,12 @@ class DocVisitor(Writer) : ASTVisitor
 			}
 
 			string typeStr = storageClasses.canFind("enum") ? null : "auto";
+			string summary;
+			writer.writeSymbolDescription(fileWriter,
+			{
+				writeVariableHeader(fileWriter, typeStr, ident.text);
+				summary = writer.readAndWriteComment(fileWriter, vd.comment, prevComments);
+			});
 			auto i = Item(itemURL, ident.text, summary, typeStr);
 			if (storageClasses.canFind("enum"))
 				memberStack[$ - 2].enums ~= i;
@@ -356,18 +396,23 @@ private:
 		auto fileWriter = pushSymbol(ad.name.text, first, itemURL);
 		scope(exit) popSymbol(fileWriter);
 
-		writer.writeCodeBlock(fileWriter,
+		string summary;
+		writer.writeSymbolDescription(fileWriter,
 		{
-			auto formatter = writer.newFormatter(fileWriter);
-			scope(exit) destroy(formatter.sink);
-			assert(attributeStack.length > 0,
-				"Attributes stack must not be empty when writing aggregate attributes");
-			writer.writeAttributes(fileWriter, formatter, attributeStack.back);
-			mixin(formattingCode);
+			writer.writeCodeBlock(fileWriter,
+			{
+				auto formatter = writer.newFormatter(fileWriter);
+				scope(exit) destroy(formatter.sink);
+				assert(attributeStack.length > 0,
+					"Attributes stack must not be empty when writing aggregate attributes");
+				writer.writeAttributes(fileWriter, formatter, attributeStack.back);
+				mixin(formattingCode);
+			});
+
+			summary = writer.readAndWriteComment(fileWriter, ad.comment, prevComments,
+				null, getUnittestDocTuple(ad));
 		});
 
-		string summary = writer.readAndWriteComment(fileWriter, ad.comment, prevComments,
-			null, getUnittestDocTuple(ad));
 		mixin(`memberStack[$ - 2].` ~ name ~ ` ~= Item(itemURL, ad.name.text, summary);`);
 		prevComments.length = prevComments.length + 1;
 		ad.accept(this);
@@ -407,52 +452,57 @@ private:
 		auto fileWriter = pushSymbol(name, first, itemURL);
 		scope(exit) popSymbol(fileWriter);
 
-		auto formatter = writer.newFormatter(fileWriter);
-		scope(exit) destroy(formatter.sink);
-
-		// Write the function signature.
-		writer.writeCodeBlock(fileWriter,
+		string summary;
+		writer.writeSymbolDescription(fileWriter,
 		{
-			assert(attributeStack.length > 0,
-				"Attributes stack must not be empty when writing function attributes");
-			// Attributes like public, etc.
-			writer.writeAttributes(fileWriter, formatter, attrs);
-			// Return type and function name, with special case fo constructor
-			static if (__traits(hasMember, typeof(fn), "returnType"))
-			{
-				if (fn.returnType)
-				{
-					formatter.format(fn.returnType);
-					fileWriter.put(" ");
-				}
-				formatter.format(fn.name);
-			}
-			else
-			{
-				fileWriter.put("this");
-			}
-			// Template params
-			if (fn.templateParameters !is null)
-				formatter.format(fn.templateParameters);
-			// Function params
-			if (fn.parameters !is null)
-				formatter.format(fn.parameters);
-			// Attributes like const, nothrow, etc.
-			foreach (a; fn.memberFunctionAttributes)
-			{
-				fileWriter.put(" ");
-				formatter.format(a);
-			}
-			// Template constraint
-			if (fn.constraint)
-			{
-				fileWriter.put(" ");
-				formatter.format(fn.constraint);
-			}
-		});
+			auto formatter = writer.newFormatter(fileWriter);
+			scope(exit) destroy(formatter.sink);
 
-		string summary = writer.readAndWriteComment(fileWriter, fn.comment,
-			prevComments, fn.functionBody, getUnittestDocTuple(fn));
+			// Write the function signature.
+			writer.writeCodeBlock(fileWriter,
+			{
+				assert(attributeStack.length > 0,
+				       "Attributes stack must not be empty when writing "
+				       "function attributes");
+				// Attributes like public, etc.
+				writer.writeAttributes(fileWriter, formatter, attrs);
+				// Return type and function name, with special case fo constructor
+				static if (__traits(hasMember, typeof(fn), "returnType"))
+				{
+					if (fn.returnType)
+					{
+						formatter.format(fn.returnType);
+						fileWriter.put(" ");
+					}
+					formatter.format(fn.name);
+				}
+				else
+				{
+					fileWriter.put("this");
+				}
+				// Template params
+				if (fn.templateParameters !is null)
+					formatter.format(fn.templateParameters);
+				// Function params
+				if (fn.parameters !is null)
+					formatter.format(fn.parameters);
+				// Attributes like const, nothrow, etc.
+				foreach (a; fn.memberFunctionAttributes)
+				{
+					fileWriter.put(" ");
+					formatter.format(a);
+				}
+				// Template constraint
+				if (fn.constraint)
+				{
+					fileWriter.put(" ");
+					formatter.format(fn.constraint);
+				}
+			});
+
+			summary = writer.readAndWriteComment(fileWriter, fn.comment,
+				prevComments, fn.functionBody, getUnittestDocTuple(fn));
+		});
 		string fdName;
 		static if (__traits(hasMember, typeof(fn), "name"))
 			fdName = fn.name.text;
@@ -603,7 +653,8 @@ private:
 		stack ~= name;
 		memberStack.length = memberStack.length + 1;
 
-		auto result = writer.pushSymbol(stack, first, itemURL);
+		// Sets first
+		auto result = writer.pushSymbol(stack, database, first, itemURL);
 
 		if(first)
 		{
