@@ -210,7 +210,9 @@ class DocVisitor(Writer) : ASTVisitor
 			string summary = writer.readAndWriteComment(fileWriter,
 				dec.comment is null ? vd.comment : dec.comment,
 				prevComments);
-			memberStack[$ - 2].variables ~= Item(itemURL, dec.name.text, summary, writer.formatNode(vd.type));
+			string typeStr = writer.formatNode(vd.type);
+
+			memberStack[$ - 2].variables ~= Item(itemURL, dec.name.text, summary, typeStr);
 		}
 		if (vd.comment !is null && vd.autoDeclaration !is null) foreach (ident; vd.autoDeclaration.identifiers)
 		{
@@ -226,7 +228,9 @@ class DocVisitor(Writer) : ASTVisitor
 			{
 				storageClasses ~= str(stor.token.type);
 			}
-			auto i = Item(itemURL, ident.text, summary, storageClasses.canFind("enum") ? null : "auto");
+
+			string typeStr = storageClasses.canFind("enum") ? null : "auto";
+			auto i = Item(itemURL, ident.text, summary, typeStr);
 			if (storageClasses.canFind("enum"))
 				memberStack[$ - 2].enums ~= i;
 			else
