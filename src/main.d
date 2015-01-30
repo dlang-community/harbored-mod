@@ -19,13 +19,22 @@ import std.stdio;
 
 import config;
 import macros;
+import symboldatabase;
 import tocbuilder;
 import unittest_preprocessor;
 import visitor;
+import writer;
 
 
 int main(string[] args)
 {
+	import std.datetime;
+	const startTime = Clock.currStdTime;
+	scope(exit) 
+	{
+		writefln("Time spent: %.3fs", (Clock.currStdTime - startTime) / 10_000_000.0); 
+	}
+
 	Config config;
 	enum defaultConfigPath = "hmod.cfg";
 	config.loadConfigFile(defaultConfigPath);
@@ -68,10 +77,12 @@ int main(string[] args)
 
 	if (config.doGenerateCSSPath !is null)
 	{
+		writefln("Generating CSS file '%s'", config.doGenerateCSSPath);
 		return writeProtected(config.doGenerateCSSPath, stylecss, "CSS");
 	}
 	if(config.doGenerateConfig)
 	{
+		writefln("Generating config file '%s'", defaultConfigPath);
 		return writeProtected(defaultConfigPath, defaultConfigString, "config");
 	}
 
@@ -85,7 +96,12 @@ int main(string[] args)
 		return 1;
 	}
 
-	generateDocumentation(config, macros);
+	switch(config.format)
+	{
+		case "html-simple": generateDocumentation!HTMLWriterSimple(config, macros); break;
+		case "html-aggregated": generateDocumentation!HTMLWriterAggregated(config, macros); break;
+		default: writeln("Unknown format: ", config.format);
+	}
 
 	return 0;
 }
@@ -100,7 +116,7 @@ string[string] readMacros(const string[] macroFiles)
 	return rVal;
 }
 
-void generateDocumentation(ref const(Config) config, string[string] macros)
+void generateDocumentation(Writer)(ref const(Config) config, string[string] macros)
 {
 	string[] files = getFilesToProcess(config.sourcePaths.dup);
 	import std.stdio;
@@ -112,47 +128,23 @@ void generateDocumentation(ref const(Config) config, string[string] macros)
 	search.writeln(`"use strict";`);
 	search.writeln(`var items = [`);
 
-	string[] moduleNames;
-	string[string] moduleNameToDocPath;
+	auto database =
+		gatherData(config, new Writer(config, macros, search, null, null), files);
 
-	writeln("Collecting data for table of contents");
-	foreach(modulePath; files)
+
+	TocItem[] tocItems = buildTree(database.moduleNames, database.moduleNameToLink);
+
+	enum noFile = "missing file";
+	string[] tocAdditionals =
+		config.tocAdditionalFileNames.map!(path => path.exists ? readText(path) : noFile)
+		                             .array ~
+		config.tocAdditionalStrings;
+	if(!tocAdditionals.empty) foreach(ref text; tocAdditionals)
 	{
-		string moduleName;
-		string link;
-
-		try
-		{
-			getDocumentationLink(config, modulePath, moduleName, link);
-		}
-		catch(Exception e)
-		{
-			stderr.writeln("Could not build a TOC entry for ", modulePath, ": ", e.msg);
-			continue;
-		}
-
-		if (moduleName != "")
-		{
-			moduleNames ~= moduleName;
-			moduleNameToDocPath[moduleName] = link;
-		}
-	}
-
-	TocItem[] tocItems = buildTree(moduleNames, moduleNameToDocPath);
-
-	string tocAdditional = config.tocAdditionalFileName is null 
-	                     ? null : readText(config.tocAdditionalFileName);
-	if (config.tocAdditionalFileName !is null)
-	{
-		// Hack so we don't have to pass all readAndWriteComments params to
-		// writeTOC. TODO rewrite readAndWriteComments and other writing
-		// functions so they generate strings and refactor them.
-		const tempName = ".hmod-additional-toc-temp";
-		auto temp = File(tempName, "w");
-		readAndWriteComment(temp, tocAdditional, &config, macros);
-		temp.close();
-		tocAdditional = readText(tempName);
-		std.file.remove(temp.name);
+		auto html = new Writer(config, macros, search, null, null);
+		auto writer = appender!string();
+		html.readAndWriteComment(writer, text);
+		text = writer.data;
 	}
 
 	// Write index.html and style.css
@@ -161,32 +153,34 @@ void generateDocumentation(ref const(Config) config, string[string] macros)
 		css.write(getCSS(config.cssFileName));
 		File js = File(buildPath(config.outputDirectory, "highlight.pack.js"), "w");
 		js.write(hljs);
+		File showHideJs = File(buildPath(config.outputDirectory, "show_hide.js"), "w");
+		showHideJs.write(showhidejs);
 		File index = File(buildPath(config.outputDirectory, "index.html"), "w");
-		index.writeHeader("Index", 0);
-		index.writeTOC(tocItems, tocAdditional);
-		index.writeBreadcrumbs("Main Page");
+
+		auto fileWriter = index.lockingTextWriter;
+		auto html = new Writer(config, macros, search, tocItems, tocAdditionals);
+		html.writeHeader(fileWriter, "Index", 0);
+		html.writeBreadcrumbs(fileWriter, "Main Page");
+		html.writeTOC(fileWriter);
 
 		if (config.indexFileName !is null)
 		{
 			File indexFile = File(config.indexFileName);
 			ubyte[] indexBytes = new ubyte[cast(uint) indexFile.size];
 			indexFile.rawRead(indexBytes);
-			readAndWriteComment(index, cast(string)indexBytes, &config, macros);
+			html.readAndWriteComment(fileWriter, cast(string)indexBytes);
 		}
-		index.writeln(`
-</div>
-</div>
-</body>
-</html>`);
+		index.writeln(HTML_END);
 	}
 
 
-	foreach (f; files)
+	foreach (f; database.moduleFiles)
 	{
 		writeln("Generating documentation for ", f);
 		try
 		{
-			writeDocumentation(config, f, search, tocItems, macros, tocAdditional);
+			writeDocumentation!Writer(config, database, f, search, tocItems,
+			                          macros, tocAdditionals);
 		}
 		catch (Exception e)
 		{
@@ -216,8 +210,8 @@ string getCSS(string customCSS)
 }
 
 /// Creates documentation for the module at the given path
-void writeDocumentation(ref const Config config, string path, File search, TocItem[] tocItems,
-	string[string] macros, string tocAdditional)
+void writeDocumentation(Writer)(ref const Config config, SymbolDatabase database, string path,
+	File search, TocItem[] tocItems, string[string] macros, string[] tocAdditionals)
 {
 	LexerConfig lexConfig;
 	lexConfig.fileName = path;
@@ -230,30 +224,11 @@ void writeDocumentation(ref const Config config, string path, File search, TocIt
 	auto tokens = getTokensForParser(fileBytes, lexConfig, &cache).array;
 	Module m = parseModule(tokens, path, null, &doNothing);
 	TestRange[][size_t] unitTestMapping = getUnittestMap(m);
-	auto visitor = new DocVisitor(config, macros, search,
-		unitTestMapping, fileBytes, tocItems, tocAdditional);
+	
+	auto htmlWriter  = new Writer(config, macros, search, tocItems, tocAdditionals);
+	auto visitor = new DocVisitor!Writer(config, database, unitTestMapping, 
+	                                         fileBytes, htmlWriter);
 	visitor.visit(m);
-}
-
-/// Gets link (in output directory) and module name for documentation of specified module.
-void getDocumentationLink(ref const Config config, string modulePath,
-	ref string moduleName, ref string link)
-{
-	LexerConfig lexConfig;
-	lexConfig.fileName = modulePath;
-	lexConfig.stringBehavior = StringBehavior.source;
-
-	File f = File(modulePath);
-	ubyte[] fileBytes = uninitializedArray!(ubyte[])(to!size_t(f.size));
-	f.rawRead(fileBytes);
-	StringCache cache = StringCache(1024 * 4);
-	auto tokens = getTokensForParser(fileBytes, lexConfig, &cache).array;
-	Module m = parseModule(tokens, modulePath, null, &doNothing);
-	auto visitor = new DocVisitor(config, null, File.init, null,
-		fileBytes, null, null);
-	visitor.moduleInitLocation(m);
-	moduleName = visitor.moduleName;
-	link = visitor.link;
 }
 
 string[] getFilesToProcess(string[] paths)
@@ -261,12 +236,14 @@ string[] getFilesToProcess(string[] paths)
 	auto files = appender!(string[])();
 	foreach (arg; paths)
 	{
-		if (isDir(arg)) foreach (string fileName; dirEntries(arg, "*.{d,di}", SpanMode.depth))
-			files.put(expandTilde(fileName));
-		else if (isFile(arg))
-			files.put(expandTilde(arg));
+		if(!arg.exists)
+			stderr.writefln("WARNING: '%s' does not exist, ignoring", arg);
+		else if (arg.isDir) foreach (string fileName; arg.dirEntries("*.{d,di}", SpanMode.depth))
+			files.put(fileName.expandTilde);
+		else if (arg.isFile)
+			files.put(arg.expandTilde);
 		else
-			stderr.writeln("Could not open `", arg, "`");
+			stderr.writefln("WARNING: Could not open '%s', ignoring", arg);
 	}
 	return files.data;
 }
@@ -277,3 +254,4 @@ void doNothing(string, size_t, size_t, string, bool) {}
 immutable string hljs = import("highlight.pack.js");
 immutable string stylecss = import("style.css");
 immutable string searchjs = import("search.js");
+immutable string showhidejs = import("show_hide.js");

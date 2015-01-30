@@ -3,51 +3,101 @@ module tocbuilder;
 import std.algorithm;
 import std.array: back, empty;
 import std.stdio;
+import std.string: format;
 import std.array;
 
 struct TocItem
 {
+private:
 	string name;
 	string url;
 	TocItem[] items;
 
-	void write(File output)
+	/// Computed by preCache() below ///
+
+	/// Item name split by '.' This is an optimization (redundant with e.g. name.splitter)
+	string[] nameParts;
+	/// Is this a package item?
+	bool isPackage;
+	/// JS for opening/closing packages.
+	string spanJS;
+
+	/// HTML content of the list item (can be wrapped in any <li> or <span>).
+	string listItem;
+
+	/// Precompute any values that will be frequently reused.
+	void preCache()
 	{
 		import std.string: split;
-		
-		bool hasChildren = items.length != 0;
-		output.writeln(`<li>`);
-		if (hasChildren)
+		nameParts = name.split(".");
+		isPackage = items.length != 0;
+		if(url is null)
 		{
-			output.writeln(`<span class="package">`);
+			listItem = name;
 		}
-		if (url !is null)
+		else 
 		{
-			auto parts = name.split(".");
-			output.writeln(
-				parts.length > 1 ?
-				`<small>` ~ parts[0 .. $ - 1].join(".") ~ `.</small>` : "",
-				`<a href="`, url, `">`, parts.back, `</a>`);
+			if(nameParts.length > 1)
+			{
+				listItem ~= nameParts[0 .. $ - 1].join(".") ~ ".";
+			}
+			listItem ~= `<a href="%s">%s</a>`.format(url, nameParts.back);
+		}
+		if(isPackage)
+		{
+			spanJS = ` onclick="show_hide('%s');"`.format(name);
+		}
+	}
+
+	/** Write the TOC item.
+	 *
+	 * Params:
+	 *
+	 * dst        = Range to write to.
+	 * moduleName = Name of the module/package in the documentation page of which
+	 *              we're writing this TOC, if we're writing module/package documentation.
+	 */
+	void write(R)(ref R dst, string moduleName = "")
+	{
+		// Is this TOC item the module/package the current documentation page
+		// documents?
+		const isSelected = name == moduleName;
+
+		dst.put(`<li>`);
+		const css = isPackage || isSelected;
+		
+		if(!css)
+		{
+			dst.put(listItem);
 		}
 		else
 		{
-			output.writeln(name);
+			dst.put(`<span class="`);
+			if(isPackage)  { dst.put("package"); }
+			if(isSelected) { dst.put(" selected"); }
+			dst.put(`"`);
+			if(isPackage)  { dst.put(spanJS); }
+			dst.put(`>`);
+			dst.put(listItem);
+			dst.put("</span>\n"); 
 		}
-		if (hasChildren)
+
+		if(isPackage)
 		{
-			output.writeln(`</span>`);
+			auto moduleParts = moduleName.splitter(".");
+			const block = moduleParts.startsWith(nameParts);
+			dst.put(`<ul id="`);
+			dst.put(name);
+			dst.put(`"`);
+			if(moduleParts.startsWith(nameParts)) { dst.put(` style='display:block'`); }
+			dst.put(">\n");
+
+			foreach (item; items)
+				item.write(dst, moduleName);
+			// End a package's list of members
+			dst.put("</ul>\n");
 		}
-		if (hasChildren)
-		{
-			output.writeln(`<ul>`);
-		}
-		foreach (item; items)
-			item.write(output);
-		if (hasChildren)
-		{
-			output.writeln(`</ul>`);
-		}
-		output.writeln(`</li>`);
+		dst.put("</li>\n");
 	}
 }
 
@@ -76,8 +126,6 @@ TocItem[] buildTree(string[] strings, string[string] links, const size_t offset 
 		else
 			item.url = links[strings[i]];
 
-		// short name (only module, no package):
-		// item.name = strings[i][offset .. offset + prefix.length];
 		item.name = strings[i][0 .. item.items.empty ? $ : offset + prefix.length];
 
 		if(items.length > 0 && items.back.name == item.name)
@@ -90,6 +138,10 @@ TocItem[] buildTree(string[] strings, string[string] links, const size_t offset 
 		}
 
 		i = j;
+	}
+	foreach(ref item; items)
+	{
+	    item.preCache();
 	}
 	return items;
 }

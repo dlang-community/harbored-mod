@@ -1,0 +1,100 @@
+Generates documentation for D source code.
+
+Usage:
+    hmod [Options] file.d
+    hmod [Options] directory1/ directory2/ ...
+
+Examples:
+    hmod source
+        Write documentation for source code in directory 'source' to directory 'doc'.
+        If file 'hmod.cfg' exists, load more configuration options from there.
+
+    hmod source -o doc/api -f html-simple
+        Write documentation for source code in directory 'source' to directory 'doc/api',
+        using the 'simple' HTML format (the former default format, where every 
+        function or variable is documented in a separate file).
+        If file 'hmod.cfg' exists, load more configuration options from there.
+
+    hmod -g
+        Generate default configuration file as 'hmod.cfg'
+
+    hmod -C style.css
+        Generate default CSS style as 'style.css'
+
+    hmod source -c style.css -e package1.module -e package2 -i index.ddoc
+        Write documentation for source code in directory 'source' to directory 'doc',
+        using CSS style 'style.css' and main page content from 'index.ddoc', but
+        don't generate documentation for module 'package1.module' and package 'package2'.
+        If file 'hmod.cfg' exists, load more configuration options from there.
+
+Options:
+    --help | -h
+        Prints this message.
+
+    --output-directory | -o DIR
+        Writes the generated documentation to the given directory. If this
+        option is not specified, documentation will be written to a folder
+        called "doc" in the current directory.
+
+    --format | -f FORMAT
+        Write to specified format. Supported values:
+        html-simple
+            Every function, variable, etc. will be documented in a separate 
+            HTML file. A documentation page of an aggregate (e.g. class) will
+            link to these files. Generates a large number of files; not 
+            recommended for large projects.
+        html-aggregated
+            Members of an aggregate will be documented in the same file as the
+            aggregate, unless they are aggregates themselves. That is, member
+            functions or variables will be documented in the same file as the
+            class that contains them, but a subclass will be documented in a
+            separate file.
+        Default: html-aggregated
+
+    --exclude | -e MODULE_NAME
+        Exclude given module or package from the generated documentation.
+        By default no modules or packages will be excluded unless they do not
+        contain a module declaration.
+
+        Example: '-e tharsis.util -e tharsis.entity.componentbuffer'
+        This will exclude package tharsis.util and module
+        tharsis.entity.gamestate.
+
+    --index | -i DDOC_MD_FILE
+        Use DDOC_MD_FILE as the content of the index.html page. By default this
+        page will be blank.
+
+    --toc-additional | -t DDOC_MD_FILE
+        Use DDOC_MD_FILE as additional content of the table of contents.
+        Can be used more than once.
+
+    --toc-additional-direct | -T CONTENT
+        Use string CONTENT (ddoc and/or markdown) as additional content of the
+        table of contents. Can be used more than once.
+
+    --generate-cfg | -g
+        Generate the default configuration file and write it into 'hmod.cfg'. 
+        This file can be used to store configuration options instead of passing
+        them through the command line. By default, hmod loads configuration 
+        from this file if it exists.  See also: --config
+
+    --css | -c CSS_FILE
+        Use CSS_FILE to style the documentation instead of using default CSS.
+        See also: --generate-css
+
+    --generate-css | -C CSS_OUT_FILE
+        Generate default CSS file and write it to CSS_OUT_FILE. This file can
+        be modified and then passed using the --css option.
+
+    --config | -F CONFIG_FILE
+        Load hmod configuration from specified file.
+        By default, hmod loads configuration from './hmod.cfg',
+        if such a file exists.
+
+        Note that any configuration option specified in the config file is
+        overridden if the same option is specified as a command-line
+        argument.
+
+    --macros | -m MACRO_FILE
+        Specifies a DDoc macro definition file to use. Multiple macro files
+        can be used by using this option more than once.

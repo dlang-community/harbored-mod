@@ -25,16 +25,16 @@ div.main {
 div.breadcrumbs {
 	color: white;
 	background-color: #333;
-	padding-top: 1em;
-	padding-left: 1em;
-	padding-right: 1em;
+	padding: 1.0em 0.5em 0.0em 0.5em;
+	left: 0;
 	box-sizing: border-box;
 	text-align: right;
 	top: 0;
-	position: fixed;
 	width: 100%;
 	height: 48px;
 	font-size: 95%;
+
+	position: fixed;
 }
 
 div.breadcrumbs a {
@@ -92,6 +92,15 @@ div.breadcrumbs input {
 }
 
 
+/* anchors need to compensate for the fixed-pos breadcrumbs */
+a.anchor
+{
+    display: block;
+    position: relative;
+    top: -48px;
+    visibility: hidden;
+}
+
 /** SEARCH RESULTS **/
 #results {
 	position: absolute;
@@ -112,25 +121,70 @@ div.breadcrumbs input {
 }
 
 
-/**** TABLE OF CONTENTS ****/
+/**** SIDEBAR, TABLE OF CONTENTS ****/
 
-div.toc {
-	float: left;
+div.sidebar {
 	margin-top: 48px;
-	padding: 1.5em 0.75em 1em 0.5em;
+	float: left;
 	margin-right: -1px;
 	border-right: 1px solid #D0D0D0;
-	font-size: 0.72em;
-	line-height: 1.3em;
+	background-color: #F8F8F0;
 }
+
+
+div.toc {
+	padding: 1.5em 0.75em 1em 0.5em;
+	font-size: 0.5em;
+	line-height: 1.95em;
+	display:block; 
+}
+
 @media only screen and (max-width: 800px)
 {
 	div.toc {
-		font-size: 0.6em;
-		padding: 1.5em 0.5em 1em 0.3em;
-		line-height: 1.7em;
+		font-size: 0.45em;
+		padding: 1.5em 0.4em 1em 0.2em;
 	}
 }
+
+
+/* stuff for showing/hiding the sidebar */
+.hide, .show {
+	display: block;
+	float: right;
+	border-right: 1px solid #D0D0D0;
+	border-bottom: 1px solid #D0D0D0;
+	border-left: 1px solid #D0D0D0;
+	/* to avoid having double border */
+	margin-right: -1px;
+	font-size: 1.1em;
+	padding: 0 0.6em;
+}
+a.hide, a.show {
+	color: #111; 
+	text-decoration: none;
+}
+.hide {
+	background-color: #F8F8F8;
+	border-bottom-left-radius:3px;
+	border-right: 1px solid #F8F8F8;
+}
+.show {
+	background-color: #F8F8F0;
+	border-bottom-right-radius:3px;
+	display: none; 
+}
+.hide:target + .show {
+	display: inline; 
+	position: absolute;
+}
+.hide:target {
+	display: none; 
+}
+.hide:target ~ .toc {
+	display:none; 
+}
+
 
 div.toc .toc-additional {
 	border-bottom: 1px dashed #333;
@@ -155,38 +209,51 @@ div.toc ul ul {
 
 div.toc a {
 	color: #111;
+	font-size: 1.42em;
 }
 
-div.toc small {
-	font-size: 0.7em;
-}
 @media only screen and (max-width: 800px)
 {
 	div.toc ul ul {
 		padding-left: 0.2em;
 	}
-	div.toc small {
-		display: none;
-		position: fixed;
-	}
 }
 
 div.toc span.package {
+	cursor: pointer;
 	line-height: 1.8em;
 	font-weight: bold;
 	border: 1px solid rgba(0, 0, 0, 0.12);
-	border-radius: 3px;
+	border-radius: 2px;
 	background-color: #F0F0F0;
+	font-size: 1.42em;
+	padding: 0 0.2em;
+	/* counteracts the text movement caused by the padding */
+	margin: 0 -0.2em;
 }
+
+div.toc span.package a {
+	font-size: 1em;
+}
+
+/* Highlight the current module/package */
+div.toc .selected {
+	border-radius: 2px;
+	background-color: #DAAF07 !important;
+	padding: 0.325em 0.2em;
+	/* counteracts the text movement caused by the padding */
+	margin: -0.325em -0.2em;
+}
+
 
 
 /**** MAIN CONTENT ****/
 
 div.content {
+	margin-top: 48px;
 	padding: 1.5em;
 	font-size: 90%;
 	line-height: 130%;
-	margin-top: 48px;
 	overflow: hidden;
 	border-left: 1px solid #D0D0D0;
 }
@@ -205,9 +272,9 @@ div.content {
 }
 
 div.content h2 {
-	margin: .35em 0 .5em 0;
+	margin: .35em 0 .45em 0;
 	padding-top: .35em;
-	font-size: 1.35em;
+	font-size: 1.3em;
 }
 
 div.content h3 {
@@ -234,7 +301,6 @@ div.content td {
 
 div.content td:first-child {
 	text-align: center;
-	display: block-inline;
 }
 
 /* prevent function attribs from wrapping, make the cell wider instead */
@@ -291,10 +357,46 @@ div.content td .extrainfo{
 .extrainfo .attr-ref     { color: fuchsia; }
 
 
+/**** SYMBOLS (not used by the one-file-for-every-variable writer backend) ****/
+
+div.aggregate-symbol {
+	display: flex;
+	flex-direction: column;
+	display: -webkit-flex;
+	-webkit-flex-direction: column;
+}
+
+div.aggregate-symbol div.description {
+	order: -2;
+	-webkit-order: -2;
+}
+
+div.aggregate-symbol div.members {
+	order: -1;
+	-webkit-order: -1;
+	padding-bottom: 0.3em;
+	border-bottom: 10px solid #333;
+	margin: 1em 0em 1.5em 0em;
+}
+
+div.symbol {
+	border-radius: 3px;
+	border: 1px solid #d0d0d0;
+	padding: 1px 0.4em;
+	margin: 0.5em 0;
+}
+
+a.anchor:target + div.symbol {
+	border: 2px solid #DAAF07;
+	border-radius: 0;
+	background-color: #F8F8F0;
+}
+
+
 
 /**** SECTION-SPECIFIC STYLES ****/
 
-div.section.seealso, div.section.note {
+.section.seealso, .section.note, .section.imports {
 	font-size: 75%;
 	line-height: 135%;
 	/* background-color: #F0F0C0; */
@@ -302,11 +404,12 @@ div.section.seealso, div.section.note {
 	/* background-color: #DA8F07; */
 	/* background-color: #DA9F07; */
 	background-color: #DAAF07;
+	/* background-color: #EABD08; */
 	padding: 1em;
 	margin-bottom: 0.5em;
 }
 
-div.section.seealso h2, div.section.note h2 {
+.section.seealso h2, .section.note h2 {
 	display: block;
 	float: left;
 	margin: 0 0.7em -0.05em 0em;
@@ -314,26 +417,107 @@ div.section.seealso h2, div.section.note h2 {
 	font-size: 1.1em;
 }
 
-div.section.seealso div.seealso-content, div.section.note div.note-content {
+.section.imports h2 {
+	display: inline;
+	margin: 0.5em 0em;
+	padding: 0;
+	font-size: 1.1em;
+}
+
+.section.seealso div.seealso-content, .section.note div.note-content {
 	display: block;
 	margin-left: 6.5em;
 }
 
-div.section.seealso *:first-child, div.section.note *:first-child {
+.section.imports ul {
+	margin: 0;
+	list-style-type: none;
+	padding-left: 1.5em;
+ 
+	-moz-column-count: 4;
+	-moz-column-gap: 20px;
+	-webkit-column-count: 4;
+	-webkit-column-gap: 20px;
+	column-count: 4;
+	column-gap: 20px;
+}
+
+@media only screen and (max-width: 1400px)
+{
+	.section.imports ul {
+		-moz-column-count: 3;
+		-moz-column-gap: 20px;
+		-webkit-column-count: 3;
+		-webkit-column-gap: 20px;
+		column-count: 3;
+		column-gap: 20px;
+	}
+}
+
+@media only screen and (max-width: 1100px)
+{
+	.section.imports ul {
+	-moz-column-count: 2;
+	-moz-column-gap: 13px;
+	-webkit-column-count: 2;
+	-webkit-column-gap: 13px;
+	column-count: 2;
+	column-gap: 13px;
+	}
+}
+
+@media only screen and (max-width: 800px)
+{
+	.section.imports ul {
+		-moz-column-count: 1;
+		-moz-column-gap: 7px;
+		-webkit-column-count: 1;
+		-webkit-column-gap: 7px;
+		column-count: 1;
+		column-gap: 7px;
+	}
+}
+ 
+
+.section.imports ul a {
+	color: #111;
+}
+
+
+.section.seealso *:first-child, .section.note *:first-child {
 	margin-top: 0em;
 }
 
-div.section.seealso ul, div.section.note ul {
+.section.seealso ul, .section.note ul {
 	padding-left: 1.5em;
 }
 
-div.section.seealso *:last-child, div.section.note *:last-child {
+.section.seealso *:last-child, .section.note *:last-child {
 	margin-bottom: 0em;
+}
+
+/**** FOOTER ****/
+
+footer 
+{
+    text-align: center;
+    font-size: 60%;
+    color: white;
+    background-color: #333;
+}
+
+footer a
+{
+    color: white;
 }
 
 
 
 /**** CODE ****/
+
+pre {
+	margin-top: 0.4em;
+}
 
 /* DDoc code examples */
 code {
@@ -342,6 +526,17 @@ code {
 	padding: 0.8em;
 	border-radius: .1em;
 	display: block;
+}
+
+code a {
+	color: white;
+	text-decoration: none;
+	border-bottom: 1px dotted #888;
+}
+
+/* hmod/libddoc errors */
+div.error {
+	color: darkred;
 }
 
 /* Markdown inline code */
@@ -353,6 +548,11 @@ code.prettyprint {
 	border: 1px solid #C0C0C0;
 	padding: 0.22em;
 	display: inline;
+}
+
+code.prettyprint a {
+	color: black;
+	border-color: #777;
 }
 
 /*do not affect the first <pre>, which is not in a section*/

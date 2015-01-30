@@ -1,139 +1,106 @@
 /**
  * D Documentation Generator
- * Copyright: © 2014 Economic Modeling Specialists, Intl.
- * Authors: Brian Schott
+ * Copyright: © 2014 Economic Modeling Specialists, Intl., © 2015 Ferdinand Majerech
+ * Authors: Brian Schott, Ferdinand Majerech
  * License: $(LINK2 http://www.boost.org/LICENSE_1_0.txt Boost License 1.0)
  */
 module visitor;
 
-import config;
-import ddoc.comments;
-import formatter;
 import std.algorithm;
-import std.array: appender, empty, array;
+import std.array: appender, empty, array, popBack, back, popFront, front;
 import std.d.ast;
-import std.d.formatter;
 import std.d.lexer;
 import std.file;
 import std.path;
 import std.stdio;
+import std.string: format;
 import std.typecons;
-import tocbuilder: TocItem;
-import unittest_preprocessor;
 
+import config;
+import ddoc.comments;
+import item;
+import symboldatabase;
+import unittest_preprocessor;
+import writer;
 
 /**
- * Generates documentation for a module.
+ * Generates documentation for a (single) module.
  */
-class DocVisitor : ASTVisitor
+class DocVisitor(Writer) : ASTVisitor
 {
 	/**
 	 * Params:
-	 *     config = Configuration data, including macros and the output directory.
-	 *     searchIndex = A file where the search information will be written
-	 *     unitTestMapping = The mapping of declaration addresses to their
-	 *         documentation unittests
-	 *     fileBytes = The source code of the module as a byte array.
-	 *     tocItems = Items of the table of contents to write into each
-	 *                documentation file.
-	 *     tocAdditional = Additional content for the table of contents sidebar.
-	 */
-	this(ref const Config config, string[string] macros, File searchIndex,
-		TestRange[][size_t] unitTestMapping, const(ubyte[]) fileBytes,
-		TocItem[] tocItems, string tocAdditional)
-	{
-		this.macros = macros;
-		this.config = &config;
-		this.searchIndex = searchIndex;
-		this.unitTestMapping = unitTestMapping;
-		this.fileBytes = fileBytes;
-		this.tocItems = tocItems;
-		this.tocAdditional = tocAdditional;
-	}
-
-	/**
-	 * Same as visit(const Module), but only determines the file (location) of the
-	 * documentation, link to that file and module name, without actually writing the
-	 * documentation.
 	 *
-	 * Returns: true if the module location was successfully determined, false if
-	 *          there is no module declaration or the module is excluded from
-	 *          generated documentation by the user.
+	 * config          = Configuration data, including macros and the output directory.
+	 * database        = Stores information about modules and symbols for e.g. cross-referencing.
+	 * unitTestMapping = The mapping of declaration addresses to their documentation unittests
+	 * fileBytes       = The source code of the module as a byte array.
+	 * writer          = Handles writing into generated files.
 	 */
-	bool moduleInitLocation(const Module mod)
+	this(ref const Config config, SymbolDatabase database,
+	     TestRange[][size_t] unitTestMapping, const(ubyte[]) fileBytes, Writer writer)
 	{
-		import std.range : chain, iota, join, only;
-		import std.file : mkdirRecurse;
-		import std.conv : to;
+		this.config          = &config;
+		this.database        = database;
+		this.unitTestMapping = unitTestMapping;
+		this.fileBytes       = fileBytes;
+		this.writer          = writer;
 
-		if (mod.moduleDeclaration is null)
-			return false;
-		pushAttributes();
-		stack = cast(string[]) mod.moduleDeclaration.moduleName.identifiers.map!(a => a.text).array;
-
-		foreach(exclude; config.excludes)
-		{
-			// If module name is pkg1.pkg2.mod, we first check
-			// "pkg1", then "pkg1.pkg2", then "pkg1.pkg2.mod"
-			// i.e. we only check for full package/module names.
-			if(iota(stack.length + 1).map!(l => stack[0 .. l].join(".")).canFind(exclude))
-			{
-				writeln("Excluded module ", stack.join("."));
-				return false;
-			}
-		}
-
-		baseLength = stack.length;
-		moduleFileBase = stack.buildPath;
-		link = moduleFileBase ~ ".html";
-
-
-		const moduleFileBaseAbs = config.outputDirectory.buildPath(moduleFileBase);
-		if (!exists(moduleFileBaseAbs))
-			moduleFileBaseAbs.mkdirRecurse();
-		const outputName = moduleFileBaseAbs ~ ".html";
-
-		location = outputName;
-		moduleName = to!string(stack.join("."));
-
-		return true;
+		this.writer.processCode = &crossReference;
 	}
 
 	override void visit(const Module mod)
 	{
-		if(!moduleInitLocation(mod))
-		{
-			return;
-		}
+		import std.conv : to;
+		assert(mod.moduleDeclaration !is null, "DataGatherVisitor should have caught this");
+		pushAttributes();
+		stack = cast(string[]) mod.moduleDeclaration.moduleName.identifiers.map!(a => a.text).array;
+		writer.prepareModule(stack);
 
-		File output = File(location, "w");
-		writeHeader(output, moduleName, baseLength - 1);
-		writeTOC(output, tocItems, tocAdditional);
-		writeBreadcrumbs(output);
+		moduleName = stack.join(".").to!string;
+
+		scope(exit) { writer.finishModule(); }
+
+		// The module is the first and only top-level "symbol".
+		bool dummyFirst;
+		string link;
+		auto fileWriter = writer.pushSymbol(stack, database, dummyFirst, link);
+		scope(exit) { writer.popSymbol(); }
+
+		writer.writeHeader(fileWriter, moduleName, stack.length - 1);
+		writer.writeBreadcrumbs(fileWriter, stack, database);
+		writer.writeTOC(fileWriter, moduleName);
+		writer.writeSymbolStart(fileWriter, link);
 
 		prevComments.length = 1;
 
-		if (mod.moduleDeclaration.comment !is null)
-			readAndWriteComment(output, mod.moduleDeclaration.comment, config, macros,
-				prevComments, null, getUnittestDocTuple(mod.moduleDeclaration));
-
+		const comment = mod.moduleDeclaration.comment;
 		memberStack.length = 1;
 
 		mod.accept(this);
 
-		memberStack[$ - 1].write(output);
+		writer.writeSymbolDescription(fileWriter,
+		{
+			memberStack.back.writeImports(fileWriter, writer);
 
-		output.writeln(HTML_END);
-		output.close();
+			if (comment !is null)
+			{
+				writer.readAndWriteComment(fileWriter, comment, prevComments,
+					null, getUnittestDocTuple(mod.moduleDeclaration));
+			}
+		});
+
+		memberStack.back.write(fileWriter, writer);
+		writer.writeSymbolEnd(fileWriter);
 	}
 
 	override void visit(const EnumDeclaration ed)
 	{
 		enum formattingCode = q{
-		f.write("enum ", ad.name.text);
+		fileWriter.put("enum " ~ ad.name.text);
 		if (ad.type !is null)
 		{
-			f.write(" : ");
+			fileWriter.put(" : ");
 			formatter.format(ad.type);
 		}
 		};
@@ -142,17 +109,23 @@ class DocVisitor : ASTVisitor
 
 	override void visit(const EnumMember member)
 	{
+		// Document all enum members even if they have no doc comments.
 		if (member.comment is null)
+		{
+			memberStack.back.values ~= Item("#", member.name.text, "");
 			return;
-		string summary = readAndWriteComment(File.init, member.comment, config, macros,
+		}
+		auto dummy = appender!string();
+		// No interest in detailed docs for an enum member.
+		string summary = writer.readAndWriteComment(dummy, member.comment,
 			prevComments, null, getUnittestDocTuple(member));
-		memberStack[$ - 1].values ~= Item("#", member.name.text, summary);
+		memberStack.back.values ~= Item("#", member.name.text, summary);
 	}
 
 	override void visit(const ClassDeclaration cd)
 	{
 		enum formattingCode = q{
-		f.write("class ", ad.name.text);
+		fileWriter.put("class " ~ ad.name.text);
 		if (ad.templateParameters !is null)
 			formatter.format(ad.templateParameters);
 		if (ad.baseClassList !is null)
@@ -166,7 +139,7 @@ class DocVisitor : ASTVisitor
 	override void visit(const TemplateDeclaration td)
 	{
 		enum formattingCode = q{
-		f.write("template ", ad.name.text);
+		fileWriter.put("template " ~ ad.name.text);
 		if (ad.templateParameters !is null)
 			formatter.format(ad.templateParameters);
 		if (ad.constraint)
@@ -178,7 +151,7 @@ class DocVisitor : ASTVisitor
 	override void visit(const StructDeclaration sd)
 	{
 		enum formattingCode = q{
-		f.write("struct ", ad.name.text);
+		fileWriter.put("struct " ~ ad.name.text);
 		if (ad.templateParameters)
 			formatter.format(ad.templateParameters);
 		if (ad.constraint)
@@ -190,7 +163,7 @@ class DocVisitor : ASTVisitor
 	override void visit(const InterfaceDeclaration id)
 	{
 		enum formattingCode = q{
-		f.write("interface ", ad.name.text);
+		fileWriter.put("interface " ~ ad.name.text);
 		if (ad.templateParameters !is null)
 			formatter.format(ad.templateParameters);
 		if (ad.baseClassList !is null)
@@ -203,66 +176,87 @@ class DocVisitor : ASTVisitor
 
 	override void visit(const AliasDeclaration ad)
 	{
-		import std.path : dirSeparator;
 		if (ad.comment is null)
 			return;
 		bool first;
-		if (ad.identifierList !is null)
+		if (ad.identifierList !is null) foreach (name; ad.identifierList.identifiers)
 		{
-			foreach (name; ad.identifierList.identifiers)
-			{
-				auto fileWithLink = pushSymbol(name.text, first);
-				File f = fileWithLink[0];
-				string link = fileWithLink[1];
+			string itemURL;
+			auto fileWriter = pushSymbol(name.text, first, itemURL);
+			scope(exit) popSymbol(fileWriter);
 
-				scope(exit) popSymbol(f);
-				writeBreadcrumbs(f);
-				string type = writeAliasType(f, name.text, ad.type);
-				string summary = readAndWriteComment(f, ad.comment, config, macros, prevComments);
-				memberStack[$ - 2].aliases ~= Item(link, name.text, summary, type);
-			}
+			string type, summary;
+			writer.writeSymbolDescription(fileWriter,
+			{
+				type = writeAliasType(fileWriter, name.text, ad.type);
+				summary = writer.readAndWriteComment(fileWriter, ad.comment, prevComments);
+			});
+
+			memberStack[$ - 2].aliases ~= Item(itemURL, name.text, summary, type);
 		}
 		else foreach (initializer; ad.initializers)
 		{
-			auto fileWithLink = pushSymbol(initializer.name.text, first);
-			File f = fileWithLink[0];
-			string link = fileWithLink[1];
+			string itemURL;
+			auto fileWriter = pushSymbol(initializer.name.text, first, itemURL);
+			scope(exit) popSymbol(fileWriter);
 
-			scope(exit) popSymbol(f);
-			writeBreadcrumbs(f);
-			string type = writeAliasType(f, initializer.name.text, initializer.type);
-			string summary = readAndWriteComment(f, ad.comment, config, macros, prevComments);
-			memberStack[$ - 2].aliases ~= Item(link, initializer.name.text, summary, type);
+			string type, summary;
+			writer.writeSymbolDescription(fileWriter,
+			{
+				type = writeAliasType(fileWriter, initializer.name.text, initializer.type);
+				summary = writer.readAndWriteComment(fileWriter, ad.comment, prevComments);
+			});
+
+			memberStack[$ - 2].aliases ~= Item(itemURL, initializer.name.text, summary, type);
 		}
 	}
 
 	override void visit(const VariableDeclaration vd)
 	{
+		// Write the variable attributes, type, name.
+		void writeVariableHeader(R)(ref R dst, string typeStr, string nameStr)
+		{
+			writer.writeCodeBlock(dst,
+			{
+				assert(attributeStack.length > 0,
+				    "Attributes stack must not be empty when writing variable attributes");
+				auto formatter = writer.newFormatter(dst);
+				scope(exit) { destroy(formatter.sink); }
+				// Attributes like public, etc.
+				writer.writeAttributes(dst, formatter, attributeStack.back);
+				dst.put(typeStr);
+				dst.put(` `);
+				dst.put(nameStr);
+				// TODO also default value
+			});
+		}
 		bool first;
 		foreach (const Declarator dec; vd.declarators)
 		{
 			if (vd.comment is null && dec.comment is null)
 				continue;
-			auto fileWithLink = pushSymbol(dec.name.text, first);
-			File f = fileWithLink[0];
-			string link = fileWithLink[1];
+			string itemURL;
+			auto fileWriter = pushSymbol(dec.name.text, first, itemURL);
+			scope(exit) popSymbol(fileWriter);
 
-			scope(exit) popSymbol(f);
-			writeBreadcrumbs(f);
-			string summary = readAndWriteComment(f,
-				dec.comment is null ? vd.comment : dec.comment, config, macros,
-				prevComments);
-			memberStack[$ - 2].variables ~= Item(link, dec.name.text, summary, formatNode(vd.type));
+			string typeStr = writer.formatNode(vd.type);
+			string summary;
+			writer.writeSymbolDescription(fileWriter,
+			{
+				writeVariableHeader(fileWriter, typeStr, dec.name.text);
+				summary = writer.readAndWriteComment(fileWriter,
+					dec.comment is null ? vd.comment : dec.comment,
+					prevComments);
+			});
+
+			memberStack[$ - 2].variables ~= Item(itemURL, dec.name.text, summary, typeStr);
 		}
 		if (vd.comment !is null && vd.autoDeclaration !is null) foreach (ident; vd.autoDeclaration.identifiers)
 		{
-			auto fileWithLink = pushSymbol(ident.text, first);
-			File f = fileWithLink[0];
-			string link = fileWithLink[1];
+			string itemURL;
+			auto fileWriter = pushSymbol(ident.text, first, itemURL);
+			scope(exit) popSymbol(fileWriter);
 
-			scope(exit) popSymbol(f);
-			writeBreadcrumbs(f);
-			string summary = readAndWriteComment(f, vd.comment, config, macros, prevComments);
 			// TODO this was hastily updated to get harbored-mod to compile
 			// after a libdparse update. Revisit and validate/fix any errors.
 			string[] storageClasses;
@@ -270,7 +264,15 @@ class DocVisitor : ASTVisitor
 			{
 				storageClasses ~= str(stor.token.type);
 			}
-			auto i = Item(link, ident.text, summary, storageClasses.canFind("enum") ? null : "auto");
+
+			string typeStr = storageClasses.canFind("enum") ? null : "auto";
+			string summary;
+			writer.writeSymbolDescription(fileWriter,
+			{
+				writeVariableHeader(fileWriter, typeStr, ident.text);
+				summary = writer.readAndWriteComment(fileWriter, vd.comment, prevComments);
+			});
+			auto i = Item(itemURL, ident.text, summary, typeStr);
 			if (storageClasses.canFind("enum"))
 				memberStack[$ - 2].enums ~= i;
 			else
@@ -307,56 +309,84 @@ class DocVisitor : ASTVisitor
 
 	override void visit(const Declaration dec)
 	{
-		attributes[$ - 1] ~= dec.attributes;
+		attributeStack.back ~= dec.attributes;
 		dec.accept(this);
 		if (dec.attributeDeclaration is null)
-			attributes[$ - 1] = attributes[$ - 1][0 .. $ - dec.attributes.length];
+			attributeStack.back = attributeStack.back[0 .. $ - dec.attributes.length];
 	}
 
 	override void visit(const AttributeDeclaration dec)
 	{
-		attributes[$ - 1] ~= dec.attribute;
+		attributeStack.back ~= dec.attribute;
 	}
 
 	override void visit(const Constructor cons)
 	{
 		if (cons.comment is null)
 			return;
-		bool first;
-		auto fileWithLink = pushSymbol("this", first);
-		File f = fileWithLink[0];
-		string link = fileWithLink[1];
-
-
-		writeFnDocumentation(f, link, cons, attributes[$ - 1], first);
+		writeFnDocumentation("this", cons, attributeStack.back);
 	}
 
 	override void visit(const FunctionDeclaration fd)
 	{
 		if (fd.comment is null)
 			return;
-		bool first;
-		auto fileWithLink = pushSymbol(fd.name.text, first);
-		File f = fileWithLink[0];
-		string link = fileWithLink[1];
-
-		writeFnDocumentation(f, link, fd, attributes[$ - 1], first);
+		writeFnDocumentation(fd.name.text, fd, attributeStack.back);
 	}
+
+	override void visit(const ImportDeclaration imp)
+	{
+		// public attribute must be specified explicitly for public imports.
+		foreach(attr; attributeStack.back) if(attr.attribute.type == tok!"public")
+		{
+			foreach(i; imp.singleImports)
+			{
+				import std.conv;
+				// Using 'dup' here because of std.algorithm's apparent
+				// inability to work with const arrays. Probably not an
+				// issue (imports are not hugely common), but keep the
+				// possible GC overhead in mind.
+				auto nameParts = i.identifierChain.identifiers
+				                 .dup.map!(t => t.text).array;
+				const name = nameParts.joiner(".").to!string;
+
+				const knownModule = database.moduleNames.canFind(name);
+				const link = knownModule ? writer.moduleLink(nameParts)
+				                         : null;
+				memberStack.back.publicImports ~=
+					Item(link, name, null, null, imp);
+			}
+			return;
+		}
+		//TODO handle imp.importBindings as well? Need to figure out how it works.
+	}
+
+	// Optimization: don't allow visit() for these AST nodes to result in visit()
+	// calls for their subnodes. This avoids most of the dynamic cast overhead.
+	override void visit(const AssignExpression assignExpression) {}
+	override void visit(const CmpExpression cmpExpression) {}
+	override void visit(const TernaryExpression ternaryExpression) {}
+	override void visit(const IdentityExpression identityExpression) {}
+	override void visit(const InExpression inExpression) {}
 
 	alias visit = ASTVisitor.visit;
 
-	/// The module name in "package.package.module" format.
-	string moduleName;
-
-	/// The path to the HTML file that was generated for the module being
-	/// processed.
-	string location;
-
-	/// Path to the HTML file relative to the output directory.
-	string link;
-
-
 private:
+	/// Get the current protection attribute.
+	IdType currentProtection()
+	out(result)
+	{
+		assert([tok!"private", tok!"package", tok!"protected", tok!"public"].canFind(result),
+		       "Unknown protection attribute");
+	}
+	body
+	{
+		foreach(a; attributeStack.back.filter!(a => a.attribute.type.isProtection))
+		{
+			return a.attribute.type;
+		}
+		return tok!"public";
+	}
 
 	void visitAggregateDeclaration(string formattingCode, string name, A)(const A ad)
 	{
@@ -364,33 +394,33 @@ private:
 		if (ad.comment is null)
 			return;
 
-		auto fileWithLink = pushSymbol(ad.name.text, first);
-		File f = fileWithLink[0];
-		string link = fileWithLink[1];
+		string itemURL;
+		auto fileWriter = pushSymbol(ad.name.text, first, itemURL);
+		scope(exit) popSymbol(fileWriter);
 
-		if (first)
-			writeBreadcrumbs(f);
-		else
-			f.writeln("<hr/>");
+		string summary;
+		writer.writeSymbolDescription(fileWriter,
 		{
-			auto writer = f.lockingTextWriter();
-			writer.put(`<pre><code>`);
-			auto formatter = new HarboredFormatter!(File.LockingTextWriter)(writer);
-			scope(exit) formatter.sink = File.LockingTextWriter.init;
-			writeAttributes(formatter, writer, attributes[$ - 1]);
-			mixin(formattingCode);
-			writer.put("\n</code></pre>");
-		}
-		string summary = readAndWriteComment(f, ad.comment, config, macros, prevComments,
-			null, getUnittestDocTuple(ad));
-		mixin(`memberStack[$ - 2].` ~ name ~ ` ~= Item(link, ad.name.text, summary);`);
+			writer.writeCodeBlock(fileWriter,
+			{
+				auto formatter = writer.newFormatter(fileWriter);
+				scope(exit) destroy(formatter.sink);
+				assert(attributeStack.length > 0,
+					"Attributes stack must not be empty when writing aggregate attributes");
+				writer.writeAttributes(fileWriter, formatter, attributeStack.back);
+				mixin(formattingCode);
+			});
+
+			summary = writer.readAndWriteComment(fileWriter, ad.comment, prevComments,
+				null, getUnittestDocTuple(ad));
+		});
+
+		mixin(`memberStack[$ - 2].` ~ name ~ ` ~= Item(itemURL, ad.name.text, summary);`);
 		prevComments.length = prevComments.length + 1;
 		ad.accept(this);
-		prevComments = prevComments[0 .. $ - 1];
-		memberStack[$ - 1].write(f);
+		prevComments.popBack();
 
-		stack = stack[0 .. $ - 1];
-		memberStack = memberStack[0 .. $ - 1];
+		memberStack.back.write(fileWriter, writer);
 	}
 
 	/**
@@ -417,692 +447,265 @@ private:
 	/**
 	 *
 	 */
-	void writeFnDocumentation(Fn)(File f, string fileRelative, Fn fn, const(Attribute)[] attrs, bool first)
+	void writeFnDocumentation(Fn)(string name, Fn fn, const(Attribute)[] attrs)
 	{
-		auto writer = f.lockingTextWriter();
-		// Stuff above the function doc
-		if (first)
-			writeBreadcrumbs(f);
-		else
-			writer.put("<hr/>");
+		bool first;
+		string itemURL;
+		auto fileWriter = pushSymbol(name, first, itemURL);
+		scope(exit) popSymbol(fileWriter);
 
-		auto formatter = new HarboredFormatter!(File.LockingTextWriter)(writer);
-		scope(exit) formatter.sink = File.LockingTextWriter.init;
-
-		// Function signature start //
-		writer.put(`<pre><code>`);
-		// Attributes like public, etc.
-		writeAttributes(formatter, writer, attrs);
-		// Return type and function name, with special case fo constructor
-		static if (__traits(hasMember, typeof(fn), "returnType"))
+		string summary;
+		writer.writeSymbolDescription(fileWriter,
 		{
-			if (fn.returnType)
+			auto formatter = writer.newFormatter(fileWriter);
+			scope(exit) destroy(formatter.sink);
+
+			// Write the function signature.
+			writer.writeCodeBlock(fileWriter,
 			{
-				formatter.format(fn.returnType);
-				writer.put(" ");
-			}
-			formatter.format(fn.name);
-		}
-		else
-			writer.put("this");
-		// Template params
-		if (fn.templateParameters !is null)
-			formatter.format(fn.templateParameters);
-		// Function params
-		if (fn.parameters !is null)
-			formatter.format(fn.parameters);
-		// Attributes like const, nothrow, etc.
-		foreach (a; fn.memberFunctionAttributes)
-		{
-			writer.put(" ");
-			formatter.format(a);
-		}
-		// Template constraint
-		if (fn.constraint)
-		{
-			writer.put(" ");
-			formatter.format(fn.constraint);
-		}
-		writer.put("\n</code></pre>");
-		// Function signature end//
+				assert(attributeStack.length > 0,
+				       "Attributes stack must not be empty when writing "
+				       "function attributes");
+				// Attributes like public, etc.
+				writer.writeAttributes(fileWriter, formatter, attrs);
+				// Return type and function name, with special case fo constructor
+				static if (__traits(hasMember, typeof(fn), "returnType"))
+				{
+					if (fn.returnType)
+					{
+						formatter.format(fn.returnType);
+						fileWriter.put(" ");
+					}
+					formatter.format(fn.name);
+				}
+				else
+				{
+					fileWriter.put("this");
+				}
+				// Template params
+				if (fn.templateParameters !is null)
+					formatter.format(fn.templateParameters);
+				// Function params
+				if (fn.parameters !is null)
+					formatter.format(fn.parameters);
+				// Attributes like const, nothrow, etc.
+				foreach (a; fn.memberFunctionAttributes)
+				{
+					fileWriter.put(" ");
+					formatter.format(a);
+				}
+				// Template constraint
+				if (fn.constraint)
+				{
+					fileWriter.put(" ");
+					formatter.format(fn.constraint);
+				}
+			});
 
-		string summary = readAndWriteComment(f, fn.comment, config, macros,
-			prevComments, fn.functionBody, getUnittestDocTuple(fn));
+			summary = writer.readAndWriteComment(fileWriter, fn.comment,
+				prevComments, fn.functionBody, getUnittestDocTuple(fn));
+		});
 		string fdName;
 		static if (__traits(hasMember, typeof(fn), "name"))
 			fdName = fn.name.text;
 		else
 			fdName = "this";
-		auto fnItem = Item(fileRelative, fdName, summary, null, fn);
+		auto fnItem = Item(itemURL, fdName, summary, null, fn);
 		memberStack[$ - 2].functions ~= fnItem;
 		prevComments.length = prevComments.length + 1;
 		fn.accept(this);
-		prevComments = prevComments[0 .. $ - 1];
-		stack = stack[0 .. $ - 1];
-		memberStack = memberStack[0 .. $ - 1];
+
+		// The function may have nested functions/classes/etc, so at the very
+		// least we need to close their files, and once public/private works even
+		// document them.
+		memberStack.back.write(fileWriter, writer);
+		prevComments.popBack();
 	}
 
 	/**
-	 * Writes attributes to the given writer using the given formatter.
+	 * Writes an alias' type to the given range and returns it.
 	 * Params:
-	 *     F = The formatter type
-	 *     W = The writer type
-	 *     formatter = The formatter instance to use
-	 *     writer = The writer that will be output to.
-	 *     attrs = The attributes to write.
-	 */
-	void writeAttributes(F, W)(F formatter, W writer, const(Attribute)[] attrs)
-	{
-		IdType protection;
-		if (attrs is null)
-			attrs = attributes[$ - 1];
-		if (attributes.length > 0) foreach (a; attrs)
-		{
-			if (isProtection(a.attribute.type))
-				protection = a.attribute.type;
-		}
-		switch (protection)
-		{
-		case tok!"private": writer.put("private "); break;
-		case tok!"package": writer.put("package "); break;
-		default: writer.put("public "); break;
-		}
-		if (attributes.length > 0) foreach (a; attrs)
-		{
-			if (!isProtection(a.attribute.type))
-			{
-				formatter.format(a);
-				writer.put(" ");
-			}
-		}
-	}
-
-	/**
-	 * Formats an AST node to a string
-	 */
-	static string formatNode(T)(const T t)
-	{
-		auto writer = appender!string();
-		auto formatter = new HarboredFormatter!(typeof(writer))(writer);
-		formatter.format(t);
-		return writer.data;
-	}
-
-	/**
-	 * Writes an alias' type to the given file and returns it.
-	 * Params:
-	 *     f = The file to write to
+	 *     dst  = The range to write to
 	 *     name = the name of the alias
-	 *     t = the aliased type
+	 *     t    = the aliased type
 	 * Returns: A string reperesentation of the given type.
 	 */
-	static string writeAliasType(File f, string name, const Type t)
+	string writeAliasType(R)(ref R dst, string name, const Type t)
 	{
 		if (t is null)
 			return null;
-		f.write(`<pre><code>`);
-		f.write("alias ", name, " = ");
-		string formatted = formatNode(t);
-		f.write(formatted);
-		f.writeln(`</code></pre>`);
+		string formatted = writer.formatNode(t);
+		writer.writeCodeBlock(dst,
+		{
+			dst.put("alias %s = ".format(name));
+			dst.put(formatted);
+		});
 		return formatted;
 	}
 
-	/**
-	 * Writes navigation breadcrumbs in HTML format to the given file.
+
+	/** Generate links from symbols in input to files documenting those symbols.
+	 *
+	 * Note: The current implementation is far from perfect. It doesn't try to parse
+	 * input; it just searches for alphanumeric words and patterns like
+	 * "alnumword.otheralnumword" and asks SymbolDatabase to find a reference to them.
+	 *
+	 * TODO: Improve this by trying to parse input as D code first, only falling back
+	 * to current implementation if the parsing fails. Parsing would only be used to
+	 * correctly detect names, but must not reformat any code from input.
+	 *
+	 * Params:
+	 *
+	 * input = String to find symbols in.
+	 *
+	 * Returns:
+	 *
+	 * string with symbols replaced by links (links' format depends on Writer).
 	 */
-	void writeBreadcrumbs(File f)
+	string crossReference(string input) @trusted nothrow
 	{
-		import std.array : join;
-		import std.conv : to;
-		import std.range : chain, only;
-		import std.string: format;
-		
-		string heading;
-		scope(exit) { .writeBreadcrumbs(f, heading); }
-
-		assert(baseLength <= stack.length, "stack shallower than the current module?");
-		size_t i;
-		string link() { return stack[0 .. i + 1].buildPath() ~ ".html"; }
-
-		// Module
+		import std.ascii;
+		bool isNameCharacter(dchar c)
 		{
-			heading ~= "<small>";
-			scope(exit) { heading ~= "</small>"; }
-			for(; i + 1 < baseLength; ++i)
-			{
-				heading ~= stack[i] ~ ".";
-			}
-			// Module link if the module is a parent of the current page.
-			if(i + 1 < stack.length)
-			{
-				heading  ~= `<a href=%s>%s</a>.`.format(link(), stack[i]);
-				++i;
-			}
-			// Just the module name, not a link, if we're at the module page.
-			else
-			{
-				heading ~= stack[i];
-				return;
-			}
+			char c8 = cast(char)c;
+			return c8 == c && (c8.isAlphaNum || "_.".canFind(c8));
 		}
 
-		// Class/Function/etc. in the module
-		heading ~= `<span class="highlight">`;
-		// The rest of the stack except the last element (parents of current page).
-		for(; i + 1 < stack.length; ++i)
+		auto app = appender!string();
+		dchar prevC = '\0';
+		dchar c;
+
+		// Scan a symbol name. When done, both c and input.front will be set to
+		// the first character after the name.
+		string scanName()
 		{
-			heading  ~= `<a href=%s>%s</a>.`.format(link(), stack[i]);
+			auto scanApp = appender!string();
+			while(!input.empty)
+			{
+				c = input.front;
+				if(!isNameCharacter(c) && isNameCharacter(prevC)) { break; }
+
+				scanApp.put(c);
+				prevC = c;
+				input.popFront();
+			}
+			return scanApp.data;
 		}
-		// The last element (no need to link to the current page).
-		heading ~= stack[i];
-		heading ~= `</span>`;
+
+		// There should be no UTF decoding errors as we validate text when loading
+		// with std.file.readText().
+		try while(!input.empty)
+		{
+			c = input.front;
+			if(isNameCharacter(c) && !isNameCharacter(prevC))
+			{
+				string name = scanName();
+
+				auto link = database.crossReference(writer, stack, name);
+				size_t partIdx = 0;
+
+				if(link !is null) writer.writeLink(app, link, { app.put(name); });
+				// Attempt to cross-reference individual parts of the name
+				// (e.g. "variable.method" will not match anything if
+				// "variable" is a local variable "method" by itself may
+				// still match something)
+				else foreach(part; name.splitter("."))
+				{
+					if(partIdx++ > 0) { app.put("."); }
+
+					link = database.crossReference(writer, stack, part);
+					if(link !is null) writer.writeLink(app, link, { app.put(part); });
+					else { app.put(part); }
+				}
+			}
+
+			if(input.empty) { break; }
+
+			// Even if scanName was called above, c is the first character
+			// *after* scanName.
+			app.put(c);
+			prevC = c;
+			// Must check again because scanName might have exhausted the input.
+			input.popFront();
+		}
+		catch(Exception e)
+		{
+			import std.exception: assumeWontThrow;
+			writeln("Unexpected exception when cross-referencing: ", e.msg)
+				.assumeWontThrow;
+		}
+
+		return app.data;
 	}
 
 	/**
 	 * Params:
-	 *     name = The symbol's name
-	 *     first = True if this is the first time that pushSymbol has been
-	 *         called for this name.
-	 *     isFunction = True if the symbol being pushed is a function, false
-	 *         otherwise.
 	 *
-	 * Returns: A file that the symbol's documentation should be written to and the
-	 *          filename of that file relative to config.outputDirectory.
+	 * name    = The symbol's name
+	 * first   = Set to true if this is the first time that pushSymbol has been
+	 *           called for this name.
+	 * itemURL = URL to use in the Item for this symbol will be written here.
+	 *
+	 * Returns: A range to write the symbol's documentation to.
 	 */
-	Tuple!(File, string) pushSymbol(string name, ref bool first)
+	auto pushSymbol(string name, ref bool first, ref string itemURL)
 	{
 		import std.array : array, join;
 		import std.string : format;
 		stack ~= name;
 		memberStack.length = memberStack.length + 1;
-		// Path relative to output directory
-		string classDocFileName = moduleFileBase.buildPath(format("%s.html",
-			join(stack[baseLength .. $], ".").array));
-		searchIndex.writefln(`{"%s" : "%s"},`, join(stack, ".").array, classDocFileName);
-		immutable size_t i = memberStack.length - 2;
-		assert (i < memberStack.length, "%s %s".format(i, memberStack.length));
-		auto p = classDocFileName in memberStack[i].overloadFiles;
-		first = p is null;
-		if (first)
+
+		// Sets first
+		auto result = writer.pushSymbol(stack, database, first, itemURL);
+
+		if(first)
 		{
-			first = true;
-			auto f = File(config.outputDirectory.buildPath(classDocFileName), "w");
-			memberStack[i].overloadFiles[classDocFileName] = f;
-			writeHeader(f, name, baseLength);
-			writeTOC(f, tocItems, tocAdditional);
-			return tuple(f, classDocFileName);
+			writer.writeHeader(result, name, writer.moduleNameLength);
+			writer.writeBreadcrumbs(result, stack, database);
+			writer.writeTOC(result, moduleName);
 		}
 		else
-			return tuple(*p, classDocFileName);
+		{
+			writer.writeSeparator(result);
+		}
+		writer.writeSymbolStart(result, itemURL);
+		return result;
 	}
 
-	void popSymbol(File f)
+	void popSymbol(R)(ref R dst)
 	{
-		f.writeln(HTML_END);
-		stack = stack[0 .. $ - 1];
-		memberStack = memberStack[0 .. $ - 1];
+		writer.writeSymbolEnd(dst);
+		stack.popBack();
+		memberStack.popBack();
+		writer.popSymbol();
 	}
 
-	void pushAttributes()
-	{
-		attributes.length = attributes.length + 1;
-	}
+	void pushAttributes() { attributeStack.length = attributeStack.length + 1; }
 
-	void popAttributes()
-	{
-		attributes = attributes[0 .. $ - 1];
-	}
+	void popAttributes() { attributeStack.popBack(); }
 
-	const(Attribute)[][] attributes;
+
+	/// The module name in "package.package.module" format.
+	string moduleName;
+
+	const(Attribute)[][] attributeStack;
 	Comment[] prevComments;
-	/* Length, or nest level, of the module name.
+	/** Namespace stack of the current symbol,
 	 *
-	 * `mod` has baseLength, `pkg.mod` has baseLength 2, `pkg.child.mod` has 3, etc.
+	 * E.g. ["package", "subpackage", "module", "Class", "member"]
 	 */
-	size_t baseLength;
-	string moduleFileBase;
 	string[] stack;
-	string[string] macros;
+	/** Every item of this stack corresponds to a parent module/class/etc of the
+	 * current symbol, but not package.
+	 *
+	 * Each Members struct is used to accumulate all members of that module/class/etc
+	 * so the list of all members can be generated.
+	 */
 	Members[] memberStack;
-	File searchIndex;
 	TestRange[][size_t] unitTestMapping;
 	const(ubyte[]) fileBytes;
-	TocItem[] tocItems;
-	string tocAdditional;
 	const(Config)* config;
-}
-
-/**
- * Writes HTML header information to the given file.
- * Params:
- *     f = The file to write to
- *     title = The content of the HTML "title" element
- *     depth = The directory depth of the file. This is used for ensuring that
- *         the "base" element is correct so that links resolve properly.
- */
-void writeHeader(File f, string title, size_t depth)
-{
-	f.write(`<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8"/>
-<link rel="stylesheet" type="text/css" href="`);
-	foreach (i; 0 .. depth)
-		f.write("../");
-	f.write(`style.css"/><script src="`);
-	foreach (i; 0 .. depth)
-		f.write("../");
-	f.write(`highlight.pack.js"></script>
-<title>`);
-	f.write(title);
-	f.writeln(`</title>`);
-	f.write(`<base href="`);
-	foreach (i; 0 .. depth)
-		f.write("../");
-	f.write(`"/>
-<script src="search.js"></script>
-</head>
-<body>
-<div class="main">
-`);
-}
-
-/** Writes the table of contents to specified file.
- *
- * Params:
- *     f             = File to write to.
- *     tocItems      = Items of the table of contents to write.
- *     tocAdditional = Optional additional content.
- */
-void writeTOC(File f, TocItem[] tocItems, string tocAdditional)
-{
-	f.writeln(`<div class="toc">`);
-	if(tocAdditional !is null)
-	{
-		f.writeln(`<div class="toc-additional">`);
-		f.writeln(tocAdditional);
-		f.writeln(`</div>`);
-	}
-	f.writeln(`<ul>`);
-	foreach (t; tocItems)
-		t.write(f);
-	f.writeln(`</ul>`);
-	f.writeln(`</div>`);
-}
-
-/**
-  * Writes navigation breadcrumbs in HTML format to the given file.
-  *
-  * Also starts the "content" <div>; must be called after writeTOC(), before writing
-  * main content.
-  */
-void writeBreadcrumbs(File f, string heading)
-{
-	f.writeln(`<div class="breadcrumbs">`);
-	f.writeln(`<table id="results"></table>`);
-	f.writeln(`<a class="home" href=index.html>⌂</a>`);
-	f.writeln(`<input type="search" id="search" placeholder="Search" onkeyup="searchSubmit(this.value, event)"/>`);
-	f.write(heading);
-	f.writeln(`</div>`);
-	f.writeln(`<div class="content">`);
-}
-
-/**
- * Writes a doc comment to the given file and returns the summary text.
- * Params:
- *     f = The file to write the comment to
- *     comment = The comment to write
- *     macros = Macro definitions used in processing the comment
- *     prevComments = Previously encountered comments. This is used for handling
- *         "ditto" comments. May be null.
- *     functionBody = A function body used for writing contract information. May
- *         be null.
- *     testdocs = Pairs of unittest bodies and unittest doc comments. May be null.
- * Returns: the summary from the given comment
- */
-string readAndWriteComment(File f, string comment, const(Config)* config,
-	string[string] macros, Comment[] prevComments = null,
-	const FunctionBody functionBody = null,
-	Tuple!(string, string)[] testDocs = null)
-{
-	import std.d.lexer : unDecorateComment;
-	auto app = appender!string();
-	comment.unDecorateComment(app);
-//	writeln(comment, " undecorated to ", app.data);
-
-	Comment c = parseComment(app.data, macros);
-	immutable ditto = c.isDitto;
-
-	// Run sections through markdown.
-	foreach(ref section; c.sections) {
-		// Do not run code examples through markdown.
-		//
-		// We could also check for section.name == "Examples" but code blocks can
-		// be even outside examples. Alternatively, we could look for *multi-line*
-		// <pre>/<code> blocks, or, before parsing comments, for "---" pairs.
-		//
-		// Alternatively, dmarkdown could be changed to ignore <pre>/<code>
-		// blocks.
-		import dmarkdown;
-		// Ensure param descriptions run through Markdown
-		if(section.name == "Params")
-		{
-			foreach(ref kv; section.mapping)
-			{
-				kv[1] = filterMarkdown(kv[1], MarkdownFlags.alternateSubheaders);
-			}
-		}
-		if(!section.content.canFind("<pre><code>")) {
-			section.content = filterMarkdown(section.content,
-			                                 MarkdownFlags.alternateSubheaders);
-		}
-	}
-
-	if (prevComments.length > 0)
-	{
-		if (ditto)
-			c = prevComments[$ - 1];
-		else
-			prevComments[$ - 1] = c;
-	}
-	
-	
-	if (f != File.init)
-		writeComment(f, c, functionBody);
-
-	// Find summary and return value info
-	string rVal = "";
-	if (c.sections.length && c.sections[0].name == "Summary")
-		rVal = c.sections[0].content;
-	else
-	{
-		foreach (section; c.sections)
-		{
-			if (section.name == "Returns")
-				rVal = "Returns: " ~ section.content;
-		}
-	}
-	if (f != File.init && testDocs !is null) foreach (doc; testDocs)
-	{
-//		writeln("Writing a unittest doc comment");
-		import std.string : outdent;
-		f.writeln(`<div class="section"><h2>Example</h2>`);
-		auto docApp = appender!string();
-		doc[1].unDecorateComment(docApp);
-		Comment dc = parseComment(docApp.data, macros);
-		writeComment(f, dc);
-		f.writeln(`<pre><code>`, outdent(doc[0]), `</code></pre>`);
-		f.writeln(`</div>`);
-	}
-	return rVal;
-}
-
-private:
-
-void writeComment(File f, Comment comment, const FunctionBody functionBody = null)
-{
-//		writeln("writeComment: ", comment.sections.length, " sections.");
-
-	size_t i;
-	for (i = 0; i < comment.sections.length && (comment.sections[i].name == "Summary"
-		|| comment.sections[i].name == "description"); i++)
-	{
-		f.writeln(`<div class="section">`);
-		f.writeln(comment.sections[i].content);
-		f.writeln(`</div>`);
-	}
-	if (functionBody !is null)
-		writeContracts(f, functionBody.inStatement, functionBody.outStatement);
-
-
-	const seealsoNames = ["See_also", "See_Also", "See also", "See Also"];
-	foreach (section; comment.sections[i .. $])
-	{
-		if (seealsoNames.canFind(section.name) || section.name == "Macros")
-			continue;
-
-		// Note sections a use different style
-		const isNote = section.name == "Note";
-		string extraClasses;
-
-		if(isNote)
-			extraClasses ~= " note";
-
-		f.writeln(`<div class="section`, extraClasses, `">`);
-		if (section.name != "Summary" && section.name != "Description")
-		{
-			f.write("<h2>");
-			f.write(prettySectionName(section.name));
-			f.writeln("</h2>");
-		}
-		if(isNote)
-			f.writeln(`<div class="note-content">`);
-		if (section.name == "Params")
-		{
-			f.writeln(`<table class="params">`);
-			foreach (kv; section.mapping)
-			{
-				f.write(`<tr class="param"><td class="paramName">`);
-				f.write(kv[0]);
-				f.write(`</td><td class="paramDoc">`);
-				f.write(kv[1]);
-				f.writeln("</td></tr>");
-			}
-			f.write("</table>");
-		}
-		else
-		{
-			f.writeln(section.content);
-		}
-		if(isNote)
-			f.writeln(`</div>`);
-		f.writeln(`</div>`);
-	}
-
-	// Merge any see also sections into one, and draw it with different style than
-	// other sections.
-	{
-		auto seealsos = comment.sections.filter!(s => seealsoNames.canFind(s.name));
-		if(!seealsos.empty)
-		{
-			f.writeln(`<div class="section seealso">`);
-			f.write("<h2>");
-			f.write(prettySectionName(seealsos.front.name));
-			f.writeln("</h2>");
-			f.writeln(`<div class="seealso-content">`);
-			foreach(section; seealsos)
-			{
-				f.writeln(section.content);
-			}
-			f.writeln(`</div>`);
-			f.writeln(`</div>`);
-		}
-	}
-
-}
-
-void writeContracts(File f, const InStatement inStatement,
-	const OutStatement outStatement)
-{
-	if (inStatement is null && outStatement is null)
-		return;
-	f.write(`<div class="section"><h2>Contracts</h2><pre><code>`);
-	auto formatter = new HarboredFormatter!(File.LockingTextWriter)(f.lockingTextWriter());
-	scope(exit) formatter.sink = File.LockingTextWriter.init;
-	if (inStatement !is null)
-	{
-		formatter.format(inStatement);
-		if (outStatement !is null)
-			f.writeln();
-	}
-	if (outStatement !is null)
-		formatter.format(outStatement);
-	f.writeln("</code></pre></div>");
-}
-
-string prettySectionName(string sectionName)
-{
-	switch (sectionName)
-	{
-	case "See_also", "See_Also", "See also", "See Also": return "See Also:";
-	case "Note": return "Note:";
-	case "Params": return "Parameters";
-	default: return sectionName;
-	}
-}
-
-enum HTML_END = `
-<script>hljs.initHighlightingOnLoad();</script>
-</div>
-</div>
-</body>
-</html>`;
-
-struct Item
-{
-	string url;
-	string name;
-	string summary;
-	string type;
-
-	/// AST node of the item. Only used for functions at the moment.
-	const ASTNode node;
-
-	void write(ref File f)
-	{
-		f.write(`<tr><td>`);
-		void writeName()
-		{
-			if (url == "#")
-				f.write(name);
-			else
-				f.write(`<a href="`, url, `">`, name, `</a>`);
-		}
-
-		// TODO print attributes for everything, and move it to separate function/s
-		if(cast(FunctionDeclaration) node) with(cast(FunctionDeclaration) node)
-		{
-			import std.string: join;
-
-			auto writer = appender!(char[])();
-			// extremely inefficient, rewrite if too much slowdown
-			string format(T)(T attr)
-			{
-				auto formatter = new HarboredFormatter!(typeof(writer))(writer);
-				formatter.format(attr);
-				auto str = writer.data.idup;
-				writer.clear();
-				import std.ascii: isAlpha;
-				import std.conv: to;
-				auto strSane = str.filter!isAlpha.array.to!string;
-				return `<span class="attr-` ~ strSane ~ `">` ~ str ~ `</span>`;
-			}
-
-			void writeSpan(C)(string class_, C content)
-			{
-				f.write(`<span class="`, class_, `">`, content, `</span>`);
-			}
-
-			// Above the function name
-			if(!attributes.empty)
-			{
-				f.write(`<span class="extrainfo">`);
-				writeSpan("attribs", attributes.map!(a => format(a)).joiner(", "));
-				f.write(`</span>`);
-			}
-
-
-			// The actual function name
-			writeName();
-
-
-			// Below the function name
-			f.write(`<span class="extrainfo">`);
-			if(!memberFunctionAttributes.empty)
-			{
-				writeSpan("method-attribs",
-					memberFunctionAttributes.map!(a => format(a)).joiner(", "));
-			}
-			// TODO storage classes don't seem to work. libdparse issue?
-			if(!storageClasses.empty)
-			{
-				writeSpan("stor-classes", storageClasses.map!(a => format(a)).joiner(", "));
-			}
-			f.write(`</span>`);
-		}
-		else
-		{
-			writeName();
-		}
-
-		f.write(`</td>`);
-
-		f.write(`<td>`);
-		if (type !is null)
-			f.write(`<pre><code>`, type, `</code></pre>`);
-		f.write(`</td><td>`, summary ,`</td></tr>`);
-	}
-}
-
-struct Members
-{
-	File[string] overloadFiles;
-	Item[] aliases;
-	Item[] classes;
-	Item[] enums;
-	Item[] functions;
-	Item[] interfaces;
-	Item[] structs;
-	Item[] templates;
-	Item[] values;
-	Item[] variables;
-
-	void write(File f)
-	{
-		if (aliases.length == 0 && classes.length == 0 && enums.length == 0
-			&& functions.length == 0 && interfaces.length == 0
-			&& structs.length == 0 && templates.length == 0 && values.length == 0
-			&& variables.length == 0)
-		{
-			return;
-		}
-		f.writeln(`<div class="section">`);
-		if (enums.length > 0)
-			write(f, enums, "Enums");
-		if (aliases.length > 0)
-			write(f, aliases, "Aliases");
-		if (variables.length > 0)
-			write(f, variables, "Variables");
-		if (functions.length > 0)
-			write(f, functions, "Functions");
-		if (structs.length > 0)
-			write(f, structs, "Structs");
-		if (interfaces.length > 0)
-			write(f, interfaces, "Interfaces");
-		if (classes.length > 0)
-			write(f, classes, "Classes");
-		if (templates.length > 0)
-			write(f, templates, "Templates");
-		if (values.length > 0)
-			write(f, values, "Values");
-		f.writeln(`</div>`);
-		foreach (f; overloadFiles)
-		{
-			f.writeln(HTML_END);
-			f.close();
-		}
-	}
-
-private:
-
-	void write(File f, Item[] items, string name)
-	{
-		f.writeln(`<h2>`, name, `</h2>`);
-		f.writeln(`<table>`);
-//		f.writeln(`<thead><tr><th>Name</th><th>Summary</th></tr></thead>`);
-		foreach (i; items)
-			i.write(f);
-		f.writeln(`</table>`);
-	}
+	/// Information about modules and symbols for e.g. cross-referencing.
+	SymbolDatabase database;
+	Writer writer;
 }

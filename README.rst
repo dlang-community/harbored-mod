@@ -2,6 +2,8 @@
 harbored-mod
 ============
 
+**NOTE**: the default output format has changed to one file per aggregate instead of one 
+file per symbol. Use `--format=html-simple` to get the previous default output format.
 
 ------------
 Introduction
@@ -91,6 +93,8 @@ Features
 * Custimizable main page, table of contents and style (CSS)
 * Generated HTML enriched by classes to be more tweakable with CSS
 * Can exclude modules/packages from documentation by name (not file name)
+* Generated docs are usable without JavaScript (e.g. NoScript), but JS is used for 
+  functionality not possible without it.
 * **Only** generates HTML, and is unlikely to support any other formats
 * **No** automatic cross-referencing at the moment
 
@@ -105,8 +109,11 @@ Differences from vanilla Markdown:
 
   Use ``- - -`` instead. This is still standard Markdown.
 
+* *emphasis* can be denoted by ``*``, but not by ``_`` (this would break snake_case
+  names).
+
 * This does not work (again because DDoc uses ``---`` to mark code blocks)::
-  
+
      Subheading
      ----------
 
