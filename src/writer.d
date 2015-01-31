@@ -765,8 +765,9 @@ string symbolLinkAggregated(SymbolStack)(auto ref SymbolStack nameStack)
 {
 	if(nameStack.empty) { return "UNKNOWN.html"; }
 	// Start with the first part of the name so we have something we can buildPath() with.
-	string result = nameStack.front;
-	bool moduleParent = [SymbolType.Module, SymbolType.Package].canFind(nameStack.front.type);
+	string result = nameStack.front.name;
+	const firstType = nameStack.front.type;
+	bool moduleParent = firstType == SymbolType.Module || firstType == SymbolType.Package;
 	nameStack.popFront();
 
 	bool inAnchor = false;
@@ -951,8 +952,9 @@ string symbolLinkSimple(SymbolStack)(auto ref SymbolStack nameStack)
 {
 	if(nameStack.empty) { return "UNKNOWN.html"; }
 	// Start with the first part of the name so we have something we can buildPath() with.
-	string result = nameStack.front;
-	bool moduleParent = [SymbolType.Module, SymbolType.Package].canFind(nameStack.front.type);
+	string result = nameStack.front.name;
+	const firstType = nameStack.front.type;
+	bool moduleParent = firstType == SymbolType.Module || firstType == SymbolType.Package;
 	nameStack.popFront();
 
 	foreach(name; nameStack) final switch(name.type) with(SymbolType)
