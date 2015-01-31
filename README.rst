@@ -17,16 +17,17 @@ Harbored-mod supports both `DDoc <http://dlang.org/ddoc.html>`_ and `Markdown
 precedence. This means that there are slight differences_ from standard Markdown.
 
 Note that Harbored-mod is fairly unstable at the moment and has not seen much testing.
-There may still be some conflicts between DDoc and Markdown, for example.
+There may still be some conflicts between DDoc and Markdown.
 
 
 -----------------------------------
 Examples of generated documentation
 -----------------------------------
 
+* `Public imports in a package.d <http://defenestrate.eu/docs/tharsis-core/api/tharsis/entity.html>`_
 * `Class with a template parameter, member functions and aliases <http://defenestrate.eu/docs/tharsis-core/api/tharsis/entity/entitymanager/EntityManager.html>`_
 * `Simple DDoc See_Also: section <http://defenestrate.eu/docs/tharsis-core/api/tharsis/entity/componenttypeinfo/ImmutableRawComponent.html>`_
-* `Note: DDoc section with some markdown <http://defenestrate.eu/docs/tharsis-core/api/tharsis/entity/processtypeinfo/prioritizeProcessOverloads.html>`_ (**bold**, \`code\`, *italic*)
+* `Note: DDoc section with some markdown <http://defenestrate.eu/docs/tharsis-core/api/tharsis/entity/processtypeinfo.html#prioritizeProcessOverloads>`_ (**bold**, \`code\`, *italic*)
 
 ---------------
 Getting started
@@ -83,20 +84,23 @@ Features
 
 * Supports DDoc **and** (most, see differences_) Markdown syntax
 * Sensible defaults (get decent documentation without tweaking any settings)
-* Very fast; it takes ``0.12s`` to generate API documentation
+* Automatic cross-referencing in code blocks and ``inline code``
+* Very fast; it takes ``0.11s`` to generate API documentation
   `documentation <http://defenestrate.eu/docs/tharsis-core/api/index.html>`_ of
   `tharsis-core <https://github.com/kiith-sa/tharsis-core>`_ on a 3.4GHz Core
   i5 (Ivy Bridge).
-* All command-line options can be set in a config file (`hmod.cfg`) so just ``hmod`` is
+* All command-line options can be set in a config file (``hmod.cfg``) so just ``hmod`` is
   enough to generate documentation
-* File paths compatible with `ddox <https://github.com/rejectedsoftware/ddox>`_
-* Custimizable main page, table of contents and style (CSS)
+* Generates one file per module/``class``/``struct``/``enum``/etc. by default, as opposed
+  to one file per module (old Phobos documentation) or one file per symbol (``ddox``).
+* File paths can be made compatible with `ddox <https://github.com/rejectedsoftware/ddox>`_
+  using the non-default ``--format=html-simple`` option
 * Generated HTML enriched by classes to be more tweakable with CSS
-* Can exclude modules/packages from documentation by name (not file name)
-* Generated docs are usable without JavaScript (e.g. NoScript), but JS is used for 
-  functionality not possible without it.
+* Custimizable main page, table of contents and style (CSS)
+* Can exclude modules/packages from documentation by their name (not file name)
+* Generated docs are usable without JavaScript (e.g. NoScript), JS may used for 
+  optional functionality
 * **Only** generates HTML, and is unlikely to support any other formats
-* **No** automatic cross-referencing at the moment
 
 
 .. _differences:
