@@ -134,7 +134,7 @@ div.sidebar {
 
 div.toc {
 	padding: 1.5em 0.75em 1em 0.5em;
-	font-size: 0.5em;
+	font-size: 0.55em;
 	line-height: 1.95em;
 	display:block; 
 }
@@ -142,7 +142,7 @@ div.toc {
 @media only screen and (max-width: 800px)
 {
 	div.toc {
-		font-size: 0.45em;
+		font-size: 0.5em;
 		padding: 1.5em 0.4em 1em 0.2em;
 	}
 }
@@ -209,7 +209,7 @@ div.toc ul ul {
 
 div.toc a {
 	color: #111;
-	font-size: 1.42em;
+	font-size: 1.25em;
 }
 
 @media only screen and (max-width: 800px)
@@ -226,7 +226,7 @@ div.toc span.package {
 	border: 1px solid rgba(0, 0, 0, 0.12);
 	border-radius: 2px;
 	background-color: #F0F0F0;
-	font-size: 1.42em;
+	font-size: 1.25em;
 	padding: 0 0.2em;
 	/* counteracts the text movement caused by the padding */
 	margin: 0 -0.2em;
