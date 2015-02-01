@@ -12,6 +12,7 @@ module config;
 
 import std.algorithm;
 import std.array;
+import std.conv: to;
 import std.stdio;
 import std.string;
 
@@ -37,6 +38,7 @@ struct Config
 	string cssFileName = null;
 	string outputDirectory = "./doc";
 	string format = "html-aggregated";
+	uint maxFileSizeK = 16384;
 	/// Names of packages and modules to exclude from generated documentation.
 	string[] excludes = [];
 	string[] sourcePaths = [];
@@ -74,6 +76,7 @@ struct Config
 			       "T|toc-additional-direct", &tocAdditionalStrings,
 			       "e|exclude", &newExcludes, "f|format", &format,
 			       "c|css", &cssFileName, "C|generate-css", &doGenerateCSSPath,
+			       "M|max-file-size", &maxFileSizeK,
 			       "g|generate-cfg", &doGenerateConfig);
 		}
 		catch(Exception e)
@@ -100,7 +103,6 @@ struct Config
 	 */
 	void loadConfigFile(string fileName, bool requestedByUser = false)
 	{
-		import std.conv: to;
 		import std.file: exists, isFile;
 		import std.typecons: tuple;
 
@@ -152,6 +154,7 @@ private:
 			case "generate-cfg":     doGenerateConfig = true;                   break;
 			case "generate-css":     doGenerateCSSPath = value;                 break;
 			case "macros":           add(macroFileNames, value);                break;
+			case "max-file-size":    maxFileSizeK = value.to!uint;              break;
 			case "index":            indexFileName = value;                     break;
 			case "toc-additional":   tocAdditionalFileNames ~= value;           break;
 			case "css":              cssFileName = value;                       break;

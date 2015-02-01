@@ -264,7 +264,6 @@ class SymbolDatabase
 				return true;
 			}
 
-
 			if(membersScope && searchMembers(scopeLocal, membersScope))
 			{
 				return true;

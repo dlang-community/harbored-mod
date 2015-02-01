@@ -98,3 +98,10 @@ Options:
     --macros | -m MACRO_FILE
         Specifies a DDoc macro definition file to use. Multiple macro files
         can be used by using this option more than once.
+
+    --max-file-size | -M KILOBYTES
+        Specifies maximum file size of D modules harbored-mod will process.
+        Any file bigger than KILOBYTES kiB will be ignored. Useful in rare
+        cases when modules are huge enough that the parser spends too much
+        memory.
+        Default: 16384 (16MiB)

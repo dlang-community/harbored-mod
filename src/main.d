@@ -119,7 +119,7 @@ string[string] readMacros(const string[] macroFiles)
 
 void generateDocumentation(Writer)(ref const(Config) config, string[string] macros)
 {
-	string[] files = getFilesToProcess(config.sourcePaths.dup);
+	string[] files = getFilesToProcess(config);
 	import std.stdio;
 	stderr.writeln("Writing documentation to ", config.outputDirectory);
 
@@ -244,17 +244,41 @@ void writeDocumentation(Writer)(ref const Config config, SymbolDatabase database
 	}
 }
 
-string[] getFilesToProcess(string[] paths)
+/** Get .d/.di files to process.
+ *
+ * Files that don't exist, are bigger than config.maxFileSizeK or could not be
+ * opened will be ignored.
+ *
+ * Params:
+ *
+ * config = Access to config to get source file and directory paths get max file size.
+ * 
+ * Returns: Paths of files to process.
+ */
+string[] getFilesToProcess(ref const Config config)
 {
+	auto paths = config.sourcePaths.dup;
 	auto files = appender!(string[])();
+	void addFile(string path)
+	{
+		const size = path.getSize();
+		if(size > config.maxFileSizeK * 1024)
+		{
+			writefln("WARNING: '%s' (%skiB) bigger than max file size (%skiB), "
+			         "ignoring", size / 1024, path, config.maxFileSizeK);
+			return;
+		}
+		files.put(path);
+	}
+
 	foreach (arg; paths)
 	{
 		if(!arg.exists)
 			stderr.writefln("WARNING: '%s' does not exist, ignoring", arg);
 		else if (arg.isDir) foreach (string fileName; arg.dirEntries("*.{d,di}", SpanMode.depth))
-			files.put(fileName.expandTilde);
+			addFile(fileName.expandTilde);
 		else if (arg.isFile)
-			files.put(arg.expandTilde);
+			addFile(arg.expandTilde);
 		else
 			stderr.writefln("WARNING: Could not open '%s', ignoring", arg);
 	}
