@@ -511,6 +511,8 @@ void gatherModuleData(Writer)
 		writefln("Failed to load file %s: will be ignored", modulePath);
 		return;
 	}
+	import core.memory;
+	scope(exit) { GC.free(fileBytes.ptr); }
 
 	// Parse the module.
 	LexerConfig lexConfig;

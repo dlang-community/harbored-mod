@@ -219,6 +219,8 @@ void writeDocumentation(Writer)(ref const Config config, SymbolDatabase database
 
 	File f = File(path);
 	ubyte[] fileBytes = uninitializedArray!(ubyte[])(to!size_t(f.size));
+	import core.memory;
+	scope(exit) { GC.free(fileBytes.ptr); }
 	f.rawRead(fileBytes);
 	StringCache cache = StringCache(1024 * 4);
 	auto tokens = getTokensForParser(fileBytes, lexConfig, &cache).array;
