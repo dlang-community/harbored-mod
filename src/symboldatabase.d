@@ -120,8 +120,8 @@ class SymbolDatabase
 			size_t partIdx;
 			foreach(part; nameStack)
 			{
-				if(!(part in members.children)) { return false; }
-				members = part in members.children; 
+				members = part in members.children;
+				if(!members) { return false; }
 				if(deleg) { deleg(partIdx++, members); }
 			}
 			m = members;
