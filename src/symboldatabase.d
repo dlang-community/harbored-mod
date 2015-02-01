@@ -338,7 +338,6 @@ class SymbolDatabase
 				struct Result 
 				{
 					string name;
-					alias name this;
 					SymbolType type;
 				}
 				return Result(moduleStack.empty ? symbolStack.front : moduleStack.front,
