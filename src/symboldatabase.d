@@ -102,6 +102,8 @@ class SymbolDatabase
 			MembersTree* node = &modulesTree;
 			foreach(part; moduleName.splitter("."))
 			{
+				// can happen if moduleName looks e.g. like "a..b"
+				if(part == "") { return false; }
 				node = part in node.children;
 				if(node is null) { return false; }
 			}
@@ -148,6 +150,10 @@ class SymbolDatabase
 		{
 			// Parts of the symbol name within the module.
 			string wordLocal = word;
+			// '.' prefix means module scope - which is what we're
+			// handling here, but need to remove the '.' so we don't
+			// try to look for symbol "".
+			while(wordLocal.startsWith(".")) { wordLocal.popFront(); }
 			// Remove the part of module name the word starts with.
 			wordLocal.skipOver(".");
 			foreach(part; modName.splitter(".")) if(wordLocal.startsWith(part))
@@ -169,6 +175,10 @@ class SymbolDatabase
 		// of the module containing the symbol.
 		bool searchAssumingExplicitModule(ref string result)
 		{
+			// No module name starts by "." - if we use "." we
+			// usually mean a global symbol.
+			if(word.startsWith(".")) { return false; }
+			
 			auto parts = word.splitter(".");
 			// Avoid e.g. "typecons" automatically referencing to std.typecons;
 			// at least 2 parts must be specified (e.g. "std.typecons" or
@@ -208,6 +218,8 @@ class SymbolDatabase
 		// of documented symbol and its parent scope - siblings of the symbol.
 		bool searchLocal(ref string result)
 		{
+			// a '.' prefix means we're *not* looking in the local scope.
+			if(word.startsWith(".")) { return false; }
 			MembersTree* membersScope;
 			MembersTree* membersParent;
 			string thisModule;
@@ -270,7 +282,13 @@ class SymbolDatabase
 		// e.g. "Array.clear" instead of just "clear"
 		bool searchInModulesTopLevel(ref string result)
 		{
-			auto parts = word.split(".");
+			string wordLocal = word;
+			// '.' prefix means module scope - which is what we're
+			// handling here, but need to remove the '.' so we don't
+			// try to look for symbol "".
+			while(wordLocal.startsWith(".")) { wordLocal.popFront(); }
+			auto parts = wordLocal.split(".");
+
 			// Search in top-level scopes of each module.
 			foreach(moduleName, ref MembersTree membersRef; modules)
 			{
