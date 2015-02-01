@@ -9,6 +9,3 @@
 [submodule "dmarkdown"]
 	path = dmarkdown
 	url = https://github.com/kiith-sa/dmarkdown.git
-[submodule "containers"]
-	path = containers
-	url = https://github.com/economicmodeling/containers.git
