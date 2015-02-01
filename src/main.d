@@ -17,6 +17,7 @@ import std.getopt;
 import std.path;
 import std.stdio;
 
+import allocator;
 import config;
 import macros;
 import symboldatabase;
@@ -131,7 +132,6 @@ void generateDocumentation(Writer)(ref const(Config) config, string[string] macr
 	auto database =
 		gatherData(config, new Writer(config, macros, search, null, null), files);
 
-
 	TocItem[] tocItems = buildTree(database.moduleNames, database.moduleNameToLink);
 
 	enum noFile = "missing file";
@@ -210,8 +210,9 @@ string getCSS(string customCSS)
 }
 
 /// Creates documentation for the module at the given path
-void writeDocumentation(Writer)(ref const Config config, SymbolDatabase database, string path,
-	File search, TocItem[] tocItems, string[string] macros, string[] tocAdditionals)
+void writeDocumentation(Writer)(ref const Config config, SymbolDatabase database, 
+	string path, File search, TocItem[] tocItems, string[string] macros,
+	string[] tocAdditionals)
 {
 	LexerConfig lexConfig;
 	lexConfig.fileName = path;
@@ -224,13 +225,23 @@ void writeDocumentation(Writer)(ref const Config config, SymbolDatabase database
 	f.rawRead(fileBytes);
 	StringCache cache = StringCache(1024 * 4);
 	auto tokens = getTokensForParser(fileBytes, lexConfig, &cache).array;
-	Module m = parseModule(tokens, path, null, &doNothing);
+	import std.typecons: scoped;
+	auto allocator = scoped!(CAllocatorImpl!(Allocator));
+
+	Module m = parseModule(tokens, path, allocator, &doNothing);
+
 	TestRange[][size_t] unitTestMapping = getUnittestMap(m);
 	
 	auto htmlWriter  = new Writer(config, macros, search, tocItems, tocAdditionals);
 	auto visitor = new DocVisitor!Writer(config, database, unitTestMapping, 
-	                                         fileBytes, htmlWriter);
+	                                     fileBytes, htmlWriter);
 	visitor.visit(m);
+
+	if(allocator.impl.primary.bytesHighTide > 16 * 1024 * 1024)
+	{
+		writeln("More than 16MiB allocated by parser. Stats:");
+		allocator.impl.primary.writeStats();
+	}
 }
 
 string[] getFilesToProcess(string[] paths)

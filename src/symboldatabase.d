@@ -15,6 +15,7 @@ import std.range;
 import std.stdio;
 import std.string: join, split;
 
+import allocator;
 import config;
 import item;
 
@@ -520,7 +521,17 @@ void gatherModuleData(Writer)
 	lexConfig.stringBehavior = StringBehavior.source;
 	auto tokens = getTokensForParser(fileBytes, lexConfig, &database.cache).array;
 	import main: doNothing;
-	Module m = parseModule(tokens, modulePath, null, &doNothing);
+
+	import std.typecons;
+	auto allocator = scoped!(CAllocatorImpl!Allocator);
+	
+	Module m = parseModule(tokens, modulePath, allocator, &doNothing);
+	if(allocator.impl.primary.bytesHighTide > 16 * 1024 * 1024)
+	{
+		writeln("More than 16MiB allocated by parser. Stats:");
+		allocator.impl.primary.writeStats();
+	}
+
 
 	// Gather data.
 	auto visitor = new DataGatherVisitor!Writer(config, database, writer, modulePath);
