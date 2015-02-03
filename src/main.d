@@ -34,6 +34,7 @@ int main(string[] args)
 	scope(exit) 
 	{
 		writefln("Time spent: %.3fs", (Clock.currStdTime - startTime) / 10_000_000.0); 
+		writefln("Peak memory usage (kiB): %s", peakMemoryUsageK()); 
 	}
 
 	Config config;
@@ -292,3 +293,26 @@ immutable string hljs = import("highlight.pack.js");
 immutable string stylecss = import("style.css");
 immutable string searchjs = import("search.js");
 immutable string showhidejs = import("show_hide.js");
+ulong peakMemoryUsageK()
+{
+    version(linux)
+    {
+        try
+        {
+            import std.exception;
+            auto line = File("/proc/self/status").byLine().filter!(l => l.startsWith("VmHWM"));
+            enforce(!line.empty, new Exception("No VmHWM in /proc/self/status"));
+            return line.front.split()[1].to!ulong;
+        }
+        catch(Exception e)
+        {
+            writeln("Failed to get peak memory usage: ", e);
+            return 0;
+        }
+    }
+    else 
+    {
+        writeln("peakMemoryUsageK not implemented on non-Linux platforms");
+        return 0;
+    }
+}
