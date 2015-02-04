@@ -539,8 +539,8 @@ div.error {
 	color: darkred;
 }
 
-/* Markdown inline code */
-code.prettyprint {
+/* Markdown inline code and $(D code) */
+code.prettyprint, .d_inlinecode {
 	font-family: monospace;
 	color: #333;
 	background-color:rgba(0,0,0,0.04);
@@ -571,11 +571,6 @@ div.section td pre {
 div.section td code:not(.prettyprint) {
 	margin: 0;
 	padding: 0.6em;
-}
-
-.d_inlinecode {
-	font-family: monospace;
-	font-weight: bold;
 }
 
 .hljs {
