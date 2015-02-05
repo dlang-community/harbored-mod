@@ -168,6 +168,7 @@ void generateDocumentation(Writer)(ref const(Config) config, string[string] macr
 
 	// Write index.html and style.css
 	{
+		writeln("Generating main page");
 		File css = File(buildPath(config.outputDirectory, "style.css"), "w");
 		css.write(getCSS(config.cssFileName));
 		File js = File(buildPath(config.outputDirectory, "highlight.pack.js"), "w");
@@ -179,9 +180,12 @@ void generateDocumentation(Writer)(ref const(Config) config, string[string] macr
 		auto fileWriter = index.lockingTextWriter;
 		auto html = new Writer(config, macros, search, tocItems, tocAdditionals);
 		html.writeHeader(fileWriter, "Index", 0);
-		html.writeBreadcrumbs(fileWriter, "Main Page");
+		const heading = config.projectName is null ? "Main Page" :
+		                "%s: Main Page".format(config.projectName);
+		html.writeBreadcrumbs(fileWriter, heading);
 		html.writeTOC(fileWriter);
 
+		// Index content added by the user.
 		if (config.indexFileName !is null)
 		{
 			File indexFile = File(config.indexFileName);
