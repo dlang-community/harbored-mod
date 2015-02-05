@@ -150,6 +150,22 @@ void generateDocumentation(Writer)(ref const(Config) config, string[string] macr
 		text = writer.data;
 	}
 
+	foreach (f; database.moduleFiles)
+	{
+		writeln("Generating documentation for ", f);
+		try
+		{
+			writeDocumentation!Writer(config, database, f, search, tocItems,
+			                          macros, tocAdditionals);
+		}
+		catch (Exception e)
+		{
+			stderr.writeln("Could not generate documentation for ", f, ": ", e.msg);
+		}
+	}
+	search.writeln(`];`);
+	search.writeln(searchjs);
+
 	// Write index.html and style.css
 	{
 		File css = File(buildPath(config.outputDirectory, "style.css"), "w");
@@ -177,21 +193,6 @@ void generateDocumentation(Writer)(ref const(Config) config, string[string] macr
 	}
 
 
-	foreach (f; database.moduleFiles)
-	{
-		writeln("Generating documentation for ", f);
-		try
-		{
-			writeDocumentation!Writer(config, database, f, search, tocItems,
-			                          macros, tocAdditionals);
-		}
-		catch (Exception e)
-		{
-			stderr.writeln("Could not generate documentation for ", f, ": ", e.msg);
-		}
-	}
-	search.writeln(`];`);
-	search.writeln(searchjs);
 }
 
 /** Get the CSS content to write into style.css.
