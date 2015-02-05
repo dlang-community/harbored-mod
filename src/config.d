@@ -38,6 +38,7 @@ struct Config
 	string cssFileName = null;
 	string outputDirectory = "./doc";
 	string format = "html-aggregated";
+	string projectName = null;
 	uint maxFileSizeK = 16384;
 	/// Names of packages and modules to exclude from generated documentation.
 	string[] excludes = [];
@@ -70,14 +71,20 @@ struct Config
 			}
 
 			getopt(cliArgs, std.getopt.config.caseSensitive,
-			       "m|macros", &newMacroFiles, "o|output-directory", &outputDirectory,
-			       "h|help", &doHelp, "i|index", &indexFileName, 
-			       "t|toc-additional", &tocAdditionalFileNames, 
-			       "T|toc-additional-direct", &tocAdditionalStrings,
-			       "e|exclude", &newExcludes, "f|format", &format,
-			       "c|css", &cssFileName, "C|generate-css", &doGenerateCSSPath,
-			       "M|max-file-size", &maxFileSizeK,
-			       "g|generate-cfg", &doGenerateConfig);
+			       "c|css",                   &cssFileName,
+			       "C|generate-css",          &doGenerateCSSPath,
+			       "e|exclude",               &newExcludes,
+			       "f|format",                &format,
+			       "g|generate-cfg",          &doGenerateConfig,
+			       "h|help",                  &doHelp,
+			       "i|index",                 &indexFileName,
+			       "m|macros",                &newMacroFiles,
+			       "M|max-file-size",         &maxFileSizeK,
+			       "o|output-directory",      &outputDirectory,
+			       "p|project-name",          &projectName,
+			       "t|toc-additional",        &tocAdditionalFileNames,
+			       "T|toc-additional-direct", &tocAdditionalStrings
+			       );
 		}
 		catch(Exception e)
 		{
@@ -155,6 +162,7 @@ private:
 			case "generate-css":     doGenerateCSSPath = value;                 break;
 			case "macros":           add(macroFileNames, value);                break;
 			case "max-file-size":    maxFileSizeK = value.to!uint;              break;
+			case "project-name":     projectName = value;                       break;
 			case "index":            indexFileName = value;                     break;
 			case "toc-additional":   tocAdditionalFileNames ~= value;           break;
 			case "css":              cssFileName = value;                       break;
