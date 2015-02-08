@@ -161,14 +161,14 @@ private:
 
 		switch(key)
 		{
-			case "help":             doHelp = true;                             break;
-			case "generate-cfg":     doGenerateConfig = true;                   break;
+			case "help":             doHelp = value.to!bool;                    break;
+			case "generate-cfg":     doGenerateConfig = value.to!bool;          break;
 			case "generate-css":     doGenerateCSSPath = value;                 break;
 			case "macros":           add(macroFileNames, value);                break;
 			case "max-file-size":    maxFileSizeK = value.to!uint;              break;
 			case "project-name":     projectName = value;                       break;
 			case "project-version":  projectVersion = value;                    break;
-			case "no-markdown":      noMarkdown = true ;                        break;
+			case "no-markdown":      noMarkdown = value.to!bool;                break;
 			case "index":            indexFileName = value;                     break;
 			case "toc-additional":   tocAdditionalFileNames ~= value;           break;
 			case "css":              cssFileName = value;                       break;
