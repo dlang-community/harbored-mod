@@ -70,6 +70,9 @@ Options:
         to help identify the project.
         Default: <no version>
 
+    --no-markdown | D
+        Disable Markdown support. Only DDoc will be used.
+
     --index | -i DDOC_MD_FILE
         Use DDOC_MD_FILE as the content of the index.html page.
 

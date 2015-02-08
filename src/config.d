@@ -39,6 +39,7 @@ struct Config
 	string outputDirectory = "./doc";
 	string format = "html-aggregated";
 	string projectName = null;
+	bool noMarkdown = false;
 	string projectVersion = null;
 	uint maxFileSizeK = 16384;
 	/// Names of packages and modules to exclude from generated documentation.
@@ -84,6 +85,7 @@ struct Config
 			       "o|output-directory",      &outputDirectory,
 			       "p|project-name",          &projectName,
 			       "n|project-version",       &projectVersion,
+			       "D|no-markdown",           &noMarkdown,
 			       "t|toc-additional",        &tocAdditionalFileNames,
 			       "T|toc-additional-direct", &tocAdditionalStrings
 			       );
@@ -166,6 +168,7 @@ private:
 			case "max-file-size":    maxFileSizeK = value.to!uint;              break;
 			case "project-name":     projectName = value;                       break;
 			case "project-version":  projectVersion = value;                    break;
+			case "no-markdown":      noMarkdown = true ;                        break;
 			case "index":            indexFileName = value;                     break;
 			case "toc-additional":   tocAdditionalFileNames ~= value;           break;
 			case "css":              cssFileName = value;                       break;

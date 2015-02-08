@@ -461,18 +461,21 @@ protected:
 		// Run sections through markdown.
 		foreach(ref section; c.sections)
 		{
-			import dmarkdown;
-			// We want to enable '***' subheaders and to post-process code
-			// for cross-referencing.
-			auto mdSettings = new MarkdownSettings();
-			mdSettings.flags = MarkdownFlags.alternateSubheaders |
-			                   MarkdownFlags.disableUnderscoreEmphasis;
-			mdSettings.processCode = processCode;
-
+			string processMarkdown(string input)
+			{
+				import dmarkdown;
+				// We want to enable '***' subheaders and to post-process code
+				// for cross-referencing.
+				auto mdSettings = new MarkdownSettings();
+				mdSettings.flags = MarkdownFlags.alternateSubheaders |
+				                   MarkdownFlags.disableUnderscoreEmphasis;
+				mdSettings.processCode = processCode;
+				return filterMarkdown(input, mdSettings);
+			}
 			// Ensure param descriptions run through Markdown
 			if(section.name == "Params") foreach(ref kv; section.mapping)
 			{
-				kv[1] = filterMarkdown(kv[1], mdSettings);
+				kv[1] = config.noMarkdown ? kv[1] : processMarkdown(kv[1]);
 			}
 			// Do not run code examples through markdown.
 			//
@@ -481,8 +484,9 @@ protected:
 			// <pre>/<code> blocks, or, before parsing comments, for "---" pairs.
 			// Or, dmarkdown could be changed to ignore <pre>/<code> blocks.
 			const isCode = section.content.canFind("<pre><code>");
-			section.content = isCode ? processCodeBlocks(section.content)
-			                         : filterMarkdown(section.content, mdSettings);
+			section.content = isCode            ? processCodeBlocks(section.content) :
+			                  config.noMarkdown ? section.content :
+			                                      processMarkdown(section.content);
 		}
 
 		if (prevComments.length > 0)
