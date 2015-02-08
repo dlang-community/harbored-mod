@@ -60,10 +60,15 @@ Options:
         This will exclude package tharsis.util and module
         tharsis.entity.gamestate.
 
-    --project-name | -e NAME
-        Specify the name of the project. Used on the main page and possibly
-        other places to help identity the project.
+    --project-name | -p NAME
+        Name of the project. Used on the main page and possibly other places
+        to help identify the project.
         Default: <no name>
+
+    --project-version | -n VERSION
+        Version of the project. Used on the main page and possibly other places
+        to help identify the project.
+        Default: <no version>
 
     --index | -i DDOC_MD_FILE
         Use DDOC_MD_FILE as the content of the index.html page.

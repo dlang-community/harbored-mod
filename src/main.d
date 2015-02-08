@@ -180,8 +180,8 @@ void generateDocumentation(Writer)(ref const(Config) config, string[string] macr
 		auto fileWriter = index.lockingTextWriter;
 		auto html = new Writer(config, macros, search, tocItems, tocAdditionals);
 		html.writeHeader(fileWriter, "Index", 0);
-		const heading = config.projectName is null ? "Main Page" :
-		                "%s: Main Page".format(config.projectName);
+		const projectStr = config.projectName ~ " " ~ config.projectVersion;
+		const heading = projectStr == " " ? "Main Page" : (projectStr ~ ": Main Page");
 		html.writeBreadcrumbs(fileWriter, heading);
 		html.writeTOC(fileWriter);
 
