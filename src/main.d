@@ -113,8 +113,11 @@ string[string] readMacros(const string[] macroFiles)
 	string[string] rVal;
 	foreach (k, v; ddoc.macros.DEFAULT_MACROS)
 		rVal[k] = v;
-	rVal["D"] = `<code class="d_inlinecode">$0</code>`;
+	rVal["D"]    = `<code class="d_inlinecode">$0</code>`;
+	// These seem to be defined in Phobos, and apparently work in D code
+	// using some of its modules? Either way, needed for compatibility.
 	rVal["HTTP"] = "<a href=\"http://$1\">$+</a>";
+	rVal["WEB"]  = "$(HTTP $1,$2)";
 	foreach (mf; macroFiles)
 		readMacroFile(mf, rVal);
 	return rVal;
