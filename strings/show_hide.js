@@ -1,7 +1,7 @@
 window.onload = function(e)
 {
     var elems = document.querySelectorAll( "div.toc ul ul" );
-    for( i in elems )
+    for( var i = 0; i < elems.length; ++i )
     {
         if( elems[i].style.display != "block" )
             elems[i].style.display = "none";
