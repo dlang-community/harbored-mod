@@ -1,0 +1,8 @@
+{
+	"fileVersion": 1,
+	"versions": {
+		"libdparse": "~master",
+		"libddoc": "0.1.0",
+		"dmarkdown": "0.2.0"
+	}
+}
