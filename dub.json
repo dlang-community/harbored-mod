@@ -1,0 +1,12 @@
+{
+	"name": "harbored-mod",
+	"description": "A documentation generator for D with support for both DDoc and Markdown in documentation comments.",
+	"copyright": "Copyright © Brian Schott, Ferdinand Majerech",
+	"authors": ["Brian Schott", "Ferdinand Majerech"],
+	"license": "BSL-1.0",
+	"dependencies": {
+		"libdparse": "~master",
+		"libddoc": "~>0.1.0",
+		"dmarkdown": "~>0.2.0",
+	},
+}
