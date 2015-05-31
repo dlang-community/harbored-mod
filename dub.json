@@ -4,6 +4,8 @@
 	"copyright": "Copyright © Brian Schott, Ferdinand Majerech",
 	"authors": ["Brian Schott", "Ferdinand Majerech"],
 	"license": "BSL-1.0",
+	"targetPath": "bin",
+	"targetName": "hmod",
 	"dependencies": {
 		"libdparse": "~master",
 		"libddoc": "~>0.1.0",
