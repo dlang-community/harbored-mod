@@ -46,6 +46,9 @@ struct Config
 	string[] excludes = [];
 	string[] sourcePaths = [];
 
+	/// Loaded from macroFileNames + default macros; not set on the command-line.
+	string[string] macros;
+
 	/** Load config options from CLI arguments.
 	 *
 	 * Params:

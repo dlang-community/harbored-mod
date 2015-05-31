@@ -91,7 +91,7 @@ int main(string[] args)
 
 	string[string] macros;
 	try
-		macros = readMacros(config.macroFileNames);
+		macros = config.macros = readMacros(config.macroFileNames);
 	catch (Exception e)
 	{
 		stderr.writeln(e.msg);
