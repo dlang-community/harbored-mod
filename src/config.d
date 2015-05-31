@@ -170,7 +170,8 @@ private:
 			case "project-version":  projectVersion = value;                    break;
 			case "no-markdown":      noMarkdown = value.to!bool;                break;
 			case "index":            indexFileName = value;                     break;
-			case "toc-additional":   tocAdditionalFileNames ~= value;           break;
+			case "toc-additional":
+				if(value !is null) { tocAdditionalFileNames ~= value; }     break;
 			case "css":              cssFileName = value;                       break;
 			case "output-directory": outputDirectory = value;                   break;
 			case "exclude":          add(excludes, value);                      break;
