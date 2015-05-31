@@ -11,6 +11,7 @@ import std.array: popBack, back, empty, popFront;
 import std.d.ast;
 import std.d.lexer;
 import std.d.parser;
+import std.exception: enforce;
 import std.range;
 import std.stdio;
 import std.string: join, split;
@@ -711,6 +712,48 @@ class DataGatherVisitor(Writer) : ASTVisitor
 	override void visit(const InExpression inExpression) {}
 
 private:
+	/** If the comment starts with a summary, return it, otherwise return null.
+	 *
+	 * Note: as libdparse does not seem to recognize summaries correctly (?),
+	 * we simply assume the first section of the comment to be the summary.
+	 */
+	string commentSummary(string comment)
+	{
+		writeln("getting commentSummary of comment '", comment, "'");
+		
+		if(comment.empty) 
+		{
+			writeln("empty comment");
+			return null; 
+		}
+
+		import core.exception: RangeError;
+		try
+		{
+			import ddoc.comments;
+			auto app = appender!string();
+			comment.unDecorateComment(app);
+			Comment c = parseComment(app.data, cast(string[string])config.macros);
+			writeln(c.sections);
+			
+			if (c.sections.length)
+			{
+				return c.sections[0].content;
+			}
+		}
+		catch(RangeError e)
+		{
+			writeln("RangeError");
+			
+			// Writer.readAndWriteComment will catch this too and
+			// write an error message. Not kosher to catch Errors
+			// but unfortunately needed with libdparse ATM.
+			return null;
+		}
+		writeln("no summary");
+		return null;
+	}
+
 	void visitAggregateDeclaration(SymbolType type, A)(const A ad)
 	{
 		if (ad.comment is null)
