@@ -64,6 +64,18 @@ class SymbolDatabase
 		cache = StringCache(1024 * 4);
 	}
 
+	/// Get module data for specified module.
+	SymbolDataModule moduleData(string moduleName)
+	{
+		auto mod = moduleName in modules;
+		enforce(mod !is null,
+		        new Exception("No such module: " ~ moduleName));
+		assert(mod.type == SymbolType.Module,
+		       "A non-module MembersTree in SymbolDatabase.modules");
+		return mod.dataModule;
+	}
+
+
 	//TODO if all the AAs are too slow, try RedBlackTree before completely overhauling
 
 	/** Get a link to documentation of symbol specified by word (if word is a symbol).
@@ -441,7 +453,7 @@ private:
 		}
 	}
 
-	/// Member trees of all modules, indexed by module names.
+	/// Member trees of all modules, indexed by full module names.
 	MembersTree[string] modules;
 
 	/// Allows to quickly determine whether a module exists. Built by preCache.
@@ -487,6 +499,13 @@ enum SymbolType: ubyte
 	Variable
 }
 
+/// Data we keep track of for a module.
+struct SymbolDataModule 
+{
+	/// Summary comment of the module, *not* processes by Markdown.
+	string summary;
+}
+
 private:
 
 // Reusing Members here is a very quick hack, and we may need something better than a
@@ -500,6 +519,13 @@ struct MembersTree
 
 	/// Type of this symbol.
 	SymbolType type;
+
+	union 
+	{
+		/// Data specific for a module symbol.
+		SymbolDataModule dataModule;
+		//TODO data for any other symbol types. In a union to save space.
+	}
 }
 
 
@@ -610,6 +636,8 @@ class DataGatherVisitor(Writer) : ASTVisitor
 		database.modules[moduleName] = MembersTree.init;
 
 		database.modules[moduleName].type = SymbolType.Module;
+		database.modules[moduleName].dataModule.summary = 
+			commentSummary(mod.moduleDeclaration.comment);
 
 		mod.accept(this);
 	}
