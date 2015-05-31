@@ -296,7 +296,7 @@ div.content table {
 div.content td {
 	border-top: 1px dashed #333;
 	margin: 0;
-	padding: .32em;
+	padding: .32em .64em;
 }
 
 div.content td:first-child {
@@ -427,6 +427,15 @@ a.anchor:target + div.symbol {
 .section.seealso div.seealso-content, .section.note div.note-content {
 	display: block;
 	margin-left: 6.5em;
+}
+
+.section.imports td {
+	border-top: 1px solid #555 !important;
+	text-align: left !important;
+}
+
+.section.imports table {
+	border-bottom: 1px solid #555 !important;
 }
 
 .section.imports ul {

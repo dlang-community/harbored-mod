@@ -133,6 +133,44 @@ private class HTMLWriterBase(alias symbolLink)
 `.format(rootPath, rootPath, title, rootPath));
 	}
 
+	/** Write the main module list (table of module links and descriptions).
+	 *
+	 * Written to the main page.
+	 *
+	 * Params:
+	 *
+	 * dst      = Range to write to.
+	 * database = Symbol database aware of all modules.
+	 * 
+	 */
+	final void writeModuleList(R)(ref R dst, SymbolDatabase database)
+	{
+		writeln("writeModuleList called");
+		
+		void put(string str) { dst.put(str); dst.put("\n"); }
+
+		writeSection(dst, 
+		{
+			// Sort the names by alphabet
+			// duplicating should be cheap here; there is only one module list
+			import std.algorithm: sort;
+			auto sortedModuleNames = sort(database.moduleNames.dup);
+			dst.put(`<h2>Module list</h2>`);
+			put(`<table class="module-list">`);
+			foreach(name; sortedModuleNames)
+			{
+				dst.put(`<tr><td class="module-name">`);
+				writeLink(dst, database.moduleNameToLink[name],
+				          { dst.put(name); });
+				dst.put(`</td><td>`);
+				dst.put(processMarkdown(database.moduleData(name).summary));
+				put("</td></tr>");
+			}
+			put(`</table>`);
+		} , "imports");
+
+	}
+
 	/** Writes the table of contents to provided range.
 	 *
 	 * Also starts the "content" <div>; must be called after writeBreadcrumbs(),

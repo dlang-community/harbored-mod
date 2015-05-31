@@ -416,6 +416,7 @@ private:
 		});
 
 		mixin(`memberStack[$ - 2].` ~ name ~ ` ~= Item(itemURL, ad.name.text, summary);`);
+
 		prevComments.length = prevComments.length + 1;
 		ad.accept(this);
 		prevComments.popBack();
