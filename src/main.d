@@ -196,8 +196,9 @@ void generateDocumentation(Writer)(ref const(Config) config, string[string] macr
 			indexFile.rawRead(indexBytes);
 			html.readAndWriteComment(fileWriter, cast(string)indexBytes);
 		}
+
 		// A full list of all modules.
-		if(database.moduleNames.length < 256)
+		if(database.moduleNames.length <= config.maxModuleListLength)
 		{
 			html.writeModuleList(fileWriter, database);
 		}

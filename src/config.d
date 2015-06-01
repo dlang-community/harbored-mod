@@ -42,6 +42,7 @@ struct Config
 	bool noMarkdown = false;
 	string projectVersion = null;
 	uint maxFileSizeK = 16384;
+	uint maxModuleListLength = 256;
 	/// Names of packages and modules to exclude from generated documentation.
 	string[] excludes = [];
 	string[] sourcePaths = [];
@@ -76,21 +77,22 @@ struct Config
 			}
 
 			getopt(cliArgs, std.getopt.config.caseSensitive,
-			       "c|css",                   &cssFileName,
-			       "C|generate-css",          &doGenerateCSSPath,
-			       "e|exclude",               &newExcludes,
-			       "f|format",                &format,
-			       "g|generate-cfg",          &doGenerateConfig,
-			       "h|help",                  &doHelp,
-			       "i|index",                 &indexFileName,
-			       "m|macros",                &newMacroFiles,
-			       "M|max-file-size",         &maxFileSizeK,
-			       "o|output-directory",      &outputDirectory,
-			       "p|project-name",          &projectName,
-			       "n|project-version",       &projectVersion,
-			       "D|no-markdown",           &noMarkdown,
-			       "t|toc-additional",        &tocAdditionalFileNames,
-			       "T|toc-additional-direct", &tocAdditionalStrings
+			       "c|css",                    &cssFileName,
+			       "C|generate-css",           &doGenerateCSSPath,
+			       "e|exclude",                &newExcludes,
+			       "f|format",                 &format,
+			       "g|generate-cfg",           &doGenerateConfig,
+			       "h|help",                   &doHelp,
+			       "i|index",                  &indexFileName,
+			       "m|macros",                 &newMacroFiles,
+			       "M|max-file-size",          &maxFileSizeK,
+			       "o|output-directory",       &outputDirectory,
+			       "p|project-name",           &projectName,
+			       "n|project-version",        &projectVersion,
+			       "D|no-markdown",            &noMarkdown,
+			       "t|toc-additional",         &tocAdditionalFileNames,
+			       "T|toc-additional-direct",  &tocAdditionalStrings,
+			       "l|max-module-list-length", &maxModuleListLength
 			       );
 		}
 		catch(Exception e)
@@ -169,6 +171,8 @@ private:
 			case "generate-css":     doGenerateCSSPath = value;                 break;
 			case "macros":           add(macroFileNames, value);                break;
 			case "max-file-size":    maxFileSizeK = value.to!uint;              break;
+			case "max-module-list-length":
+				maxModuleListLength = value.to!uint;                        break;
 			case "project-name":     projectName = value;                       break;
 			case "project-version":  projectVersion = value;                    break;
 			case "no-markdown":      noMarkdown = value.to!bool;                break;
