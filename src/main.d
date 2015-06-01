@@ -34,6 +34,7 @@ int main(string[] args)
 	scope(exit) 
 	{
 		writefln("Time spent: %.3fs", (Clock.currStdTime - startTime) / 10_000_000.0); 
+		// DO NOT CHANGE. hmod-dub reads this.
 		writefln("Peak memory usage (kiB): %s", peakMemoryUsageK()); 
 	}
 
