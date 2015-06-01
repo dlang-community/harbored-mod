@@ -175,6 +175,8 @@ private:
 			case "index":            indexFileName = value;                     break;
 			case "toc-additional":
 				if(value !is null) { tocAdditionalFileNames ~= value; }     break;
+			case "toc-additional-direct":
+				if(value !is null) { tocAdditionalStrings ~= value; }       break;
 			case "css":              cssFileName = value;                       break;
 			case "output-directory": outputDirectory = value;                   break;
 			case "exclude":          add(excludes, value);                      break;
