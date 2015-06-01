@@ -223,7 +223,7 @@ class DocVisitor(Writer) : ASTVisitor
 				auto formatter = writer.newFormatter(dst);
 				scope(exit) { destroy(formatter.sink); }
 				// Attributes like public, etc.
-				writer.writeAttributes(dst, formatter, attributeStack.back);
+				writeAttributes(dst, formatter, attributeStack.back);
 				dst.put(typeStr);
 				dst.put(` `);
 				dst.put(nameStr);
@@ -388,6 +388,33 @@ private:
 		return tok!"public";
 	}
 
+	/** Writes attributes to the range dst using formatter to format code.
+	 *
+	 * Params:
+	 *
+	 * dst       = Range to write to.
+	 * formatter = Formatter to format the attributes with.
+	 * attrs     = Attributes to write.
+	 */
+	final void writeAttributes(R, F)(ref R dst, F formatter, const(Attribute)[] attrs)
+	{
+		import std.d.lexer: IdType, isProtection, tok;
+		IdType protection = currentProtection();
+		switch (protection)
+		{
+			case tok!"private":   dst.put("private ");   break;
+			case tok!"package":   dst.put("package ");   break;
+			case tok!"protected": dst.put("protected "); break;
+			default:              dst.put("public ");    break;
+		}
+		foreach (a; attrs.filter!(a => !a.attribute.type.isProtection))
+		{
+			formatter.format(a);
+			dst.put(" ");
+		}
+	}
+
+
 	void visitAggregateDeclaration(string formattingCode, string name, A)(const A ad)
 	{
 		bool first;
@@ -407,7 +434,7 @@ private:
 				scope(exit) destroy(formatter.sink);
 				assert(attributeStack.length > 0,
 					"Attributes stack must not be empty when writing aggregate attributes");
-				writer.writeAttributes(fileWriter, formatter, attributeStack.back);
+				writeAttributes(fileWriter, formatter, attributeStack.back);
 				mixin(formattingCode);
 			});
 
@@ -468,7 +495,7 @@ private:
 				       "Attributes stack must not be empty when writing "
 				       "function attributes");
 				// Attributes like public, etc.
-				writer.writeAttributes(fileWriter, formatter, attrs);
+				writeAttributes(fileWriter, formatter, attrs);
 				// Return type and function name, with special case fo constructor
 				static if (__traits(hasMember, typeof(fn), "returnType"))
 				{

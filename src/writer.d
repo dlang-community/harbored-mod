@@ -291,36 +291,6 @@ private class HTMLWriterBase(alias symbolLink)
 	}
 
 
-	/** Writes attributes to the range dst using formatter to format code.
-	 *
-	 * Params:
-	 *
-	 * dst       = Range to write to.
-	 * formatter = Formatter to format the attributes with.
-	 * attrs     = Attributes to write.
-	 */
-	final void writeAttributes(R, F)(ref R dst, F formatter, const(Attribute)[] attrs)
-	{
-		import std.d.lexer: IdType, isProtection, tok;
-		IdType protection;
-		foreach (a; attrs.filter!(a => a.attribute.type.isProtection))
-		{
-			protection = a.attribute.type;
-		}
-		switch (protection)
-		{
-			case tok!"private":   dst.put("private ");   break;
-			case tok!"package":   dst.put("package ");   break;
-			case tok!"protected": dst.put("protected "); break;
-			default:              dst.put("public ");    break;
-		}
-		foreach (a; attrs.filter!(a => !a.attribute.type.isProtection))
-		{
-			formatter.format(a);
-			dst.put(" ");
-		}
-	}
-
 	/** Writes a doc comment to the given range and returns the summary text.
 	 *
 	 * Params:
