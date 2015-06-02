@@ -90,9 +90,10 @@ int main(string[] args)
 	}
 
 
-	string[string] macros;
 	try
-		macros = config.macros = readMacros(config.macroFileNames);
+	{
+		config.macros = readMacros(config.macroFileNames);
+	}
 	catch (Exception e)
 	{
 		stderr.writeln(e.msg);
@@ -101,8 +102,8 @@ int main(string[] args)
 
 	switch(config.format)
 	{
-		case "html-simple": generateDocumentation!HTMLWriterSimple(config, macros); break;
-		case "html-aggregated": generateDocumentation!HTMLWriterAggregated(config, macros); break;
+		case "html-simple": generateDocumentation!HTMLWriterSimple(config); break;
+		case "html-aggregated": generateDocumentation!HTMLWriterAggregated(config); break;
 		default: writeln("Unknown format: ", config.format);
 	}
 
@@ -124,7 +125,7 @@ string[string] readMacros(const string[] macroFiles)
 	return rVal;
 }
 
-void generateDocumentation(Writer)(ref const(Config) config, string[string] macros)
+void generateDocumentation(Writer)(ref Config config)
 {
 	string[] files = getFilesToProcess(config);
 	import std.stdio;
@@ -137,7 +138,7 @@ void generateDocumentation(Writer)(ref const(Config) config, string[string] macr
 	search.writeln(`var items = [`);
 
 	auto database =
-		gatherData(config, new Writer(config, macros, search, null, null), files);
+		gatherData(config, new Writer(config, search, null, null), files);
 
 	TocItem[] tocItems = buildTree(database.moduleNames, database.moduleNameToLink);
 
@@ -148,7 +149,7 @@ void generateDocumentation(Writer)(ref const(Config) config, string[string] macr
 		config.tocAdditionalStrings;
 	if(!tocAdditionals.empty) foreach(ref text; tocAdditionals)
 	{
-		auto html = new Writer(config, macros, search, null, null);
+		auto html = new Writer(config, search, null, null);
 		auto writer = appender!string();
 		html.readAndWriteComment(writer, text);
 		text = writer.data;
@@ -160,7 +161,7 @@ void generateDocumentation(Writer)(ref const(Config) config, string[string] macr
 		try
 		{
 			writeDocumentation!Writer(config, database, f, search, tocItems,
-			                          macros, tocAdditionals);
+			                          tocAdditionals);
 		}
 		catch (Exception e)
 		{
@@ -182,7 +183,7 @@ void generateDocumentation(Writer)(ref const(Config) config, string[string] macr
 		File index = File(buildPath(config.outputDirectory, "index.html"), "w");
 
 		auto fileWriter = index.lockingTextWriter;
-		auto html = new Writer(config, macros, search, tocItems, tocAdditionals);
+		auto html = new Writer(config, search, tocItems, tocAdditionals);
 		html.writeHeader(fileWriter, "Index", 0);
 		const projectStr = config.projectName ~ " " ~ config.projectVersion;
 		const heading = projectStr == " " ? "Main Page" : (projectStr ~ ": Main Page");
@@ -229,9 +230,8 @@ string getCSS(string customCSS)
 }
 
 /// Creates documentation for the module at the given path
-void writeDocumentation(Writer)(ref const Config config, SymbolDatabase database, 
-	string path, File search, TocItem[] tocItems, string[string] macros,
-	string[] tocAdditionals)
+void writeDocumentation(Writer)(ref Config config, SymbolDatabase database, 
+	string path, File search, TocItem[] tocItems, string[] tocAdditionals)
 {
 	LexerConfig lexConfig;
 	lexConfig.fileName = path;
@@ -251,7 +251,7 @@ void writeDocumentation(Writer)(ref const Config config, SymbolDatabase database
 
 	TestRange[][size_t] unitTestMapping = getUnittestMap(m);
 	
-	auto htmlWriter  = new Writer(config, macros, search, tocItems, tocAdditionals);
+	auto htmlWriter  = new Writer(config, search, tocItems, tocAdditionals);
 	auto visitor = new DocVisitor!Writer(config, database, unitTestMapping, 
 	                                     fileBytes, htmlWriter);
 	visitor.visit(m);

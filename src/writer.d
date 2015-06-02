@@ -31,16 +31,18 @@ private class HTMLWriterBase(alias symbolLink)
 	 * Params:
 	 *
 	 * config         = Configuration data, including macros and the output directory.
-	 * macros         = DDoc macro definitions indexed by macro name.
+	 *                  A non-const reference is needed because libddoc wants
+	 *                  a non-const reference to macros for parsing comments, even
+	 *                  though it doesn't modify the macros.
 	 * searchIndex    = A file where the search information will be written
 	 * tocItems       = Items of the table of contents to write into each documentation file.
 	 * tocAdditionals = Additional pieces of content for the table of contents sidebar.
 	 */
-	this(ref const Config config, string[string] macros, File searchIndex,
+	this(ref Config config, File searchIndex,
 	     TocItem[] tocItems, string[] tocAdditionals)
 	{
 		this.config         = &config;
-		this.macros         = macros;
+		this.macros         = config.macros;
 		this.searchIndex    = searchIndex;
 		this.tocItems       = tocItems;
 		this.tocAdditionals = tocAdditionals;
@@ -839,10 +841,10 @@ class HTMLWriterAggregated: HTMLWriterBase!symbolLinkAggregated
 	alias writeBreadcrumbs = Super.writeBreadcrumbs;
 	alias symbolLink = symbolLinkAggregated;
 
-	this(ref const Config config, string[string] macros, File searchIndex,
+	this(ref Config config, File searchIndex,
 	     TocItem[] tocItems, string[] tocAdditionals)
 	{
-		super(config, macros, searchIndex, tocItems, tocAdditionals);
+		super(config, searchIndex, tocItems, tocAdditionals);
 	}
 
 	// No separator needed; symbols are already in divs.
@@ -1003,10 +1005,10 @@ class HTMLWriterSimple: HTMLWriterBase!symbolLinkSimple
 	alias writeBreadcrumbs = Super.writeBreadcrumbs;
 	alias symbolLink = symbolLinkSimple;
 
-	this(ref const Config config, string[string] macros, File searchIndex,
+	this(ref Config config, File searchIndex,
 	     TocItem[] tocItems, string[] tocAdditionals)
 	{
-		super(config, macros, searchIndex, tocItems, tocAdditionals);
+		super(config, searchIndex, tocItems, tocAdditionals);
 	}
 
 	/// Write a separator (e.g. between two overloads of a function)
