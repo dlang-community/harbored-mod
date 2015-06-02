@@ -513,7 +513,6 @@ private:
 /// Recursive tree of all members of a symbol.
 struct MembersTree
 {
-
 	/// Members of children of this tree node.
 	MembersTree[string] children;
 
@@ -747,11 +746,8 @@ private:
 	 */
 	string commentSummary(string comment)
 	{
-		writeln("getting commentSummary of comment '", comment, "'");
-		
 		if(comment.empty) 
 		{
-			writeln("empty comment");
 			return null; 
 		}
 
@@ -762,7 +758,6 @@ private:
 			auto app = appender!string();
 			comment.unDecorateComment(app);
 			Comment c = parseComment(app.data, cast(string[string])config.macros);
-			writeln(c.sections);
 			
 			if (c.sections.length)
 			{
@@ -772,13 +767,11 @@ private:
 		catch(RangeError e)
 		{
 			writeln("RangeError");
-			
 			// Writer.readAndWriteComment will catch this too and
 			// write an error message. Not kosher to catch Errors
-			// but unfortunately needed with libdparse ATM.
+			// but unfortunately needed with libdparse ATM (2015).
 			return null;
 		}
-		writeln("no summary");
 		return null;
 	}
 
