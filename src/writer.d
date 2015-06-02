@@ -22,6 +22,10 @@ import std.typecons;
 import symboldatabase;
 import tocbuilder: TocItem;
 
+// NOTE: as of DMD 2.066, libddoc has a bug when using flags `-O -gc -release` but not
+//       when we add `-inline` to it: words in macros are duplicated.
+//       This is because for whatever reason, `currentApp` and `zeroApp` in
+//       `ddoc.macros.collectMacroArguments()` are merged into one instance.
 
 // Only used for shared implementation, not interface (could probably use composition too)
 private class HTMLWriterBase(alias symbolLink)
