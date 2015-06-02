@@ -117,3 +117,11 @@ Options:
         cases when modules are huge enough that the parser spends too much
         memory.
         Default: 16384 (16MiB)
+
+    --max-module-list-length | -l COUNT
+        Maximum number of modules to generate module list for. If there are more than
+        max-module-list-length (non-excluded) modules, the module list on the main page
+        will not be generated.
+        Default: 256
+
+
