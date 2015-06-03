@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.12: http://docutils.sourceforge.net/" />
 <title>harbored-mod</title>
 <style type="text/css">
 
@@ -341,16 +341,14 @@ ul.auto-toc {
 <div class="document" id="harbored-mod">
 <h1 class="title">harbored-mod</h1>
 
-<p><strong>NOTE</strong>: the default output format has changed to one file per aggregate instead of one
-file per symbol. Use <cite>--format=html-simple</cite> to get the previous default output format.</p>
+<p><strong>NOTE</strong>: the default output format has been changed to one file per aggregate instead of
+one file per symbol. Use <cite>--format=html-simple</cite> to get the previous default output format.</p>
 <div class="section" id="introduction">
 <h1>Introduction</h1>
 <p>Documentation generator for <a class="reference external" href="http://dlang.org">D</a> with Markdown support, based on
 <a class="reference external" href="https://github.com/economicmodeling/harbored">harbored</a>.</p>
 <p>Harbored-mod supports both <a class="reference external" href="http://dlang.org/ddoc.html">DDoc</a> and <a class="reference external" href="http://en.wikipedia.org/wiki/Markdown">Markdown</a> in documentation comments, but DDoc takes
 precedence. This means that there are slight <a class="reference internal" href="#differences">differences</a> from standard Markdown.</p>
-<p>Note that Harbored-mod is fairly unstable at the moment and has not seen much testing.
-There may still be some conflicts between DDoc and Markdown.</p>
 </div>
 <div class="section" id="examples-of-generated-documentation">
 <h1>Examples of generated documentation</h1>
@@ -363,16 +361,39 @@ There may still be some conflicts between DDoc and Markdown.</p>
 </div>
 <div class="section" id="getting-started">
 <h1>Getting started</h1>
-<p>This assumes you are using the DMD compiler. Currently, harbored-mod uses a Makefile
-hardcoded to DMD. Eventually it will be moved to <a class="reference external" href="http://code.dlang.org">dub</a>.</p>
 <div class="note">
 <p class="first admonition-title">Note</p>
 <p class="last">There are experimental binaries for some platforms on the
 <a class="reference external" href="https://github.com/kiith-sa/harbored-mod/releases">releases</a> page.
-If you're using a binary, you can jump to step <tt class="docutils literal">4</tt>.</p>
+If you're using a binary, you can jump to <strong>Setting up</strong>.</p>
 </div>
-<ol class="arabic">
-<li><p class="first">Get harbored-mod and its dependencies:</p>
+<div class="section" id="building-with-dub">
+<h2>Building with DUB</h2>
+<p>If you have <a class="reference external" href="http://code.dlang.org">DUB</a> installed:</p>
+<ul>
+<li><p class="first">get harbored-mod:</p>
+<pre class="literal-block">
+git clone https://github.com/kiith-sa/harbored-mod.git
+</pre>
+</li>
+<li><p class="first">Go into the directory harbored-mod was cloned into:</p>
+<pre class="literal-block">
+cd harbored-mod
+</pre>
+</li>
+<li><p class="first">Compile:</p>
+<pre class="literal-block">
+dub build
+</pre>
+</li>
+</ul>
+</div>
+<div class="section" id="building-with-make">
+<h2>Building with Make</h2>
+<p>This assumes you are using the DMD compiler. Currently, harbored-mod uses a Makefile
+hardcoded to DMD. Eventually it will be moved to <a class="reference external" href="http://code.dlang.org">dub</a>.</p>
+<ul>
+<li><p class="first">get harbored-mod and its dependencies:</p>
 <pre class="literal-block">
 git clone --recursive https://github.com/kiith-sa/harbored-mod.git
 </pre>
@@ -386,11 +407,16 @@ cd harbored-mod
 <pre class="literal-block">
 make
 </pre>
-<p>This should generate a called <tt class="docutils literal">hmod</tt> in the <tt class="docutils literal">bin</tt> directory.</p>
 </li>
-<li><p class="first">Modify your <tt class="docutils literal">PATH</tt> to point to this directory or copy the binary into your project.</p>
+</ul>
+</div>
+<div class="section" id="setting-up">
+<h2>Setting up</h2>
+<p>At this point you should have a binary called <tt class="docutils literal">hmod</tt> in the <tt class="docutils literal">bin</tt> directory.</p>
+<ul>
+<li><p class="first">Modify your <tt class="docutils literal">PATH</tt> to point to the <tt class="docutils literal">bin</tt> directory or copy the binary into your project.</p>
 </li>
-<li><p class="first">From your project directory, use <tt class="docutils literal">hmod</tt>. This assumes your source code is in the
+<li><p class="first">From your project's directory, run <tt class="docutils literal">hmod</tt>. This assumes your source code is in the
 <tt class="docutils literal">./source</tt> subdirectory (as is often the case with <tt class="docutils literal">dub</tt> projects) and that the
 <tt class="docutils literal">hmod</tt> binary is in <tt class="docutils literal">PATH</tt>, prepend with <tt class="docutils literal">./</tt> if it's in the project directory).:</p>
 <pre class="literal-block">
@@ -399,16 +425,17 @@ hmod source
 <p>This will write generate documentation to the <tt class="docutils literal">./doc</tt> subdirectory. See
 <tt class="docutils literal">./doc/index.html</tt>. Note that the main page will be blank, although you should see
 a list of all modules on the left.</p>
-</li>
-</ol>
 <p>To further tweak the documentation, generate the default configuration file:</p>
 <pre class="literal-block">
 hmod -g
 </pre>
-<p>This will generate a file called <tt class="docutils literal">hmod.cfg</tt> in the current directory. Harbored-mod looks
-for this file in the directory it's running from, and if present, loads configuration
-options such as main page content, style, files to exclude from documentation generation,
-and so on. See comments in <tt class="docutils literal">hmod.cfg</tt> for more information.</p>
+<p>This will generate a file called <tt class="docutils literal">hmod.cfg</tt> in the current directory. Harbored-mod
+looks for this file in the directory it's running from, and if present, loads
+configuration options such as main page content, style, files to exclude from
+documentation generation, and so on. See comments in <tt class="docutils literal">hmod.cfg</tt> for more information.</p>
+</li>
+</ul>
+</div>
 </div>
 <div class="section" id="features">
 <h1>Features</h1>
@@ -487,9 +514,6 @@ Subheading
 </tr>
 <tr><td><tt class="docutils literal">./libdparse</tt></td>
 <td><a class="reference external" href="https://github.com/Hackerpilot/libdparse">libdparse</a> dependency.</td>
-</tr>
-<tr><td><tt class="docutils literal">man1</tt></td>
-<td>Man page.</td>
 </tr>
 <tr><td><tt class="docutils literal">./src</tt></td>
 <td>Source code.</td>
