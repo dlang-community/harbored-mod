@@ -8,7 +8,7 @@
 	"targetName": "hmod",
 	"dependencies": {
 		"libdparse": "~master",
-		"libddoc": "~>0.1.0",
+		"libddoc": "~master",
 		"dmarkdown": "~>0.2.1"
 	},
 	"stringImportPaths": ["strings"]
