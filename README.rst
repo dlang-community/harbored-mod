@@ -2,8 +2,9 @@
 harbored-mod
 ============
 
-**NOTE**: the default output format has changed to one file per aggregate instead of one 
-file per symbol. Use `--format=html-simple` to get the previous default output format.
+
+**NOTE**: the default output format has been changed to one file per aggregate instead of
+one file per symbol. Use `--format=html-simple` to get the previous default output format.
 
 ------------
 Introduction
@@ -15,10 +16,6 @@ Documentation generator for `D <http://dlang.org>`_ with Markdown support, based
 Harbored-mod supports both `DDoc <http://dlang.org/ddoc.html>`_ and `Markdown
 <http://en.wikipedia.org/wiki/Markdown>`_ in documentation comments, but DDoc takes
 precedence. This means that there are slight differences_ from standard Markdown.
-
-Note that Harbored-mod is fairly unstable at the moment and has not seen much testing.
-There may still be some conflicts between DDoc and Markdown.
-
 
 -----------------------------------
 Examples of generated documentation
@@ -33,48 +30,74 @@ Examples of generated documentation
 Getting started
 ---------------
 
+.. note:: There are experimental binaries for some platforms on the
+          `releases <https://github.com/kiith-sa/harbored-mod/releases>`_ page.
+          If you're using a binary, you can jump to **Setting up**.
+
+^^^^^^^^^^^^^^^^^
+Building with DUB
+^^^^^^^^^^^^^^^^^
+
+If you have `DUB <http://code.dlang.org>`_ installed:
+  
+* get harbored-mod::
+
+     git clone https://github.com/kiith-sa/harbored-mod.git
+
+* Go into the directory harbored-mod was cloned into::
+
+     cd harbored-mod
+
+* Compile::
+
+     dub build
+
+^^^^^^^^^^^^^^^^^^
+Building with Make
+^^^^^^^^^^^^^^^^^^
+
 This assumes you are using the DMD compiler. Currently, harbored-mod uses a Makefile
 hardcoded to DMD. Eventually it will be moved to `dub <http://code.dlang.org>`_.
 
-.. note:: There are experimental binaries for some platforms on the
-          `releases <https://github.com/kiith-sa/harbored-mod/releases>`_ page.
-          If you're using a binary, you can jump to step ``4``.
+* get harbored-mod and its dependencies::
 
-1. Get harbored-mod and its dependencies::
+     git clone --recursive https://github.com/kiith-sa/harbored-mod.git
 
-      git clone --recursive https://github.com/kiith-sa/harbored-mod.git
+* Go into the directory harbored-mod was cloned into::
 
-2. Go into the directory harbored-mod was cloned into::
+     cd harbored-mod
 
-      cd harbored-mod
+* Compile::
 
-3. Compile::
+     make
 
-      make
+^^^^^^^^^^
+Setting up
+^^^^^^^^^^
 
-   This should generate a called ``hmod`` in the ``bin`` directory.
+At this point you should have a binary called ``hmod`` in the ``bin`` directory.
 
-4. Modify your ``PATH`` to point to this directory or copy the binary into your project.
+* Modify your ``PATH`` to point to the ``bin`` directory or copy the binary into your project.
 
-5. From your project directory, use ``hmod``. This assumes your source code is in the 
-   ``./source`` subdirectory (as is often the case with ``dub`` projects) and that the 
-   ``hmod`` binary is in ``PATH``, prepend with ``./`` if it's in the project directory).::
+* From your project's directory, run ``hmod``. This assumes your source code is in the
+  ``./source`` subdirectory (as is often the case with ``dub`` projects) and that the
+  ``hmod`` binary is in ``PATH``, prepend with ``./`` if it's in the project directory).::
 
-      hmod source
+     hmod source
 
-   This will write generate documentation to the ``./doc`` subdirectory. See
-   ``./doc/index.html``. Note that the main page will be blank, although you should see
-   a list of all modules on the left.
+  This will write generate documentation to the ``./doc`` subdirectory. See
+  ``./doc/index.html``. Note that the main page will be blank, although you should see
+  a list of all modules on the left.
 
 
-To further tweak the documentation, generate the default configuration file::
+  To further tweak the documentation, generate the default configuration file::
 
-   hmod -g
+     hmod -g
 
-This will generate a file called ``hmod.cfg`` in the current directory. Harbored-mod looks 
-for this file in the directory it's running from, and if present, loads configuration 
-options such as main page content, style, files to exclude from documentation generation,
-and so on. See comments in ``hmod.cfg`` for more information.
+  This will generate a file called ``hmod.cfg`` in the current directory. Harbored-mod
+  looks for this file in the directory it's running from, and if present, loads
+  configuration options such as main page content, style, files to exclude from
+  documentation generation, and so on. See comments in ``hmod.cfg`` for more information.
 
 
 
@@ -98,7 +121,7 @@ Features
 * Generated HTML enriched by classes to be more tweakable with CSS
 * Custimizable main page, table of contents and style (CSS)
 * Can exclude modules/packages from documentation by their name (not file name)
-* Generated docs are usable without JavaScript (e.g. NoScript), JS may used for 
+* Generated docs are usable without JavaScript (e.g. NoScript), JS may used for
   optional functionality
 * **Only** generates HTML, and is unlikely to support any other formats
 
@@ -143,9 +166,8 @@ Directory        Contents
 ``./dmarkdown``  `dmarkdown <https://github.com/kiith-sa/dmarkdown>`_ dependency.
 ``./libddoc``    `libddoc <https://github.com/economicmodeling/libddoc>`_ dependency.
 ``./libdparse``  `libdparse <https://github.com/Hackerpilot/libdparse>`_ dependency.
-``man1``         Man page.
 ``./src``        Source code.
-``./strings``    Files compiled into Harbored-mod to be used in generated documentation 
+``./strings``    Files compiled into Harbored-mod to be used in generated documentation
                  (e.g. the default CSS style).
 ===============  =======================================================================
 
@@ -193,7 +215,7 @@ displayed here::
 Credits
 -------
 
-Harbored-mod is based on `harbored <https://github.com/economicmodeling/harbored>`_ by 
+Harbored-mod is based on `harbored <https://github.com/economicmodeling/harbored>`_ by
 Brian Schott, with modifications by Ferdinand Majerech aka Kiith-Sa
 kiithsacmp[AT]gmail.com.
 
