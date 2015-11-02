@@ -8,8 +8,8 @@ module visitor;
 
 import std.algorithm;
 import std.array: appender, empty, array, popBack, back, popFront, front;
-import std.d.ast;
-import std.d.lexer;
+import dparse.ast;
+import dparse.lexer;
 import std.file;
 import std.path;
 import std.stdio;
@@ -398,7 +398,7 @@ private:
 	 */
 	final void writeAttributes(R, F)(ref R dst, F formatter, const(Attribute)[] attrs)
 	{
-		import std.d.lexer: IdType, isProtection, tok;
+		import dparse.lexer: IdType, isProtection, tok;
 		IdType protection = currentProtection();
 		switch (protection)
 		{

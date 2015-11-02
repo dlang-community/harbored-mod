@@ -8,8 +8,12 @@
 /// std.allocator-compatible memory allocator.
 module allocator;
 
-public import std.allocator;
+public import std.experimental.allocator;
+public import std.experimental.allocator.building_blocks.fallback_allocator;
+public import std.experimental.allocator.gc_allocator;
+public import std.experimental.allocator.mallocator;
 import std.stdio;
+import std.exception: assumeWontThrow;
 
 
 /** Allocator used by hmod (block allocator with a GC fallback for allcs bigger than block size)
@@ -73,7 +77,7 @@ struct HmodBlockAllocator(size_t blockSize)
 	/**
 	 * Frees all memory allocated by this allocator
 	 */
-	~this() pure nothrow @trusted
+	~this() /*pure nothrow*/ @trusted
 	{
 		Node* current = root;
 		Node* previous = void;
@@ -82,7 +86,7 @@ struct HmodBlockAllocator(size_t blockSize)
 			previous = current;
 			current = current.next;
 			assert (previous == previous.memory.ptr);
-			Mallocator.it.deallocate(previous.memory);
+			Mallocator.instance.deallocate(previous.memory);
 		}
 		root = null;
 	}
@@ -92,7 +96,7 @@ struct HmodBlockAllocator(size_t blockSize)
 	 *
 	 * Returns null if bytes > blockSize.
 	 */
-	void[] allocate(size_t bytes) pure nothrow @trusted
+	void[] allocate(size_t bytes) /*pure*/ nothrow @trusted
 	out (result)
 	{
 		import std.string;
@@ -145,23 +149,24 @@ struct HmodBlockAllocator(size_t blockSize)
 
 	//TODO implement deallocate if/when libdparse uses it (needs allocator design changes)
 	/// Dummy deallocation function, to keep track of how much the user tried to deallocate.
-	void deallocate(void[] b) pure nothrow @trusted
+	bool deallocate(void[] b) pure nothrow @trusted
 	{
 		bytesAttemptedToDeallocate_ += b.length;
+		return false;
 	}
 
 	/// Was the given buffer allocated with this allocator?
-	bool owns(void[] b) const pure nothrow @trusted
+	Ternary owns(void[] b) const pure nothrow @trusted
 	{
 		for(const(Node)* current = root; current !is null; current = current.next)
 		{
 			if(b.ptr >= current.memory.ptr && 
 			   b.ptr + b.length <= current.memory.ptr + current.used)
 			{
-				return true;
+				return Ternary.yes;
 			}
 		}
-		return false;
+		return Ternary.no;
 	}
 	/**
 	 * The maximum number of bytes that can be allocated at a time with this
@@ -196,9 +201,9 @@ private:
 	/**
 	 * Allocates a new node along with its memory
 	 */
-	Node* allocateNewNode() pure nothrow const @trusted
+	Node* allocateNewNode() /*pure*/ nothrow const @trusted
 	{
-		void[] memory = Mallocator.it.allocate(blockSize);
+		void[] memory = Mallocator.instance.allocate(blockSize).assumeWontThrow;
 		Node* n = cast(Node*) memory.ptr;
 		n.used = roundUpToMultipleOf(Node.sizeof, platformAlignment);
 		n.memory = memory;

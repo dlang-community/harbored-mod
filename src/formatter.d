@@ -6,9 +6,9 @@
  */
 module formatter;
 
-import std.d.ast;
-import std.d.lexer;
-import std.d.formatter;
+import dparse.ast;
+import dparse.lexer;
+import dparse.formatter;
 import std.stdio;
 
 

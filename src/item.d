@@ -9,7 +9,7 @@ module item;
 import formatter;
 import std.algorithm;
 import std.array: appender, empty, array;
-import std.d.ast;
+import dparse.ast;
 import std.string: format;
 
 

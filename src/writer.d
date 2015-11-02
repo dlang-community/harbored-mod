@@ -13,7 +13,7 @@ import formatter;
 import std.algorithm;
 import std.array: appender, empty, array, back, popBack;
 import std.conv: to;
-import std.d.ast;
+import dparse.ast;
 import std.file: exists, mkdirRecurse;
 import std.path: buildPath;
 import std.stdio;
@@ -463,7 +463,7 @@ protected:
 		(ref R dst, string comment, Comment[] prevComments,
 		 const FunctionBody functionBody, Tuple!(string, string)[] testDocs)
 	{
-		import std.d.lexer : unDecorateComment;
+		import dparse.lexer : unDecorateComment;
 		auto app = appender!string();
 		comment.unDecorateComment(app);
 		Comment c = parseComment(app.data, macros);

@@ -8,9 +8,9 @@ module symboldatabase;
 
 import std.algorithm;
 import std.array: popBack, back, empty, popFront;
-import std.d.ast;
-import std.d.lexer;
-import std.d.parser;
+import dparse.ast;
+import dparse.lexer;
+import dparse.parser;
 import std.exception: enforce;
 import std.range;
 import std.stdio;
