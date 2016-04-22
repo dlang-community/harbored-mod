@@ -465,7 +465,12 @@ protected:
 	{
 		import dparse.lexer : unDecorateComment;
 		auto app = appender!string();
-		comment.unDecorateComment(app);
+
+		if (comment.length >= 3)
+		{
+			comment.unDecorateComment(app);
+		}
+
 		Comment c = parseComment(app.data, macros);
 
 		immutable ditto = c.isDitto;
@@ -532,7 +537,13 @@ protected:
 			{
 				dst.put("<h2>Example</h2>\n");
 				auto docApp = appender!string();
-				doc[1].unDecorateComment(docApp);
+
+				// Unittest doc can be empty, so nothing to undecorate
+				if (doc[1].length >= 3)
+				{
+					doc[1].unDecorateComment(docApp);
+				}
+
 				Comment dc = parseComment(docApp.data, macros);
 				writeComment(dst, dc);
 				writeCodeBlock(dst, { dst.put(processCode(outdent(doc[0]))); } );
