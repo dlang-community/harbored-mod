@@ -244,10 +244,11 @@ void writeDocumentation(Writer)(ref Config config, SymbolDatabase database,
 	f.rawRead(fileBytes);
 	StringCache cache = StringCache(1024 * 4);
 	auto tokens = getTokensForParser(fileBytes, lexConfig, &cache).array;
-	import std.typecons: scoped;
-	auto allocator = scoped!(CAllocatorImpl!(Allocator));
 
-	Module m = parseModule(tokens, path, allocator, &doNothing);
+	import dparse.rollback_allocator;
+	RollbackAllocator allocator;
+
+	Module m = parseModule(tokens, path, &allocator, &doNothing);
 
 	TestRange[][size_t] unitTestMapping = getUnittestMap(m);
 	
@@ -255,12 +256,6 @@ void writeDocumentation(Writer)(ref Config config, SymbolDatabase database,
 	auto visitor = new DocVisitor!Writer(config, database, unitTestMapping, 
 	                                     fileBytes, htmlWriter);
 	visitor.visit(m);
-
-	if(allocator.impl.primary.bytesHighTide > 16 * 1024 * 1024)
-	{
-		writeln("More than 16MiB allocated by parser. Stats:");
-		allocator.impl.primary.writeStats();
-	}
 }
 
 /** Get .d/.di files to process.
