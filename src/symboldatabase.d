@@ -749,7 +749,12 @@ private:
 		{
 			import ddoc.comments;
 			auto app = appender!string();
-			comment.unDecorateComment(app);
+
+			if (comment.length >= 3)
+			{
+				comment.unDecorateComment(app);
+			}
+
 			Comment c = parseComment(app.data, cast(string[string])config.macros);
 			
 			if (c.sections.length)
