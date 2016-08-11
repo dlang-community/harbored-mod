@@ -1,8 +1,9 @@
 {
 	"fileVersion": 1,
 	"versions": {
-		"libdparse": "~master",
-		"libddoc": "~master",
-		"dmarkdown": "0.2.1"
+		"dmarkdown": "0.2.2",
+		"experimental_allocator": "2.70.0-b1",
+		"libddoc": "0.2.0",
+		"libdparse": "0.7.0-alpha9"
 	}
 }
