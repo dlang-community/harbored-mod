@@ -16,6 +16,7 @@ import std.file;
 import std.getopt;
 import std.path;
 import std.stdio;
+import ddoc.lexer;
 
 import allocator;
 import config;
@@ -163,6 +164,11 @@ void generateDocumentation(Writer)(ref Config config)
 			writeDocumentation!Writer(config, database, f, search, tocItems,
 			                          tocAdditionals);
 		}
+        catch (DdocParseException e)
+        {
+			stderr.writeln("Could not generate documentation for ", f, ": ", e.msg,
+                    ": ", e.snippet);
+        }
 		catch (Exception e)
 		{
 			stderr.writeln("Could not generate documentation for ", f, ": ", e.msg);
