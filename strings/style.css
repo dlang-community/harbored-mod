@@ -549,7 +549,7 @@ div.error {
 }
 
 /* Markdown inline code and $(D code) */
-code.prettyprint, .d_inlinecode {
+code.prettyprint, .d_inline_code {
 	font-family: monospace;
 	color: #333;
 	background-color:rgba(0,0,0,0.04);
