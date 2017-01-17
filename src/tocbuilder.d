@@ -8,25 +8,24 @@ import std.array;
 
 struct TocItem
 {
-private:
-	string name;
-	string url;
-	TocItem[] items;
+	private string name;
+	private string url;
+	private TocItem[] items;
 
 	/// Computed by preCache() below ///
 
 	/// Item name split by '.' This is an optimization (redundant with e.g. name.splitter)
-	string[] nameParts;
+	private string[] nameParts;
 	/// Is this a package item?
-	bool isPackage;
+	private bool isPackage;
 	/// JS for opening/closing packages.
-	string spanJS;
+	private string spanJS;
 
 	/// HTML content of the list item (can be wrapped in any <li> or <span>).
-	string listItem;
+	private string listItem;
 
 	/// Precompute any values that will be frequently reused.
-	void preCache()
+	private void preCache()
 	{
 		import std.string: split;
 		nameParts = name.split(".");
@@ -57,7 +56,7 @@ private:
 	 * moduleName = Name of the module/package in the documentation page of which
 	 *              we're writing this TOC, if we're writing module/package documentation.
 	 */
-	void write(R)(ref R dst, string moduleName = "")
+	public void write(R)(ref R dst, string moduleName = "")
 	{
 		// Is this TOC item the module/package the current documentation page
 		// documents?

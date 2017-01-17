@@ -733,7 +733,7 @@ protected:
 	 * category = Category of the items, used in heading, E.g. "Functions" or
 	 *            "Variables" or "Structs".
 	 */
-	void writeItems(R)(ref R dst, Item[] items, string category)
+	public void writeItems(R)(ref R dst, Item[] items, string category)
 	{
 		dst.put("<h2>%s</h2>".format(category));
 		dst.put(`<table>`);
@@ -743,7 +743,7 @@ protected:
 
 	/** Formats an AST node to a string.
 	 */
-	string formatNode(T)(const T t)
+	public string formatNode(T)(const T t)
 	{
 		auto writer = appender!string();
 		auto formatter = newFormatter(writer);
