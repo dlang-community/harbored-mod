@@ -412,7 +412,7 @@ class SymbolDatabase
 					{
 						currentSymbol = moduleName in modules;
 						assert(currentSymbol !is null,
-						       "A module that's in moduleTree "
+						       "A module that's in moduleTree " ~
 						       "must be in modules too");
 					}
 					currentSymbol = symbolStack.front in currentSymbol.children;

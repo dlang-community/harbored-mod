@@ -184,11 +184,11 @@ struct HmodBlockAllocator(size_t blockSize)
 	/// Write allocation statistics to standard output.
 	void writeStats()
 	{
-		writefln("allocated: %.2fMiB\n"
-		         "deallocate attempts: %.2fMiB\n"
-		         "high tide: %.2f\n"
-		         "allocated + slack: %.2f\n"
-		         "given up (bytes): %.2f\n" 
+		writefln("allocated: %.2fMiB\n" ~
+		         "deallocate attempts: %.2fMiB\n" ~
+		         "high tide: %.2f\n" ~
+		         "allocated + slack: %.2f\n" ~
+		         "given up (bytes): %.2f\n"  ~
 		         "given up (allocs): %s\n",
 		         bytesAllocated / 1000_000.0,
 		         bytesAttemptedToDeallocate_ / 1000_000.0,

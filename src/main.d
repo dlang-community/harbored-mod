@@ -286,7 +286,7 @@ string[] getFilesToProcess(ref const Config config)
 		const size = path.getSize();
 		if(size > config.maxFileSizeK * 1024)
 		{
-			writefln("WARNING: '%s' (%skiB) bigger than max file size (%skiB), "
+			writefln("WARNING: '%s' (%skiB) bigger than max file size (%skiB), " ~
 			         "ignoring", path, size / 1024, config.maxFileSizeK);
 			return;
 		}

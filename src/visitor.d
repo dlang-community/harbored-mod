@@ -493,7 +493,7 @@ private:
 			writer.writeCodeBlock(fileWriter,
 			{
 				assert(attributeStack.length > 0,
-				       "Attributes stack must not be empty when writing "
+				       "Attributes stack must not be empty when writing " ~
 				       "function attributes");
 				// Attributes like public, etc.
 				writeAttributes(fileWriter, formatter, attrs);
