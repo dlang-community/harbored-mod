@@ -113,6 +113,8 @@ int main(string[] args)
 
 string[string] readMacros(const string[] macroFiles)
 {
+	static import ddoc.macros;
+
 	string[string] rVal;
 	foreach (k, v; ddoc.macros.DEFAULT_MACROS)
 		rVal[k] = v;
