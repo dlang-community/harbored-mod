@@ -2,6 +2,8 @@
 harbored-mod
 ============
 
+.. image:: https://travis-ci.org/sociomantic-tsunami/harbored-mod.svg?branch=master
+    :target: https://travis-ci.org/sociomantic-tsunami/harbored-mod
 
 **NOTE**: the default output format has been changed to one file per aggregate instead of
 one file per symbol. Use `--format=html-simple` to get the previous default output format.
