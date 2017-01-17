@@ -14,6 +14,7 @@ public import std.experimental.allocator.gc_allocator;
 public import std.experimental.allocator.mallocator;
 import std.stdio;
 import std.exception: assumeWontThrow;
+import std.typecons: Ternary;
 
 
 /** Allocator used by hmod (block allocator with a GC fallback for allcs bigger than block size)
