@@ -52,6 +52,7 @@ class DocVisitor(Writer) : ASTVisitor
 	override void visit(const Module mod)
 	{
 		import std.conv : to;
+		import std.range: join;
 		assert(mod.moduleDeclaration !is null, "DataGatherVisitor should have caught this");
 		pushAttributes();
 		stack = cast(string[]) mod.moduleDeclaration.moduleName.identifiers.map!(a => a.text).array;
