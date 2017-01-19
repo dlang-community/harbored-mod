@@ -2,8 +2,8 @@
 
 SRC:=src/*.d\
 	libddoc/src/ddoc/*.d\
-	libdparse/src/std/*.d\
-	libdparse/src/std/d/*.d\
+	libdparse/src/dparse/*.d\
+	libdparse/src/std/experimental/*.d\
 	dmarkdown/source/dmarkdown/*.d
 
 IMPORTS:=-Ilibdparse/src\
