@@ -23,7 +23,7 @@ precedence. This means that there are slight differences_ from standard Markdown
 Examples of generated documentation
 -----------------------------------
 
-* Iz: The [index](http://bbasile.github.io/iz/) page, an [interface](http://bbasile.github.io/iz/iz/properties/PropertyPublisher.html), a [templatized](http://bbasile.github.io/iz/iz/sugar.html#deepIterate) function.
+* Iz: The `index <http://bbasile.github.io/iz/>`_ page, an `interface <http://bbasile.github.io/iz/iz/properties/PropertyPublisher.html>`_, a `templatized <http://bbasile.github.io/iz/iz/sugar.html#deepIterate>`_ function.
 * (Make a PR to show your nice harbored-mod example here)
 
 ---------------
