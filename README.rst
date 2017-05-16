@@ -2,8 +2,8 @@
 harbored-mod
 ============
 
-.. image:: https://travis-ci.org/sociomantic-tsunami/harbored-mod.svg?branch=master
-    :target: https://travis-ci.org/sociomantic-tsunami/harbored-mod
+.. image:: https://travis-ci.org/dlang-community/harbored-mod.svg?branch=master
+    :target: https://travis-ci.org/dlang-community/harbored-mod
 
 **NOTE**: the default output format has been changed to one file per aggregate instead of
 one file per symbol. Use `--format=html-simple` to get the previous default output format.
@@ -23,17 +23,15 @@ precedence. This means that there are slight differences_ from standard Markdown
 Examples of generated documentation
 -----------------------------------
 
-* `Public imports in a package.d <http://defenestrate.eu/docs/tharsis-core/api/tharsis/entity.html>`_
-* `Class with a template parameter, member functions and aliases <http://defenestrate.eu/docs/tharsis-core/api/tharsis/entity/entitymanager/EntityManager.html>`_
-* `Simple DDoc See_Also: section <http://defenestrate.eu/docs/tharsis-core/api/tharsis/entity/componenttypeinfo/ImmutableRawComponent.html>`_
-* `Note: DDoc section with some markdown <http://defenestrate.eu/docs/tharsis-core/api/tharsis/entity/processtypeinfo.html#prioritizeProcessOverloads>`_ (**bold**, \`code\`, *italic*)
+* Iz: The [index](http://bbasile.github.io/iz/) page, an [interface](http://bbasile.github.io/iz/iz/properties/PropertyPublisher.html), a [templatized](http://bbasile.github.io/iz/iz/sugar.html#deepIterate) function.
+* (Make a PR to show your nice harbored-mod example here)
 
 ---------------
 Getting started
 ---------------
 
 .. note:: There are experimental binaries for some platforms on the
-          `releases <https://github.com/kiith-sa/harbored-mod/releases>`_ page.
+          `releases <https://github.com/dlang-community/harbored-mod/releases>`_ page.
           If you're using a binary, you can jump to **Setting up**.
 
 ^^^^^^^^^^^^^^^^^
@@ -44,7 +42,7 @@ If you have `DUB <http://code.dlang.org>`_ installed:
   
 * get harbored-mod::
 
-     git clone https://github.com/kiith-sa/harbored-mod.git
+     git clone https://github.com/dlang-community/harbored-mod.git
 
 * Go into the directory harbored-mod was cloned into::
 
@@ -63,7 +61,7 @@ hardcoded to DMD. Eventually it will be moved to `dub <http://code.dlang.org>`_.
 
 * get harbored-mod and its dependencies::
 
-     git clone --recursive https://github.com/kiith-sa/harbored-mod.git
+     git clone --recursive https://github.com/dlang-community/harbored-mod.git
 
 * Go into the directory harbored-mod was cloned into::
 
@@ -110,10 +108,7 @@ Features
 * Supports DDoc **and** (most, see differences_) Markdown syntax
 * Sensible defaults (get decent documentation without tweaking any settings)
 * Automatic cross-referencing in code blocks and ``inline code``
-* Very fast; it takes ``0.11s`` to generate API documentation
-  `documentation <http://defenestrate.eu/docs/tharsis-core/api/index.html>`_ of
-  `tharsis-core <https://github.com/kiith-sa/tharsis-core>`_ on a 3.4GHz Core
-  i5 (Ivy Bridge).
+* Very fast
 * All command-line options can be set in a config file (``hmod.cfg``) so just ``hmod`` is
   enough to generate documentation
 * Generates one file per module/``class``/``struct``/``enum``/etc. by default, as opposed
