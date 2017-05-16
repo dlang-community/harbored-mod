@@ -412,7 +412,7 @@ class SymbolDatabase
 					{
 						currentSymbol = moduleName in modules;
 						assert(currentSymbol !is null,
-						       "A module that's in moduleTree "
+						       "A module that's in moduleTree " ~
 						       "must be in modules too");
 					}
 					currentSymbol = symbolStack.front in currentSymbol.children;
@@ -696,17 +696,21 @@ class DataGatherVisitor(Writer) : ASTVisitor
 			MembersTree* members = pushSymbol(dec.name.text, SymbolType.Variable);
 			scope(exit) popSymbol();
 		}
-		if (vd.comment !is null && vd.autoDeclaration !is null) foreach (ident; vd.autoDeclaration.identifiers)
-		{
-			MembersTree* members = pushSymbol(ident.text, SymbolType.Variable);
-			scope(exit) popSymbol();
+		if (vd.comment !is null && vd.autoDeclaration !is null)
+        {
+            foreach (part; vd.autoDeclaration.parts) with (part)
+            {
+                MembersTree* members = pushSymbol(identifier.text,
+                        SymbolType.Variable);
+                scope(exit) popSymbol();
 
-			string[] storageClasses;
-			foreach(stor; vd.storageClasses)
-			{
-				storageClasses ~= str(stor.token.type);
-			}
-		}
+                string[] storageClasses;
+                foreach(stor; vd.storageClasses)
+                {
+                    storageClasses ~= str(stor.token.type);
+                }
+            }
+        }
 	}
 
 	override void visit(const Constructor cons)

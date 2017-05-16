@@ -14,6 +14,7 @@ public import std.experimental.allocator.gc_allocator;
 public import std.experimental.allocator.mallocator;
 import std.stdio;
 import std.exception: assumeWontThrow;
+import std.typecons: Ternary;
 
 
 /** Allocator used by hmod (block allocator with a GC fallback for allcs bigger than block size)
@@ -183,11 +184,11 @@ struct HmodBlockAllocator(size_t blockSize)
 	/// Write allocation statistics to standard output.
 	void writeStats()
 	{
-		writefln("allocated: %.2fMiB\n"
-		         "deallocate attempts: %.2fMiB\n"
-		         "high tide: %.2f\n"
-		         "allocated + slack: %.2f\n"
-		         "given up (bytes): %.2f\n" 
+		writefln("allocated: %.2fMiB\n" ~
+		         "deallocate attempts: %.2fMiB\n" ~
+		         "high tide: %.2f\n" ~
+		         "allocated + slack: %.2f\n" ~
+		         "given up (bytes): %.2f\n"  ~
 		         "given up (allocs): %s\n",
 		         bytesAllocated / 1000_000.0,
 		         bytesAttemptedToDeallocate_ / 1000_000.0,

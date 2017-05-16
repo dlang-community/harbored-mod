@@ -52,6 +52,7 @@ class DocVisitor(Writer) : ASTVisitor
 	override void visit(const Module mod)
 	{
 		import std.conv : to;
+		import std.range: join;
 		assert(mod.moduleDeclaration !is null, "DataGatherVisitor should have caught this");
 		pushAttributes();
 		stack = cast(string[]) mod.moduleDeclaration.moduleName.identifiers.map!(a => a.text).array;
@@ -251,46 +252,49 @@ class DocVisitor(Writer) : ASTVisitor
 
 			memberStack[$ - 2].variables ~= Item(itemURL, dec.name.text, summary, typeStr);
 		}
-		if (vd.comment !is null && vd.autoDeclaration !is null) foreach (ident; vd.autoDeclaration.identifiers)
-		{
-			string itemURL;
-			auto fileWriter = pushSymbol(ident.text, first, itemURL);
-			scope(exit) popSymbol(fileWriter);
+		if (vd.comment !is null && vd.autoDeclaration !is null)
+        {
+            foreach (part; vd.autoDeclaration.parts) with (part)
+            {
+                string itemURL;
+                auto fileWriter = pushSymbol(identifier.text, first, itemURL);
+                scope(exit) popSymbol(fileWriter);
 
-			// TODO this was hastily updated to get harbored-mod to compile
-			// after a libdparse update. Revisit and validate/fix any errors.
-			string[] storageClasses;
-			foreach(stor; vd.storageClasses)
-			{
-				storageClasses ~= str(stor.token.type);
-			}
+                // TODO this was hastily updated to get harbored-mod to compile
+                // after a libdparse update. Revisit and validate/fix any errors.
+                string[] storageClasses;
+                foreach(stor; vd.storageClasses)
+                {
+                    storageClasses ~= str(stor.token.type);
+                }
 
-			string typeStr = storageClasses.canFind("enum") ? null : "auto";
-			string summary;
-			writer.writeSymbolDescription(fileWriter,
-			{
-				writeVariableHeader(fileWriter, typeStr, ident.text);
-				summary = writer.readAndWriteComment(fileWriter, vd.comment, prevComments);
-			});
-			auto i = Item(itemURL, ident.text, summary, typeStr);
-			if (storageClasses.canFind("enum"))
-				memberStack[$ - 2].enums ~= i;
-			else
-				memberStack[$ - 2].variables ~= i;
+                string typeStr = storageClasses.canFind("enum") ? null : "auto";
+                string summary;
+                writer.writeSymbolDescription(fileWriter,
+                {
+                    writeVariableHeader(fileWriter, typeStr, identifier.text);
+                    summary = writer.readAndWriteComment(fileWriter, vd.comment, prevComments);
+                });
+                auto i = Item(itemURL, identifier.text, summary, typeStr);
+                if (storageClasses.canFind("enum"))
+                    memberStack[$ - 2].enums ~= i;
+                else
+                    memberStack[$ - 2].variables ~= i;
 
-			// string storageClass;
-			// foreach (attr; vd.attributes)
-			// {
-			// 	if (attr.storageClass !is null)
-			// 		storageClass = str(attr.storageClass.token.type);
-			// }
-			// auto i = Item(name, ident.text,
-			// 	summary, storageClass == "enum" ? null : "auto");
-			// if (storageClass == "enum")
-			// 	memberStack[$ - 2].enums ~= i;
-			// else
-			// 	memberStack[$ - 2].variables ~= i;
-		}
+                // string storageClass;
+                // foreach (attr; vd.attributes)
+                // {
+                // 	if (attr.storageClass !is null)
+                // 		storageClass = str(attr.storageClass.token.type);
+                // }
+                // auto i = Item(name, ident.text,
+                // 	summary, storageClass == "enum" ? null : "auto");
+                // if (storageClass == "enum")
+                // 	memberStack[$ - 2].enums ~= i;
+                // else
+                // 	memberStack[$ - 2].variables ~= i;
+            }
+        }
 	}
 
 	override void visit(const StructBody sb)
@@ -492,7 +496,7 @@ private:
 			writer.writeCodeBlock(fileWriter,
 			{
 				assert(attributeStack.length > 0,
-				       "Attributes stack must not be empty when writing "
+				       "Attributes stack must not be empty when writing " ~
 				       "function attributes");
 				// Attributes like public, etc.
 				writeAttributes(fileWriter, formatter, attrs);

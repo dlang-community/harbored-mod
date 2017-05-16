@@ -324,7 +324,7 @@ private class HTMLWriterBase(alias symbolLink)
 		catch(RangeError e)
 		{
 			writeln("failed to process comment: ", e);
-			dst.put("<div class='error'><h3>failed to process comment</h3>\n"
+			dst.put("<div class='error'><h3>failed to process comment</h3>\n" ~
 			        "\n<pre>%s</pre>\n<h3>error</h3>\n<pre>%s</pre></div>"
 			        .format(comment, e));
 			return null;
@@ -733,7 +733,7 @@ protected:
 	 * category = Category of the items, used in heading, E.g. "Functions" or
 	 *            "Variables" or "Structs".
 	 */
-	void writeItems(R)(ref R dst, Item[] items, string category)
+	public void writeItems(R)(ref R dst, Item[] items, string category)
 	{
 		dst.put("<h2>%s</h2>".format(category));
 		dst.put(`<table>`);
@@ -743,7 +743,7 @@ protected:
 
 	/** Formats an AST node to a string.
 	 */
-	string formatNode(T)(const T t)
+	public string formatNode(T)(const T t)
 	{
 		auto writer = appender!string();
 		auto formatter = newFormatter(writer);
@@ -933,7 +933,7 @@ class HTMLWriterAggregated: HTMLWriterBase!symbolLinkAggregated
 		if(!isAggregate)
 		{
 			assert(deepestAggregateLevel != size_t.max,
-			       "A non-aggregate with no aggregate parent; maybe modules "
+			       "A non-aggregate with no aggregate parent; maybe modules " ~
 			       "are not considered aggregates? (we can't handle that case)");
 
 			// Write into the file for the deepest aggregate parent (+1 is
