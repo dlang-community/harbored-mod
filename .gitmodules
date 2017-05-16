@@ -1,6 +1,6 @@
 [submodule "libdparse"]
 	path = libdparse
-	url = https://github.com/Hackerpilot/libdparse.git
+	url = https://github.com/dlang-community/libdparse.git
 	branch = master
 [submodule "libddoc"]
 	path = libddoc
