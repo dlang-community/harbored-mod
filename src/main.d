@@ -253,10 +253,11 @@ void writeDocumentation(Writer)(ref Config config, SymbolDatabase database,
 	StringCache cache = StringCache(1024 * 4);
 	auto tokens = getTokensForParser(fileBytes, lexConfig, &cache).array;
 
+	import std.functional : toDelegate;
 	import dparse.rollback_allocator;
 	RollbackAllocator allocator;
 
-	Module m = parseModule(tokens, path, &allocator, &doNothing);
+	Module m = parseModule(tokens, path, &allocator, toDelegate(&doNothing));
 
 	TestRange[][size_t] unitTestMapping = getUnittestMap(m);
 	
