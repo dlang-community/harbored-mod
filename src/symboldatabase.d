@@ -565,9 +565,10 @@ void gatherModuleData(Writer)
 	auto tokens = getTokensForParser(fileBytes, lexConfig, &database.cache).array;
 	import main: doNothing;
 	import dparse.rollback_allocator;
+	import std.functional : toDelegate;
 
 	RollbackAllocator allocator;
-	Module m = parseModule(tokens, modulePath, &allocator, &doNothing);
+	Module m = parseModule(tokens, modulePath, &allocator, toDelegate(&doNothing));
 
 	// Gather data.
 	auto visitor = new DataGatherVisitor!Writer(config, database, writer, modulePath);
