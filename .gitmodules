@@ -9,3 +9,6 @@
 [submodule "dmarkdown"]
 	path = dmarkdown
 	url = https://github.com/kiith-sa/dmarkdown.git
+[submodule "makd"]
+	path = makd
+	url = https://github.com/sociomantic-tsunami/makd.git
