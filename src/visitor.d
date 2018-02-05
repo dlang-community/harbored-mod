@@ -180,7 +180,8 @@ class DocVisitor(Writer) : ASTVisitor
 		if (ad.comment is null)
 			return;
 		bool first;
-		if (ad.identifierList !is null) foreach (name; ad.identifierList.identifiers)
+		if (ad.declaratorIdentifierList !is null)
+			foreach (name; ad.declaratorIdentifierList.identifiers)
 		{
 			string itemURL;
 			auto fileWriter = pushSymbol(name.text, first, itemURL);

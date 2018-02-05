@@ -676,7 +676,8 @@ class DataGatherVisitor(Writer) : ASTVisitor
 		if (ad.comment is null)
 			return;
 
-		if (ad.identifierList !is null) foreach (name; ad.identifierList.identifiers)
+		if (ad.declaratorIdentifierList !is null)
+			foreach (name; ad.declaratorIdentifierList.identifiers)
 		{
 			MembersTree* members = pushSymbol(name.text, SymbolType.Alias);
 			scope(exit) popSymbol();
