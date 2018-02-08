@@ -11,7 +11,7 @@ IMPORTS:=-Ilibdparse/src\
 	-Idmarkdown/source\
 	-Jstrings
 
-FLAGS:=-O -gc -release -inline # keep -inline; not having it triggers an optimizer bug as pf 2.066
+FLAGS:=-O -g -release -inline # keep -inline; not having it triggers an optimizer bug as pf 2.066
 
 all: hmod pkg
 

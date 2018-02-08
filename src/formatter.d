@@ -101,17 +101,17 @@ class HarboredFormatter(Sink) : Formatter!Sink
         Type type;
         **/
 
-        if (type2.symbol !is null)
+        if (type2.typeIdentifierPart !is null)
         {
-            format(type2.symbol);
+            format(type2.typeIdentifierPart);
         }
         else if (type2.typeofExpression !is null)
         {
             format(type2.typeofExpression);
-            if (type2.identifierOrTemplateChain)
+            if (type2.typeIdentifierPart)
             {
                 put(".");
-                format(type2.identifierOrTemplateChain);
+                format(type2.typeIdentifierPart);
             }
             return;
         }
