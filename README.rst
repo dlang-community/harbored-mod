@@ -19,13 +19,6 @@ Harbored-mod supports both `DDoc <http://dlang.org/ddoc.html>`_ and `Markdown
 <http://en.wikipedia.org/wiki/Markdown>`_ in documentation comments, but DDoc takes
 precedence. This means that there are slight differences_ from standard Markdown.
 
------------------------------------
-Examples of generated documentation
------------------------------------
-
-* Iz: The `index <http://bbasile.github.io/iz/>`_ page, an `interface <http://bbasile.github.io/iz/iz/properties/PropertyPublisher.html>`_, a `templatized <http://bbasile.github.io/iz/iz/sugar.html#deepIterate>`_ function.
-* (Make a PR to show your nice harbored-mod example here)
-
 ---------------
 Getting started
 ---------------
