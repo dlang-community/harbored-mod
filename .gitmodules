@@ -12,3 +12,6 @@
 [submodule "makd"]
 	path = makd
 	url = https://github.com/sociomantic-tsunami/makd.git
+[submodule "stdx-allocator"]
+	path = stdx-allocator
+	url = https://github.com/dlang-community/stdx-allocator.git

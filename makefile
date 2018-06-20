@@ -4,11 +4,13 @@ SRC:=src/*.d\
 	libddoc/src/ddoc/*.d\
 	libdparse/src/dparse/*.d\
 	libdparse/src/std/experimental/*.d\
-	dmarkdown/source/dmarkdown/*.d
+	dmarkdown/source/dmarkdown/*.d\
+	stdx-allocator/source/stdx/*.d
 
 IMPORTS:=-Ilibdparse/src\
 	-Ilibddoc/src\
 	-Idmarkdown/source\
+	-Istdx-allocator/source\
 	-Jstrings
 
 FLAGS:=-O -g -release -inline # keep -inline; not having it triggers an optimizer bug as pf 2.066
