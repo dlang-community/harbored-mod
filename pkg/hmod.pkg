@@ -13,5 +13,5 @@ OPTS.update(
 
 ARGS.extend(FUN.mapfiles(hmod_bindir, "/usr/bin", "hmod"))
 ARGS.extend(
-    ["README.rst=/usr/share/doc/hmod/README.rst"]
+    ["README.md=/usr/share/doc/hmod/README.md"]
 )
