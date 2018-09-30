@@ -1,6 +1,6 @@
 language: d
 d:
-  - dmd-nightly
+  # - dmd-nightly
   - dmd
   - ldc
 sudo: false
