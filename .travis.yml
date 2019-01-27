@@ -1,8 +1,8 @@
 language: d
 d:
-  # - dmd-nightly
   - dmd
   - ldc
 sudo: false
 script:
     - dub build
+    - dub test
