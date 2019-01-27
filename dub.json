@@ -7,9 +7,9 @@
 	"targetPath": "bin",
 	"targetName": "hmod",
 	"dependencies": {
-		"libdparse": "~>0.8.0-alpha.3",
-		"libddoc": "~>0.3.0-beta.1",
-		"dmarkdown": "~>0.2.2"
+		"libdparse": "~>0.11.1",
+		"libddoc": "~>0.6.0",
+		"dmarkdown": "~>0.2.3",
 	},
 	"stringImportPaths": ["strings"]
 }

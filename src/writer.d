@@ -565,11 +565,16 @@ protected:
 			writeSection(dst, { put(comment.sections[i].content); });
 		}
 
-		if (functionBody !is null)
+		if (functionBody) with (functionBody)
 		{
-			writeContracts(dst, functionBody.inStatement, functionBody.outStatement);
-		}
+			const(FunctionContract)[] contracts = missingFunctionBody
+				? missingFunctionBody.functionContracts
+				: specifiedFunctionBody ? specifiedFunctionBody.functionContracts
+				: null;
 
+			if (contracts)
+				writeContracts(dst,contracts);
+		}
 
 		const seealsoNames = ["See_also", "See_Also", "See also", "See Also"];
 		foreach (section; comment.sections[i .. $])
@@ -632,11 +637,11 @@ protected:
 		}
 	}
 
-	final void writeContracts(R)(ref R dst, const InStatement inStatement,
-		const OutStatement outStatement)
+	final void writeContracts(R)(ref R dst, const(FunctionContract)[] contracts)
 	{
-		if (inStatement is null && outStatement is null)
+		if (!contracts.length)
 			return;
+
 		writeSection(dst,
 		{
 			dst.put(`<h2>Contracts</h2>`);
@@ -644,13 +649,12 @@ protected:
 			{
 				auto formatter = newFormatter(dst);
 				scope(exit) formatter.sink = R.init;
-				if (inStatement !is null)
+				foreach (i, const c; contracts)
 				{
-					formatter.format(inStatement);
-					if (outStatement !is null) { dst.put("\n"); }
+					formatter.format(c);
+					if (c.inOutStatement && i != contracts.length -1)
+						dst.put("\n");
 				}
-				if (outStatement !is null)
-					formatter.format(outStatement);
 			});
 		});
 	}
