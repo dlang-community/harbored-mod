@@ -21,14 +21,14 @@ import config;
 import item;
 
 
-/** Gather data about modules to document into a SymbolDatabase and return the database.
+/**
+ * Gather data about modules to document into a SymbolDatabase and return the database.
  *
  * Params:
- *
- * config = harbored-mod configuration.
- * writer = Writer (e.g. HTMLWriter), used to determine links for symbols (as Writer
+ *  config = harbored-mod configuration.
+ *  writer = Writer (e.g. HTMLWriter), used to determine links for symbols (as Writer
  *          decides where to put symbols).
- * files  = Filenames of all modules to document.
+ *  files  = Filenames of all modules to document.
  *
  * Returns: SymbolDatabase with collected data.
  */
@@ -45,6 +45,8 @@ SymbolDatabase gatherData(Writer)(ref const(Config) config, Writer writer, strin
 
 	return database;
 }
+
+///
 class SymbolDatabase
 {
 	/// Names of modules to document.
@@ -78,8 +80,9 @@ class SymbolDatabase
 
 	//TODO if all the AAs are too slow, try RedBlackTree before completely overhauling
 
-	/** Get a link to documentation of symbol specified by word (if word is a symbol).
-	 *
+	/**
+	 * Get a link to documentation of symbol specified by word (if word is a symbol).
+     *
 	 * Searching for a symbol matching to word is done in 3 stages:
 	 * 1. Assume word starts by a module name (with or without parent packages of the
 	 *    module), look for matching modules, and if any, try to find the symbol there.

@@ -13,6 +13,16 @@ body {
 	padding: 0;
 }
 
+a:link {
+	color: #B03931;
+}
+a:visited {
+	color: #B03931;
+}
+a:hover {
+	color: #742620;
+}
+
 div.main {
 	overflow: hidden;
 	background-color: #F8F8F8;
@@ -24,7 +34,7 @@ div.main {
 
 div.breadcrumbs {
 	color: white;
-	background-color: #333;
+	background-color: #943029;
 	padding: 1.0em 0.5em 0.0em 0.5em;
 	left: 0;
 	box-sizing: border-box;
@@ -42,7 +52,7 @@ div.breadcrumbs a {
 }
 
 div.breadcrumbs span.highlight, div.breadcrumbs span a {
-	color: #DAAF07;
+	color: #E0E0E0;
 }
 
 div.breadcrumbs input {
@@ -95,10 +105,10 @@ div.breadcrumbs input {
 /* anchors need to compensate for the fixed-pos breadcrumbs */
 a.anchor
 {
-    display: block;
-    position: relative;
-    top: -48px;
-    visibility: hidden;
+	display: block;
+	position: relative;
+	top: -48px;
+	visibility: hidden;
 }
 
 /** SEARCH RESULTS **/
@@ -117,7 +127,7 @@ a.anchor
 }
 
 #results a {
-	color: blue;
+	color: #B03931;
 }
 
 
@@ -128,7 +138,7 @@ div.sidebar {
 	float: left;
 	margin-right: -1px;
 	border-right: 1px solid #D0D0D0;
-	background-color: #F8F8F0;
+	background-color: #E0E0E0;
 }
 
 
@@ -136,7 +146,7 @@ div.toc {
 	padding: 1.5em 0.75em 1em 0.5em;
 	font-size: 0.55em;
 	line-height: 1.95em;
-	display:block; 
+	display:block;
 }
 
 @media only screen and (max-width: 800px)
@@ -161,7 +171,7 @@ div.toc {
 	padding: 0 0.6em;
 }
 a.hide, a.show {
-	color: #111; 
+	color: #111;
 	text-decoration: none;
 }
 .hide {
@@ -172,17 +182,17 @@ a.hide, a.show {
 .show {
 	background-color: #F8F8F0;
 	border-bottom-right-radius:3px;
-	display: none; 
+	display: none;
 }
 .hide:target + .show {
-	display: inline; 
+	display: inline;
 	position: absolute;
 }
 .hide:target {
-	display: none; 
+	display: none;
 }
 .hide:target ~ .toc {
-	display:none; 
+	display:none;
 }
 
 
@@ -208,7 +218,6 @@ div.toc ul ul {
 
 
 div.toc a {
-	color: #111;
 	font-size: 1.25em;
 }
 
@@ -239,7 +248,7 @@ div.toc span.package a {
 /* Highlight the current module/package */
 div.toc .selected {
 	border-radius: 2px;
-	background-color: #DAAF07 !important;
+	background-color: #F8F8F8 !important;
 	padding: 0.325em 0.2em;
 	/* counteracts the text movement caused by the padding */
 	margin: -0.325em -0.2em;
@@ -375,7 +384,7 @@ div.aggregate-symbol div.members {
 	order: -1;
 	-webkit-order: -1;
 	padding-bottom: 0.3em;
-	border-bottom: 10px solid #333;
+	border-bottom: 3px solid #333;
 	margin: 1em 0em 1.5em 0em;
 }
 
@@ -387,9 +396,9 @@ div.symbol {
 }
 
 a.anchor:target + div.symbol {
-	border: 2px solid #DAAF07;
+	border: 2px solid #943029;
 	border-radius: 0;
-	background-color: #F8F8F0;
+	background-color: #F7F3F3;
 }
 
 
@@ -399,12 +408,7 @@ a.anchor:target + div.symbol {
 .section.seealso, .section.note, .section.imports {
 	font-size: 75%;
 	line-height: 135%;
-	/* background-color: #F0F0C0; */
-	/* background-color: #DA7F07; */
-	/* background-color: #DA8F07; */
-	/* background-color: #DA9F07; */
-	background-color: #DAAF07;
-	/* background-color: #EABD08; */
+	background-color: #E0E0E0;
 	padding: 1em;
 	margin-bottom: 0.5em;
 }
@@ -442,7 +446,7 @@ a.anchor:target + div.symbol {
 	margin: 0;
 	list-style-type: none;
 	padding-left: 1.5em;
- 
+
 	-moz-column-count: 4;
 	-moz-column-gap: 20px;
 	-webkit-column-count: 4;
@@ -486,7 +490,7 @@ a.anchor:target + div.symbol {
 		column-gap: 7px;
 	}
 }
- 
+
 
 .section.imports ul a {
 	color: #111;
@@ -507,19 +511,19 @@ a.anchor:target + div.symbol {
 
 /**** FOOTER ****/
 
-footer 
-{
-    text-align: center;
-    font-size: 60%;
-    color: white;
-    background-color: #333;
+footer {
+	text-align: center;
+	font-size: 60%;
+	color: white;
+	background-color: #943029;
 }
 
-footer a
-{
-    color: white;
+footer a:link {
+	color: white;
 }
-
+footer a:visited {
+	color: white;
+}
 
 
 /**** CODE ****/
@@ -551,7 +555,7 @@ div.error {
 /* Markdown inline code and $(D code) */
 code.prettyprint, .d_inline_code {
 	font-family: monospace;
-	color: #333;
+	color: white;
 	background-color:rgba(0,0,0,0.04);
 	border-radius: .15em;
 	border: 1px solid #C0C0C0;
@@ -583,10 +587,10 @@ div.section td code:not(.prettyprint) {
 }
 
 .hljs {
-	display: block; padding: 1em;
-	background: #282B2E;
-	overflow-x: auto;
 	display: block;
+	padding: 1em;
+	background: #E0E0E0;
+	overflow-x: auto;
 }
 
 .hljs-keyword,
@@ -599,33 +603,33 @@ div.section td code:not(.prettyprint) {
 .nginx .hljs-title,
 .css .hljs-id,
 .tex .hljs-special {
-	color: #93C763;
+	color: #801010;
 }
 
 .hljs-number {
-	color: #FFCD22;
+	color: #e52525;
 }
 
 .hljs {
-	color: #E0E2E4;
+	color: black;
 }
 
 .css .hljs-tag,
 .css .hljs-pseudo {
-	color: #D0D2B5;
+	color: black;
 }
 
 .hljs-attribute,
 .hljs .hljs-constant {
-	color: #668BB0;
+	color: black;
 }
 
 .xml .hljs-attribute {
-	color: #B3B689;
+	color: black;
 }
 
 .xml .hljs-tag .hljs-value {
-	color: #E8E2B7;
+	color: black;
 }
 
 .hljs-code,
@@ -636,20 +640,20 @@ div.section td code:not(.prettyprint) {
 
 .hljs-class,
 .hljs-hexcolor {
-	color: #93C763;
+	color: black;
 }
 
 .hljs-regexp {
-	color: #D39745;
+	color: black;
 }
 
 .hljs-at_rule,
 .hljs-at_rule .hljs-keyword {
-	color: #A082BD;
+	color: black;
 }
 
 .hljs-doctype {
-	color: #557182;
+	color: black;
 }
 
 .hljs-link_url,
@@ -680,11 +684,11 @@ div.section td code:not(.prettyprint) {
 .apache .hljs-cbracket,
 .tex .hljs-command,
 .hljs-prompt {
-	color: #8CBBAD;
+	color: black;
 }
 
 .hljs-string {
-	color: #EC7600;
+	color: #e52525;
 }
 
 .hljs-comment,
@@ -698,7 +702,7 @@ div.section td code:not(.prettyprint) {
 .hljs-shebang,
 .apache .hljs-sqbracket,
 .tex .hljs-formula {
-	color: #818E96;
+	color: #391d10;
 }
 
 .hljs-keyword,
