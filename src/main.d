@@ -132,10 +132,11 @@ string[string] readMacros(const string[] macroFiles)
 void uniformCodeStyle(ref string[string] macros)
 {
 	macros[`D_CODE`] = `<pre><code class="hljs_d">$0</code></pre>`;
-	macros[`D`] = macros["D_CODE"];
-	macros[`D_INLINECODE`] = `<pre style="display:inline;" class="d_inline_code">$0</pre>`;
+	macros[`D`] = `<b>$0</b>`;
+	macros[`D_INLINECODE`] = `<b>$0</b>`;
 	macros[`D_COMMENT`] = `$0`;
 	macros[`D_KEYWORD`] = `$0`;
+	macros[`D_PARAM`] = macros[`D_INLINECODE`];
 }
 
 void generateDocumentation(Writer)(ref Config config)
