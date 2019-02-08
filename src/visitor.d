@@ -49,6 +49,8 @@ class DocVisitor(Writer) : ASTVisitor
 		this.writer.processCode = &crossReference;
 	}
 
+	override void visit(const Unittest){}
+
 	override void visit(const Module mod)
 	{
 		import std.conv : to;
