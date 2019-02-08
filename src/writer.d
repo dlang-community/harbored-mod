@@ -723,7 +723,20 @@ protected:
 		dst.put(`<td>`);
 		if (item.type !is null)
 		{
-			writeCodeBlock(dst, { dst.put(item.type); });
+			void delegate() dg =
+			{
+				dst.put(item.type);
+				if (Declarator decl = cast(Declarator) item.node)
+				{
+					if (!decl.initializer)
+						return;
+
+					import dparse.formatter : fmt = format;
+					dst.put(" = ");
+					fmt(&dst,  decl.initializer);
+				}
+			};
+			writeCodeBlock(dst, dg);
 		}
 		dst.put(`</td><td>%s</td></tr>`.format(item.summary));
 	}

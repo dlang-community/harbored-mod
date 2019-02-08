@@ -38,7 +38,7 @@ class DocVisitor(Writer) : ASTVisitor
 	 * writer          = Handles writing into generated files.
 	 */
 	this(ref const Config config, SymbolDatabase database,
-	     TestRange[][size_t] unitTestMapping, const(ubyte[]) fileBytes, Writer writer)
+		 TestRange[][size_t] unitTestMapping, const(ubyte[]) fileBytes, Writer writer)
 	{
 		this.config          = &config;
 		this.database        = database;
@@ -218,12 +218,12 @@ class DocVisitor(Writer) : ASTVisitor
 	override void visit(const VariableDeclaration vd)
 	{
 		// Write the variable attributes, type, name.
-		void writeVariableHeader(R)(ref R dst, string typeStr, string nameStr)
+		void writeVariableHeader(R)(ref R dst, string typeStr, string nameStr, string defStr = "")
 		{
 			writer.writeCodeBlock(dst,
 			{
 				assert(attributeStack.length > 0,
-				    "Attributes stack must not be empty when writing variable attributes");
+					"Attributes stack must not be empty when writing variable attributes");
 				auto formatter = writer.newFormatter(dst);
 				scope(exit) { destroy(formatter.sink); }
 				// Attributes like public, etc.
@@ -231,7 +231,7 @@ class DocVisitor(Writer) : ASTVisitor
 				dst.put(typeStr);
 				dst.put(` `);
 				dst.put(nameStr);
-				// TODO also default value
+				dst.put(defStr);
 			});
 		}
 		bool first;
@@ -247,57 +247,67 @@ class DocVisitor(Writer) : ASTVisitor
 			string summary;
 			writer.writeSymbolDescription(fileWriter,
 			{
-				writeVariableHeader(fileWriter, typeStr, dec.name.text);
+				string defStr;
+				if (dec.initializer)
+				{
+					import dparse.formatter : fmt = format;
+					import std.array : Appender;
+					Appender!string app;
+					app.put(" = ");
+					fmt(&app, dec.initializer);
+					defStr = app.data;
+				}
+				writeVariableHeader(fileWriter, typeStr, dec.name.text, defStr);
 				summary = writer.readAndWriteComment(fileWriter,
 					dec.comment is null ? vd.comment : dec.comment,
 					prevComments);
 			});
 
-			memberStack[$ - 2].variables ~= Item(itemURL, dec.name.text, summary, typeStr);
+			memberStack[$ - 2].variables ~= Item(itemURL, dec.name.text, summary, typeStr, dec);
 		}
 		if (vd.comment !is null && vd.autoDeclaration !is null)
-        {
-            foreach (part; vd.autoDeclaration.parts) with (part)
-            {
-                string itemURL;
-                auto fileWriter = pushSymbol(identifier.text, first, itemURL);
-                scope(exit) popSymbol(fileWriter);
+		{
+			foreach (part; vd.autoDeclaration.parts) with (part)
+			{
+				string itemURL;
+				auto fileWriter = pushSymbol(identifier.text, first, itemURL);
+				scope(exit) popSymbol(fileWriter);
 
-                // TODO this was hastily updated to get harbored-mod to compile
-                // after a libdparse update. Revisit and validate/fix any errors.
-                string[] storageClasses;
-                foreach(stor; vd.storageClasses)
-                {
-                    storageClasses ~= str(stor.token.type);
-                }
+				// TODO this was hastily updated to get harbored-mod to compile
+				// after a libdparse update. Revisit and validate/fix any errors.
+				string[] storageClasses;
+				foreach(stor; vd.storageClasses)
+				{
+					storageClasses ~= str(stor.token.type);
+				}
 
-                string typeStr = storageClasses.canFind("enum") ? null : "auto";
-                string summary;
-                writer.writeSymbolDescription(fileWriter,
-                {
-                    writeVariableHeader(fileWriter, typeStr, identifier.text);
-                    summary = writer.readAndWriteComment(fileWriter, vd.comment, prevComments);
-                });
-                auto i = Item(itemURL, identifier.text, summary, typeStr);
-                if (storageClasses.canFind("enum"))
-                    memberStack[$ - 2].enums ~= i;
-                else
-                    memberStack[$ - 2].variables ~= i;
+				string typeStr = storageClasses.canFind("enum") ? null : "auto";
+				string summary;
+				writer.writeSymbolDescription(fileWriter,
+				{
+					writeVariableHeader(fileWriter, typeStr, identifier.text);
+					summary = writer.readAndWriteComment(fileWriter, vd.comment, prevComments);
+				});
+				auto i = Item(itemURL, identifier.text, summary, typeStr);
+				if (storageClasses.canFind("enum"))
+					memberStack[$ - 2].enums ~= i;
+				else
+					memberStack[$ - 2].variables ~= i;
 
-                // string storageClass;
-                // foreach (attr; vd.attributes)
-                // {
-                // 	if (attr.storageClass !is null)
-                // 		storageClass = str(attr.storageClass.token.type);
-                // }
-                // auto i = Item(name, ident.text,
-                // 	summary, storageClass == "enum" ? null : "auto");
-                // if (storageClass == "enum")
-                // 	memberStack[$ - 2].enums ~= i;
-                // else
-                // 	memberStack[$ - 2].variables ~= i;
-            }
-        }
+				// string storageClass;
+				// foreach (attr; vd.attributes)
+				// {
+				// 	if (attr.storageClass !is null)
+				// 		storageClass = str(attr.storageClass.token.type);
+				// }
+				// auto i = Item(name, ident.text,
+				// 	summary, storageClass == "enum" ? null : "auto");
+				// if (storageClass == "enum")
+				// 	memberStack[$ - 2].enums ~= i;
+				// else
+				// 	memberStack[$ - 2].variables ~= i;
+			}
+		}
 	}
 
 	override void visit(const StructBody sb)
@@ -354,12 +364,12 @@ class DocVisitor(Writer) : ASTVisitor
 				// issue (imports are not hugely common), but keep the
 				// possible GC overhead in mind.
 				auto nameParts = i.identifierChain.identifiers
-				                 .dup.map!(t => t.text).array;
+								 .dup.map!(t => t.text).array;
 				const name = nameParts.joiner(".").to!string;
 
 				const knownModule = database.moduleNames.canFind(name);
 				const link = knownModule ? writer.moduleLink(nameParts)
-				                         : null;
+										 : null;
 				memberStack.back.publicImports ~=
 					Item(link, name, null, null, imp);
 			}
@@ -384,7 +394,7 @@ private:
 	out(result)
 	{
 		assert([tok!"private", tok!"package", tok!"protected", tok!"public"].canFind(result),
-		       "Unknown protection attribute");
+			   "Unknown protection attribute");
 	}
 	body
 	{
@@ -499,8 +509,8 @@ private:
 			writer.writeCodeBlock(fileWriter,
 			{
 				assert(attributeStack.length > 0,
-				       "Attributes stack must not be empty when writing " ~
-				       "function attributes");
+					   "Attributes stack must not be empty when writing " ~
+					   "function attributes");
 				// Attributes like public, etc.
 				writeAttributes(fileWriter, formatter, attrs);
 				// Return type and function name, with special case fo constructor
