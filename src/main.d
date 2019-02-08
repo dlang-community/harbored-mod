@@ -123,9 +123,19 @@ string[string] readMacros(const string[] macroFiles)
 	// using some of its modules? Either way, needed for compatibility.
 	rVal["HTTP"] = "<a href=\"http://$1\">$+</a>";
 	rVal["WEB"]  = "$(HTTP $1,$2)";
+	uniformCodeStyle(rVal);
 	foreach (mf; macroFiles)
 		readMacroFile(mf, rVal);
 	return rVal;
+}
+
+void uniformCodeStyle(ref string[string] macros)
+{
+	macros[`D_CODE`] = `<pre><code class="hljs_d">$0</code></pre>`;
+	macros[`D`] = macros["D_CODE"];
+	macros[`D_INLINECODE`] = `<pre style="display:inline;" class="d_inline_code">$0</pre>`;
+	macros[`D_COMMENT`] = `$0`;
+	macros[`D_KEYWORD`] = `$0`;
 }
 
 void generateDocumentation(Writer)(ref Config config)
