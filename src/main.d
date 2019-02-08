@@ -68,7 +68,7 @@ int main(string[] args)
 		}
 		try
 		{
-		    std.file.write(path, content);
+			std.file.write(path, content);
 		}
 		catch(Exception e)
 		{
@@ -148,7 +148,7 @@ void generateDocumentation(Writer)(ref Config config)
 	enum noFile = "missing file";
 	string[] tocAdditionals =
 		config.tocAdditionalFileNames.map!(path => path.exists ? readText(path) : noFile)
-		                             .array ~
+									 .array ~
 		config.tocAdditionalStrings;
 	if(!tocAdditionals.empty) foreach(ref text; tocAdditionals)
 	{
@@ -164,13 +164,13 @@ void generateDocumentation(Writer)(ref Config config)
 		try
 		{
 			writeDocumentation!Writer(config, database, f, search, tocItems,
-			                          tocAdditionals);
+									  tocAdditionals);
 		}
-        catch (DdocParseException e)
-        {
+		catch (DdocParseException e)
+		{
 			stderr.writeln("Could not generate documentation for ", f, ": ", e.msg,
-                    ": ", e.snippet);
-        }
+					": ", e.snippet);
+		}
 		catch (Exception e)
 		{
 			stderr.writeln("Could not generate documentation for ", f, ": ", e.msg);
@@ -263,7 +263,7 @@ void writeDocumentation(Writer)(ref Config config, SymbolDatabase database,
 	
 	auto htmlWriter  = new Writer(config, search, tocItems, tocAdditionals);
 	auto visitor = new DocVisitor!Writer(config, database, unitTestMapping, 
-	                                     fileBytes, htmlWriter);
+										 fileBytes, htmlWriter);
 	visitor.visit(m);
 }
 
@@ -288,7 +288,7 @@ string[] getFilesToProcess(ref const Config config)
 		if(size > config.maxFileSizeK * 1024)
 		{
 			writefln("WARNING: '%s' (%skiB) bigger than max file size (%skiB), " ~
-			         "ignoring", path, size / 1024, config.maxFileSizeK);
+					 "ignoring", path, size / 1024, config.maxFileSizeK);
 			return;
 		}
 		files.put(path);
@@ -317,24 +317,24 @@ immutable string searchjs = import("search.js");
 immutable string showhidejs = import("show_hide.js");
 ulong peakMemoryUsageK()
 {
-    version(linux)
-    {
-        try
-        {
-            import std.exception;
-            auto line = File("/proc/self/status").byLine().filter!(l => l.startsWith("VmHWM"));
-            enforce(!line.empty, new Exception("No VmHWM in /proc/self/status"));
-            return line.front.split()[1].to!ulong;
-        }
-        catch(Exception e)
-        {
-            writeln("Failed to get peak memory usage: ", e);
-            return 0;
-        }
-    }
-    else 
-    {
-        writeln("peakMemoryUsageK not implemented on non-Linux platforms");
-        return 0;
-    }
+	version(linux)
+	{
+		try
+		{
+			import std.exception;
+			auto line = File("/proc/self/status").byLine().filter!(l => l.startsWith("VmHWM"));
+			enforce(!line.empty, new Exception("No VmHWM in /proc/self/status"));
+			return line.front.split()[1].to!ulong;
+		}
+		catch(Exception e)
+		{
+			writeln("Failed to get peak memory usage: ", e);
+			return 0;
+		}
+	}
+	else
+	{
+		writeln("peakMemoryUsageK not implemented on non-Linux platforms");
+		return 0;
+	}
 }

@@ -69,9 +69,9 @@ class SymbolDatabase
 	{
 		auto mod = moduleName in modules;
 		enforce(mod !is null,
-		        new Exception("No such module: " ~ moduleName));
+				new Exception("No such module: " ~ moduleName));
 		assert(mod.type == SymbolType.Module,
-		       "A non-module MembersTree in SymbolDatabase.modules");
+			   "A non-module MembersTree in SymbolDatabase.modules");
 		return mod.dataModule;
 	}
 
@@ -130,7 +130,7 @@ class SymbolDatabase
 		// (e.g. for "File.writeln" nameStack would be ["File", "writeln"] and 
 		// this would look for members.children["File"].children["writeln"])
 		bool findNested(Parts)(ref MembersTree* m, Parts nameStack,
-		                       void delegate(size_t partIdx, MembersTree* members) deleg = null)
+							   void delegate(size_t partIdx, MembersTree* members) deleg = null)
 		{
 			auto members = m;
 			size_t partIdx;
@@ -343,7 +343,7 @@ class SymbolDatabase
 	auto symbolStack(S1, S2)(S1 moduleStack, S2 symbolStack)
 	{
 		assert(!moduleStack.empty,
-		       "Can't get a symbol stack with no module stack");
+			   "Can't get a symbol stack with no module stack");
 		
 		struct SymbolStack 
 		{
@@ -372,7 +372,7 @@ class SymbolDatabase
 					SymbolType type;
 				}
 				return Result(moduleStack.empty ? symbolStack.front : moduleStack.front,
-				              currentSymbol.type);
+							  currentSymbol.type);
 			}
 			
 			void popFront()
@@ -402,8 +402,8 @@ class SymbolDatabase
 					if(!moduleName.empty) { moduleName ~= "."; }
 					moduleName ~= moduleStack.front;
 					currentSymbol = currentSymbol is null
-					              ? (moduleStack.front in modulesTree.children)
-					              : (moduleStack.front in currentSymbol.children);
+								  ? (moduleStack.front in modulesTree.children)
+								  : (moduleStack.front in currentSymbol.children);
 					return;
 				}
 				if(!symbolStack.empty)
@@ -412,8 +412,8 @@ class SymbolDatabase
 					{
 						currentSymbol = moduleName in modules;
 						assert(currentSymbol !is null,
-						       "A module that's in moduleTree " ~
-						       "must be in modules too");
+							   "A module that's in moduleTree " ~
+							   "must be in modules too");
 					}
 					currentSymbol = symbolStack.front in currentSymbol.children;
 					return;
@@ -699,20 +699,20 @@ class DataGatherVisitor(Writer) : ASTVisitor
 			scope(exit) popSymbol();
 		}
 		if (vd.comment !is null && vd.autoDeclaration !is null)
-        {
-            foreach (part; vd.autoDeclaration.parts) with (part)
-            {
-                MembersTree* members = pushSymbol(identifier.text,
-                        SymbolType.Variable);
-                scope(exit) popSymbol();
+		{
+			foreach (part; vd.autoDeclaration.parts) with (part)
+			{
+				MembersTree* members = pushSymbol(identifier.text,
+						SymbolType.Variable);
+				scope(exit) popSymbol();
 
-                string[] storageClasses;
-                foreach(stor; vd.storageClasses)
-                {
-                    storageClasses ~= str(stor.token.type);
-                }
-            }
-        }
+				string[] storageClasses;
+				foreach(stor; vd.storageClasses)
+				{
+					storageClasses ~= str(stor.token.type);
+				}
+			}
+		}
 	}
 
 	override void visit(const Constructor cons)
