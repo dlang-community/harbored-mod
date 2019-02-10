@@ -7,7 +7,7 @@
 	"targetPath": "bin",
 	"targetName": "hmod",
 	"dependencies": {
-		"libdparse": "~>0.11.1",
+		"libdparse": "~>0.11.2",
 		"libddoc": "~>0.6.0",
 		"dmarkdown": "~>0.2.3",
 	},
