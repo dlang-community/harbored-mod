@@ -121,7 +121,7 @@ a.anchor
 	text-align: left;
 	color: black;
 	margin-top: 2em;
-	font-size: 70%;
+	font-size: 100%;
 	z-index: 1000;
 	overflow-y: scroll;
 }
@@ -143,8 +143,8 @@ div.sidebar {
 
 
 div.toc {
-	padding: 1.5em 0.75em 1em 0.5em;
-	font-size: 0.55em;
+	padding: 1.5em .75em .35em 0.5em;
+	font-size: 80%;
 	line-height: 1.95em;
 	display:block;
 }
@@ -261,7 +261,7 @@ div.toc .selected {
 div.content {
 	margin-top: 48px;
 	padding: 1.5em;
-	font-size: 90%;
+	font-size: 100%;
 	line-height: 130%;
 	overflow: hidden;
 	border-left: 1px solid #D0D0D0;
@@ -297,7 +297,7 @@ div.content tr {
 div.content table {
 	border-collapse: collapse;
 	border-bottom: 1px dashed #333;
-	font-size: 90%;
+	font-size: 100%;
 	line-height: 130%;
 	margin: 1em 0;
 }
@@ -406,7 +406,7 @@ a.anchor:target + div.symbol {
 /**** SECTION-SPECIFIC STYLES ****/
 
 .section.seealso, .section.note, .section.imports {
-	font-size: 75%;
+	font-size: 90%;
 	line-height: 135%;
 	background-color: #E0E0E0;
 	padding: 1em;
